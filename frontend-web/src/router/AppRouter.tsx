@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux'
 import type { RootState } from '@/store'
 import type { UserRole } from '@/types/auth.types'
 import { LoginPage } from '@/pages/auth/LoginPage'
+import { ClientDashboardPage } from '@/pages/client/ClientDashboardPage'
 import { UnauthorizedPage } from '@/pages/system/UnauthorizedPage'
 import { ProtectedRoute } from './ProtectedRoute'
 
@@ -57,7 +58,7 @@ export const AppRouter = () => (
         path='/client/*'
         element={
           <ProtectedRoute allowedRoles={['CLIENT']}>
-            <div>Client Dashboard</div>
+            <ClientDashboardPage />
           </ProtectedRoute>
         }
       />
