@@ -1,0 +1,137 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  RESPONSABLE
+  TECHNICIEN
+}
+
+enum StatutIntervention {
+  EN_ATTENTE
+  EN_COURS
+  TERMINEE
+  ANNULEE
+}
+
+enum Priorite {
+  BASSE
+  NORMALE
+  HAUTE
+  URGENTE
+}
+
+model Utilisateur {
+  id          Int       @id @default(autoincrement())
+  nom         String
+  prenom      String
+  email       String    @unique
+  motDePasse  String
+  telephone   String?
+  role        Role
+  actif       Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations selon le rôle
+  technicien    Technicien?
+  responsable   Responsable?
+}
+
+model Technicien {
+  id              Int     @id @default(autoincrement())
+  utilisateurId   Int     @unique
+  utilisateur     Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  
+  specialite      String?
+  zone            String?
+  disponible      Boolean @default(true)
+  latitude        Float?
+  longitude       Float?
+
+  interventions   Intervention[]
+  rapports        Rapport[]
+}
+
+model Responsable {
+  id              Int     @id @default(autoincrement())
+  utilisateurId   Int     @unique
+  utilisateur     Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  interventionsCreees  Intervention[] @relation("InterventionResponsable")
+}
+
+model Client {
+  id          Int       @id @default(autoincrement())
+  nom         String
+  prenom      String
+  email       String?
+  telephone   String
+  adresse     String
+  createdAt   DateTime  @default(now())
+
+  interventions  Intervention[]
+}
+
+model Intervention {
+  id              Int                 @id @default(autoincrement())
+  titre           String
+  description     String
+  adresse         String
+  latitude        Float?
+  longitude       Float?
+  statut          StatutIntervention  @default(EN_ATTENTE)
+  priorite        Priorite            @default(NORMALE)
+  dateCreation    DateTime            @default(now())
+  datePlanifiee   DateTime?
+  dateDebut       DateTime?
+  dateFin         DateTime?
+  updatedAt       DateTime            @updatedAt
+
+  clientId        Int
+  client          Client              @relation(fields: [clientId], references: [id])
+
+  technicienId    Int?
+  technicien      Technicien?         @relation(fields: [technicienId], references: [id])
+
+  responsableId   Int
+  responsable     Responsable         @relation("InterventionResponsable", fields: [responsableId], references: [id])
+
+  rapport         Rapport?
+  notifications   Notification[]
+}
+
+model Rapport {
+  id                Int       @id @default(autoincrement())
+  interventionId    Int       @unique
+  intervention      Intervention @relation(fields: [interventionId], references: [id])
+  technicienId      Int
+  technicien        Technicien @relation(fields: [technicienId], references: [id])
+  
+  contenu           String
+  materielUtilise   String?
+  observations      String?
+  photos            String[]  // URLs Cloudinary
+  createdAt         DateTime  @default(now())
+}
+
+model Notification {
+  id              Int       @id @default(autoincrement())
+  titre           String
+  message         String
+  lu              Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+
+  interventionId  Int?
+  intervention    Intervention? @relation(fields: [interventionId], references: [id])
+  
+  userId          Int
+}
