@@ -13,6 +13,7 @@ enum Role {
   ADMIN
   RESPONSABLE
   TECHNICIEN
+  CLIENT
 }
 
 enum StatutIntervention {
