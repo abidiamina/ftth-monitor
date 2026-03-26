@@ -1,0 +1,19 @@
+import type { ReactNode } from 'react'
+import { Navigate } from 'react-router-dom'
+import { useSelector } from 'react-redux'
+import type { RootState } from '@/store'
+import type { UserRole } from '@/types/auth.types'
+
+interface Props {
+  children: ReactNode
+  allowedRoles: UserRole[]
+}
+
+export const ProtectedRoute = ({ children, allowedRoles }: Props) => {
+  const { user, isAuthenticated } = useSelector((s: RootState) => s.auth)
+
+  if (!isAuthenticated) return <Navigate to='/login' replace />
+  if (!allowedRoles.includes(user!.role)) return <Navigate to='/unauthorized' replace />
+
+  return <>{children}</>
+}
