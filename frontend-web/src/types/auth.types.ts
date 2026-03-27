@@ -5,9 +5,12 @@ export interface User {
   email: string
   nom: string
   prenom: string
+  telephone?: string | null
   role: UserRole
-  isActive?: boolean
+  actif?: boolean
+  mustChangePassword?: boolean
   createdAt?: string
+  updatedAt?: string
 }
 
 export interface AuthState {
@@ -16,6 +19,7 @@ export interface AuthState {
   refreshToken: string | null
   isAuthenticated: boolean
   isLoading: boolean
+  isReady: boolean
 }
 
 export interface LoginRequest {
@@ -34,4 +38,64 @@ export interface RegisterRequest {
   motDePasse: string
   nom: string
   prenom: string
+  telephone: string
+  adresse: string
+}
+
+export interface ClientProfile {
+  id: number
+  utilisateurId?: number
+  nom: string
+  prenom: string
+  email: string
+  telephone: string
+  adresse: string
+}
+
+export interface TechnicianProfile {
+  id: number
+  utilisateurId?: number
+}
+
+export interface ResponsableProfile {
+  id: number
+  utilisateurId?: number
+}
+
+export interface CurrentUser extends User {
+  client?: ClientProfile | null
+  technicien?: TechnicianProfile | null
+  responsable?: ResponsableProfile | null
+}
+
+export interface UpdateProfileRequest {
+  nom: string
+  prenom: string
+  telephone?: string
+  adresse?: string
+}
+
+export interface ChangePasswordRequest {
+  motDePasseActuel: string
+  nouveauMotDePasse: string
+}
+
+export interface CreateEmployeeRequest {
+  nom: string
+  prenom: string
+  email: string
+  telephone?: string
+  role: Extract<UserRole, 'RESPONSABLE' | 'TECHNICIEN'>
+}
+
+export interface TechnicianRecord {
+  id: number
+  utilisateur: {
+    id: number
+    nom: string
+    prenom: string
+    email: string
+    telephone?: string | null
+    actif: boolean
+  }
 }

@@ -19,9 +19,17 @@ const roleRedirects: Record<UserRole, string> = {
 }
 
 const RoleRedirect = () => {
-  const { user, isAuthenticated } = useSelector((s: RootState) => s.auth)
+  const { user, isAuthenticated, isReady } = useSelector((s: RootState) => s.auth)
 
+  if (!isReady) {
+    return (
+      <main className='flex min-h-screen items-center justify-center bg-[#071412] px-6 text-sm text-slate-300'>
+        Verification de la session...
+      </main>
+    )
+  }
   if (!isAuthenticated) return <Navigate to='/login' replace />
+  if (!user) return <Navigate to='/login' replace />
 
   return <Navigate to={roleRedirects[user!.role]} replace />
 }
