@@ -1,27 +1,22 @@
 const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/authMiddleware');
+const {
+  createEmployee,
+  getUserById,
+  listTechnicians,
+  listUsers,
+  resetEmployeePassword,
+  updateUser,
+  updateUserStatus,
+} = require('../controllers/userController');
 
-// GET /api/users - liste tous les utilisateurs (Admin seulement)
-router.get('/', protect, authorize('ADMIN'), async (req, res) => {
-  const prisma = require('../config/prisma');
-  const users = await prisma.utilisateur.findMany({
-    select: { id: true, nom: true, prenom: true, email: true, role: true, actif: true, createdAt: true },
-  });
-  res.json({ success: true, data: users });
-});
-
-// GET /api/users/techniciens - liste les techniciens (Admin + Responsable)
-router.get('/techniciens', protect, authorize('ADMIN', 'RESPONSABLE'), async (req, res) => {
-  const prisma = require('../config/prisma');
-  const techniciens = await prisma.technicien.findMany({
-    include: {
-      utilisateur: {
-        select: { id: true, nom: true, prenom: true, email: true, telephone: true },
-      },
-    },
-  });
-  res.json({ success: true, data: techniciens });
-});
+router.get('/', protect, authorize('ADMIN'), listUsers);
+router.get('/techniciens', protect, authorize('ADMIN', 'RESPONSABLE'), listTechnicians);
+router.post('/employees', protect, authorize('ADMIN'), createEmployee);
+router.get('/:id', protect, authorize('ADMIN'), getUserById);
+router.patch('/:id', protect, authorize('ADMIN'), updateUser);
+router.patch('/:id/status', protect, authorize('ADMIN'), updateUserStatus);
+router.patch('/:id/reset-password', protect, authorize('ADMIN'), resetEmployeePassword);
 
 module.exports = router;
