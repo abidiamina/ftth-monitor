@@ -3,8 +3,12 @@ import { useSelector } from 'react-redux'
 import type { RootState } from '@/store'
 import type { UserRole } from '@/types/auth.types'
 import { LoginPage } from '@/pages/auth/LoginPage'
+import { RegisterPage } from '@/pages/auth/RegisterPage'
+import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage'
 import { ClientDashboardPage } from '@/pages/client/ClientDashboardPage'
+import { ResponsableDashboardPage } from '@/pages/responsable/ResponsableDashboardPage'
 import { UnauthorizedPage } from '@/pages/system/UnauthorizedPage'
+import { TechnicienDashboardPage } from '@/pages/technicien/TechnicienDashboardPage'
 import { ProtectedRoute } from './ProtectedRoute'
 
 const roleRedirects: Record<UserRole, string> = {
@@ -26,7 +30,7 @@ export const AppRouter = () => (
   <BrowserRouter>
     <Routes>
       <Route path='/login' element={<LoginPage />} />
-      <Route path='/register' element={<div>Register Page</div>} />
+      <Route path='/register' element={<RegisterPage />} />
       <Route path='/unauthorized' element={<UnauthorizedPage />} />
       <Route path='/' element={<RoleRedirect />} />
 
@@ -34,7 +38,7 @@ export const AppRouter = () => (
         path='/admin/*'
         element={
           <ProtectedRoute allowedRoles={['ADMIN']}>
-            <div>Admin Dashboard</div>
+            <AdminDashboardPage />
           </ProtectedRoute>
         }
       />
@@ -42,7 +46,7 @@ export const AppRouter = () => (
         path='/responsable/*'
         element={
           <ProtectedRoute allowedRoles={['RESPONSABLE']}>
-            <div>Responsable Dashboard</div>
+            <ResponsableDashboardPage />
           </ProtectedRoute>
         }
       />
@@ -50,7 +54,7 @@ export const AppRouter = () => (
         path='/technicien/*'
         element={
           <ProtectedRoute allowedRoles={['TECHNICIEN']}>
-            <div>Technicien Dashboard</div>
+            <TechnicienDashboardPage />
           </ProtectedRoute>
         }
       />
