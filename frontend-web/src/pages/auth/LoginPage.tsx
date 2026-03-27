@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react'
-import { useDispatch } from 'react-redux'
+import { useEffect, useState, type FormEvent } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import {
@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { loginUser } from '@/services/authApi'
 import { setCredentials, setLoading } from '@/store/authSlice'
+import type { RootState } from '@/store'
 import type { UserRole } from '@/types/auth.types'
 
 const roleRedirects: Record<UserRole, string> = {
@@ -80,9 +81,15 @@ const InputField = ({
 export const LoginPage = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const { user, isAuthenticated, isReady } = useSelector((state: RootState) => state.auth)
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [motDePasse, setMotDePasse] = useState('')
+
+  useEffect(() => {
+    if (!isReady || !isAuthenticated || !user) return
+    navigate(roleRedirects[user.role], { replace: true })
+  }, [isAuthenticated, isReady, navigate, user])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -109,6 +116,14 @@ export const LoginPage = () => {
       toast.error(message)
       dispatch(setLoading(false))
     }
+  }
+
+  if (!isReady) {
+    return (
+      <main className='flex min-h-screen items-center justify-center bg-[#071412] px-6 text-sm text-slate-300'>
+        Verification de la session...
+      </main>
+    )
   }
 
   return (
