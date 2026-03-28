@@ -6,7 +6,9 @@ export function LoadingScreen() {
   return (
     <Screen>
       <View style={styles.container}>
-        <Text style={styles.title}>FTTH Monitor</Text>
+        <Text style={styles.title}>
+          Plateforme Intelligente de Monitoring et d'Optimisation des Interventions FTTH
+        </Text>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.text}>Chargement de la session...</Text>
       </View>
@@ -25,6 +27,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '800',
     color: colors.text,
+    textAlign: 'center',
   },
   text: {
     color: colors.muted,

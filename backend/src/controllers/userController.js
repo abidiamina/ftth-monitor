@@ -6,7 +6,7 @@ const {
   sendEmployeeWelcomeEmail,
 } = require('../utils/emailService');
 
-const EMPLOYEE_ROLES = ['RESPONSABLE', 'TECHNICIEN'];
+const MANAGED_ADMIN_ROLES = ['ADMIN', 'RESPONSABLE', 'TECHNICIEN'];
 
 const sanitizeUser = (user) => ({
   id: user.id,
@@ -131,10 +131,10 @@ const createEmployee = async (req, res) => {
       });
     }
 
-    if (!EMPLOYEE_ROLES.includes(normalizedRole)) {
+    if (!MANAGED_ADMIN_ROLES.includes(normalizedRole)) {
       return res.status(400).json({
         success: false,
-        message: 'Le role employe doit etre RESPONSABLE ou TECHNICIEN.',
+        message: 'Le role doit etre ADMIN, RESPONSABLE ou TECHNICIEN.',
       });
     }
 
@@ -182,8 +182,8 @@ const createEmployee = async (req, res) => {
     res.status(201).json({
       success: true,
       message: emailResult.delivered
-        ? 'Compte employe cree et email envoye.'
-        : 'Compte employe cree. Email non envoye, identifiants disponibles dans les logs serveur.',
+        ? 'Compte cree et email envoye.'
+        : 'Compte cree. Email non envoye, identifiants disponibles dans les logs serveur.',
       data: sanitizeUser(user),
       emailDelivery: emailResult,
     });
@@ -191,7 +191,7 @@ const createEmployee = async (req, res) => {
     console.error(err);
     res.status(500).json({
       success: false,
-      message: "Erreur lors de la creation du compte employe.",
+      message: "Erreur lors de la creation du compte.",
     });
   }
 };
@@ -307,6 +307,45 @@ const updateUserStatus = async (req, res) => {
   }
 };
 
+const deleteUser = async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+    const existingUser = await findUserById(userId);
+
+    if (!existingUser) {
+      return res.status(404).json({ success: false, message: 'Utilisateur introuvable.' });
+    }
+
+    if (existingUser.role === 'ADMIN' && req.user.id === userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Un administrateur ne peut pas supprimer son propre compte.',
+      });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      if (existingUser.role === 'CLIENT') {
+        await tx.client.updateMany({
+          where: { utilisateurId: userId },
+          data: { utilisateurId: null },
+        });
+      }
+
+      await tx.utilisateur.delete({
+        where: { id: userId },
+      });
+    });
+
+    res.json({
+      success: true,
+      message: 'Utilisateur supprime avec succes.',
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur lors de la suppression de l utilisateur.' });
+  }
+};
+
 const resetEmployeePassword = async (req, res) => {
   try {
     const userId = Number(req.params.id);
@@ -316,10 +355,10 @@ const resetEmployeePassword = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Utilisateur introuvable.' });
     }
 
-    if (!EMPLOYEE_ROLES.includes(user.role)) {
+    if (!MANAGED_ADMIN_ROLES.includes(user.role)) {
       return res.status(400).json({
         success: false,
-        message: 'La reinitialisation par email est reservee aux comptes employes.',
+        message: 'La reinitialisation par email est reservee aux comptes ADMIN, RESPONSABLE et TECHNICIEN.',
       });
     }
 
@@ -359,6 +398,7 @@ const resetEmployeePassword = async (req, res) => {
 
 module.exports = {
   createEmployee,
+  deleteUser,
   getUserById,
   listTechnicians,
   listUsers,

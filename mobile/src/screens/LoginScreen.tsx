@@ -29,9 +29,11 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
     <Screen scrollable>
       <View style={styles.hero}>
         <Text style={styles.kicker}>Application mobile</Text>
-        <Text style={styles.title}>Clients et techniciens FTTH</Text>
+        <Text style={styles.title}>
+          Plateforme Intelligente de Monitoring et d'Optimisation des Interventions FTTH
+        </Text>
         <Text style={styles.subtitle}>
-          Le mobile sert aux clients pour suivre leurs demandes et aux techniciens pour gerer les
+          Le mobile sert aux clients pour suivre leurs demandes et aux techniciens pour piloter les
           interventions terrain.
         </Text>
       </View>

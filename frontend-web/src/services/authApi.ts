@@ -7,6 +7,7 @@ import type {
   LoginResponse,
   RegisterRequest,
   TechnicianRecord,
+  UpdateUserRequest,
   UpdateProfileRequest,
   User,
 } from '@/types/auth.types'
@@ -150,10 +151,30 @@ export const updateUserStatus = async (
   }
 }
 
+export const updateUser = async (
+  id: number | string,
+  payload: UpdateUserRequest
+): Promise<{ data: User; message: string }> => {
+  const { data } = await api.patch<UserApiResponse>(`/users/${id}`, payload)
+
+  return {
+    data: data.data,
+    message: data.message ?? 'Utilisateur mis a jour.',
+  }
+}
+
 export const resetEmployeePassword = async (
   id: number | string
 ): Promise<{ message: string }> => {
   const { data } = await api.patch<ApiMessageResponse>(`/users/${id}/reset-password`)
+
+  return {
+    message: data.message,
+  }
+}
+
+export const deleteUser = async (id: number | string): Promise<{ message: string }> => {
+  const { data } = await api.delete<ApiMessageResponse>(`/users/${id}`)
 
   return {
     message: data.message,
