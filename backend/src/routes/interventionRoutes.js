@@ -14,7 +14,7 @@ const {
 router
   .route('/')
   .get(protect, getInterventions)
-  .post(protect, authorize('ADMIN', 'RESPONSABLE'), createIntervention);
+  .post(protect, authorize('ADMIN', 'RESPONSABLE', 'CLIENT'), createIntervention);
 
 // GET    /api/interventions/:id   → tous les rôles connectés
 // PUT    /api/interventions/:id   → Responsable + Admin + Technicien (pour changer le statut)

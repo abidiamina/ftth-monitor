@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ShieldCheck, UserPlus, Users } from 'lucide-react'
+import { Pencil, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import { BackToLoginButton } from '@/components/auth/BackToLoginButton'
+import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
 import { Button } from '@/components/ui/button'
-import { createEmployee, listUsers, resetEmployeePassword, updateUserStatus } from '@/services/authApi'
-import type { CreateEmployeeRequest, User, UserRole } from '@/types/auth.types'
+import {
+  createEmployee,
+  deleteUser,
+  listUsers,
+  resetEmployeePassword,
+  updateUser,
+  updateUserStatus,
+} from '@/services/authApi'
+import type { CreateEmployeeRequest, UpdateUserRequest, User, UserRole } from '@/types/auth.types'
 
 const roleLabels: Record<UserRole, string> = {
   ADMIN: 'Administrateur',
@@ -25,15 +32,30 @@ const emptyEmployee: CreateEmployeeRequest = {
   prenom: '',
   email: '',
   telephone: '',
-  role: 'TECHNICIEN',
+  role: 'ADMIN',
 }
+
+const toUpdatePayload = (user: User): UpdateUserRequest => ({
+  nom: user.nom,
+  prenom: user.prenom,
+  email: user.email,
+  telephone: user.telephone ?? '',
+})
 
 export const AdminDashboardPage = () => {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [editingUserId, setEditingUserId] = useState<User['id'] | null>(null)
+  const [savingUser, setSavingUser] = useState(false)
   const [roleFilter, setRoleFilter] = useState<'ALL' | UserRole>('ALL')
   const [employeeForm, setEmployeeForm] = useState<CreateEmployeeRequest>(emptyEmployee)
+  const [editForm, setEditForm] = useState<UpdateUserRequest>({
+    nom: '',
+    prenom: '',
+    email: '',
+    telephone: '',
+  })
 
   const loadUsers = async (role?: UserRole) => {
     setLoading(true)
@@ -98,40 +120,95 @@ export const AdminDashboardPage = () => {
     }
   }
 
+  const handleStartEdit = (user: User) => {
+    setEditingUserId(user.id)
+    setEditForm(toUpdatePayload(user))
+  }
+
+  const handleCancelEdit = () => {
+    setEditingUserId(null)
+    setEditForm({
+      nom: '',
+      prenom: '',
+      email: '',
+      telephone: '',
+    })
+  }
+
+  const handleUpdateUser = async (event: React.FormEvent<HTMLFormElement>, userId: User['id']) => {
+    event.preventDefault()
+    setSavingUser(true)
+
+    try {
+      const response = await updateUser(userId, editForm)
+      toast.success(response.message)
+      setUsers((current) =>
+        current.map((item) => (item.id === userId ? response.data : item))
+      )
+      handleCancelEdit()
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? 'Mise a jour du compte impossible.')
+    } finally {
+      setSavingUser(false)
+    }
+  }
+
+  const handleDeleteUser = async (user: User) => {
+    const confirmed = window.confirm(
+      `Supprimer le compte de ${user.prenom} ${user.nom} ? Cette action est irreversible.`
+    )
+
+    if (!confirmed) return
+
+    try {
+      const response = await deleteUser(user.id)
+      toast.success(response.message)
+      setUsers((current) => current.filter((item) => item.id !== user.id))
+      if (editingUserId === user.id) {
+        handleCancelEdit()
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? 'Suppression du compte impossible.')
+    }
+  }
+
   return (
-    <main className='min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(167,139,250,0.14),transparent_18%),radial-gradient(circle_at_88%_14%,rgba(255,187,120,0.10),transparent_18%),linear-gradient(135deg,#09060f_0%,#110b1c_42%,#1b1230_100%)] px-4 py-6 sm:px-6 lg:px-8'>
-      <div className='mx-auto max-w-7xl'>
-        <header className='rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-[0_24px_90px_rgba(0,0,0,0.25)] backdrop-blur-xl sm:p-8'>
+    <AppDashboardShell
+      role='ADMIN'
+      workspaceLabel='Suivi des interventions'
+      workspaceTitle='Console administration'
+    >
+        <header className='dashboard-hero rounded-[2.4rem] p-6 sm:p-8'>
           <div className='flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between'>
             <div className='max-w-3xl'>
-              <div className='inline-flex items-center gap-2 rounded-full border border-violet-300/15 bg-violet-300/8 px-4 py-2 text-xs uppercase tracking-[0.24em] text-violet-200'>
+              <div className='inline-flex items-center gap-2 rounded-full border border-violet-300/15 bg-violet-300/8 px-4 py-2 text-xs uppercase tracking-[0.24em] text-violet-100'>
                 <ShieldCheck className='h-4 w-4' />
-                Dashboard admin connecte au backend auth
+                Control room administration
               </div>
               <h1 className='mt-5 text-4xl font-semibold tracking-[-0.05em] text-white sm:text-5xl'>
-                Gestion des utilisateurs et des comptes employes
+                Pilotage des utilisateurs et des comptes employes
               </h1>
               <p className='mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base'>
                 Cette vue s aligne sur les routes backend disponibles: liste des utilisateurs,
-                creation des employes, activation, desactivation et reset de mot de passe.
+                creation des comptes admin, responsable et technicien, activation,
+                desactivation et reset de mot de passe.
               </p>
             </div>
 
             <div className='grid gap-3 sm:grid-cols-2'>
-              <BackToLoginButton />
-              <article className='rounded-[1.4rem] border border-white/10 bg-black/15 p-4'>
+              <article className='dashboard-stat rounded-[1.6rem] p-4'>
                 <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>Utilisateurs</p>
                 <p className='mt-3 text-3xl font-semibold text-white'>{stats.total}</p>
               </article>
-              <article className='rounded-[1.4rem] border border-white/10 bg-black/15 p-4'>
+              <article className='dashboard-stat rounded-[1.6rem] p-4'>
                 <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>Actifs</p>
                 <p className='mt-3 text-3xl font-semibold text-white'>{stats.actifs}</p>
               </article>
-              <article className='rounded-[1.4rem] border border-white/10 bg-black/15 p-4'>
+              <article className='dashboard-stat rounded-[1.6rem] p-4'>
                 <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>Employes</p>
                 <p className='mt-3 text-3xl font-semibold text-white'>{stats.employes}</p>
               </article>
-              <article className='rounded-[1.4rem] border border-white/10 bg-black/15 p-4'>
+              <article className='dashboard-stat rounded-[1.6rem] p-4'>
                 <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>Reset requis</p>
                 <p className='mt-3 text-3xl font-semibold text-white'>{stats.mustChange}</p>
               </article>
@@ -140,33 +217,34 @@ export const AdminDashboardPage = () => {
         </header>
 
         <section className='mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]'>
-          <article className='rounded-[2rem] border border-violet-300/15 bg-[linear-gradient(135deg,rgba(167,139,250,0.08),rgba(255,255,255,0.02))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.2)] backdrop-blur-xl sm:p-8'>
+          <article className='dashboard-panel dashboard-panel-accent rounded-[2rem] p-6 sm:p-8'>
             <div className='flex items-center gap-3 text-violet-200'>
               <UserPlus className='h-5 w-5' />
               <p className='text-xs uppercase tracking-[0.24em]'>POST /users/employees</p>
             </div>
 
             <h2 className='mt-5 text-3xl font-semibold tracking-[-0.04em] text-white'>
-              Creer un compte employe
+              Creer un compte admin ou employe
             </h2>
 
             <form className='mt-6 grid gap-4' onSubmit={handleCreateEmployee}>
-              <input value={employeeForm.prenom} onChange={(event) => setEmployeeForm((current) => ({ ...current, prenom: event.target.value }))} placeholder='Prenom' className='rounded-[1.2rem] border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500' />
-              <input value={employeeForm.nom} onChange={(event) => setEmployeeForm((current) => ({ ...current, nom: event.target.value }))} placeholder='Nom' className='rounded-[1.2rem] border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500' />
-              <input type='email' value={employeeForm.email} onChange={(event) => setEmployeeForm((current) => ({ ...current, email: event.target.value }))} placeholder='email@ftth.com' className='rounded-[1.2rem] border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500' />
-              <input value={employeeForm.telephone} onChange={(event) => setEmployeeForm((current) => ({ ...current, telephone: event.target.value }))} placeholder='Telephone' className='rounded-[1.2rem] border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500' />
-              <select value={employeeForm.role} onChange={(event) => setEmployeeForm((current) => ({ ...current, role: event.target.value as CreateEmployeeRequest['role'] }))} className='rounded-[1.2rem] border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none'>
+              <input value={employeeForm.prenom} onChange={(event) => setEmployeeForm((current) => ({ ...current, prenom: event.target.value }))} placeholder='Prenom' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
+              <input value={employeeForm.nom} onChange={(event) => setEmployeeForm((current) => ({ ...current, nom: event.target.value }))} placeholder='Nom' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
+              <input type='email' value={employeeForm.email} onChange={(event) => setEmployeeForm((current) => ({ ...current, email: event.target.value }))} placeholder='email@ftth.com' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
+              <input value={employeeForm.telephone} onChange={(event) => setEmployeeForm((current) => ({ ...current, telephone: event.target.value }))} placeholder='Telephone' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
+              <select value={employeeForm.role} onChange={(event) => setEmployeeForm((current) => ({ ...current, role: event.target.value as CreateEmployeeRequest['role'] }))} className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm'>
+                <option value='ADMIN'>Administrateur</option>
                 <option value='TECHNICIEN'>Technicien</option>
                 <option value='RESPONSABLE'>Responsable</option>
               </select>
 
               <Button type='submit' size='lg' disabled={submitting} className='h-12 rounded-[1.2rem] border-0 bg-[linear-gradient(135deg,#d6ccff_0%,#a78bfa_56%,#f4be7e_100%)] text-slate-950 hover:brightness-105'>
-                {submitting ? 'Creation...' : 'Creer le compte employe'}
+                {submitting ? 'Creation...' : 'Creer le compte'}
               </Button>
             </form>
           </article>
 
-          <article className='rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.2)] backdrop-blur-xl sm:p-8'>
+          <article className='dashboard-panel rounded-[2rem] p-6 sm:p-8'>
             <div className='flex items-center justify-between gap-4'>
               <div className='flex items-center gap-3 text-violet-200'>
                 <Users className='h-5 w-5' />
@@ -184,12 +262,12 @@ export const AdminDashboardPage = () => {
 
             <div className='mt-6 space-y-4'>
               {loading ? (
-                <div className='rounded-[1.4rem] border border-white/10 bg-black/15 p-5 text-sm text-slate-300'>Chargement des utilisateurs...</div>
+                <div className='dashboard-card rounded-[1.5rem] p-5 text-sm text-slate-300'>Chargement des utilisateurs...</div>
               ) : users.length === 0 ? (
-                <div className='rounded-[1.4rem] border border-white/10 bg-black/15 p-5 text-sm text-slate-300'>Aucun utilisateur trouve pour ce filtre.</div>
+                <div className='dashboard-card rounded-[1.5rem] p-5 text-sm text-slate-300'>Aucun utilisateur trouve pour ce filtre.</div>
               ) : (
                 users.map((user) => (
-                  <div key={user.id} className='rounded-[1.4rem] border border-white/10 bg-black/15 p-5'>
+                  <div key={user.id} className='dashboard-card rounded-[1.5rem] p-5'>
                     <div className='flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between'>
                       <div>
                         <div className='flex flex-wrap items-center gap-3'>
@@ -202,14 +280,22 @@ export const AdminDashboardPage = () => {
                       </div>
 
                       <div className='flex flex-wrap gap-3'>
+                        <Button variant='outline' className='border-white/10 bg-white/5 text-white hover:bg-white/10' onClick={() => handleStartEdit(user)}>
+                          <Pencil className='mr-2 h-4 w-4' />
+                          Modifier
+                        </Button>
                         <Button variant='outline' className='border-white/10 bg-white/5 text-white hover:bg-white/10' onClick={() => handleToggleStatus(user)}>
                           {user.actif ? 'Desactiver' : 'Activer'}
                         </Button>
-                        {user.role !== 'CLIENT' && user.role !== 'ADMIN' ? (
+                        {user.role !== 'CLIENT' ? (
                           <Button variant='outline' className='border-white/10 bg-white/5 text-white hover:bg-white/10' onClick={() => handleResetPassword(user.id)}>
                             Reset mot de passe
                           </Button>
                         ) : null}
+                        <Button variant='outline' className='border-rose-400/20 bg-rose-400/10 text-rose-100 hover:bg-rose-400/20' onClick={() => handleDeleteUser(user)}>
+                          <Trash2 className='mr-2 h-4 w-4' />
+                          Supprimer
+                        </Button>
                       </div>
                     </div>
 
@@ -218,13 +304,33 @@ export const AdminDashboardPage = () => {
                         Ce compte doit encore changer son mot de passe.
                       </div>
                     ) : null}
+
+                    {editingUserId === user.id ? (
+                      <form className='mt-4 grid gap-3 rounded-[1.2rem] border border-white/10 bg-white/5 p-4' onSubmit={(event) => handleUpdateUser(event, user.id)}>
+                        <div className='grid gap-3 sm:grid-cols-2'>
+                          <input value={editForm.prenom} onChange={(event) => setEditForm((current) => ({ ...current, prenom: event.target.value }))} placeholder='Prenom' className='dashboard-input rounded-[1rem] px-4 py-3 text-sm' />
+                          <input value={editForm.nom} onChange={(event) => setEditForm((current) => ({ ...current, nom: event.target.value }))} placeholder='Nom' className='dashboard-input rounded-[1rem] px-4 py-3 text-sm' />
+                        </div>
+                        <div className='grid gap-3 sm:grid-cols-2'>
+                          <input type='email' value={editForm.email} onChange={(event) => setEditForm((current) => ({ ...current, email: event.target.value }))} placeholder='email@ftth.com' className='dashboard-input rounded-[1rem] px-4 py-3 text-sm' />
+                          <input value={editForm.telephone ?? ''} onChange={(event) => setEditForm((current) => ({ ...current, telephone: event.target.value }))} placeholder='Telephone' className='dashboard-input rounded-[1rem] px-4 py-3 text-sm' />
+                        </div>
+                        <div className='flex flex-wrap gap-3'>
+                          <Button type='submit' disabled={savingUser} className='border-0 bg-[linear-gradient(135deg,#d6ccff_0%,#a78bfa_56%,#f4be7e_100%)] text-slate-950 hover:brightness-105'>
+                            {savingUser ? 'Enregistrement...' : 'Enregistrer'}
+                          </Button>
+                          <Button type='button' variant='outline' className='border-white/10 bg-white/5 text-white hover:bg-white/10' onClick={handleCancelEdit}>
+                            Annuler
+                          </Button>
+                        </div>
+                      </form>
+                    ) : null}
                   </div>
                 ))
               )}
             </div>
           </article>
         </section>
-      </div>
-    </main>
+    </AppDashboardShell>
   )
 }

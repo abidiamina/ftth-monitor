@@ -3,6 +3,7 @@ const router = express.Router();
 const { protect, authorize } = require('../middleware/authMiddleware');
 const {
   createEmployee,
+  deleteUser,
   getUserById,
   listTechnicians,
   listUsers,
@@ -18,5 +19,6 @@ router.get('/:id', protect, authorize('ADMIN'), getUserById);
 router.patch('/:id', protect, authorize('ADMIN'), updateUser);
 router.patch('/:id/status', protect, authorize('ADMIN'), updateUserStatus);
 router.patch('/:id/reset-password', protect, authorize('ADMIN'), resetEmployeePassword);
+router.delete('/:id', protect, authorize('ADMIN'), deleteUser);
 
 module.exports = router;
