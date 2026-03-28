@@ -8,7 +8,7 @@ export const setApiToken = (token: string | null) => {
   authToken = token
 }
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: env.apiBaseUrl,
   headers: {
     'Content-Type': 'application/json',

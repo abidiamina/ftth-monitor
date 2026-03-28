@@ -9,7 +9,7 @@ import {
 import { Alert } from 'react-native'
 import { getCurrentUser, loginUser, registerClient, setApiToken } from '../services/authApi'
 import { storage } from '../services/storage'
-import type { CurrentUser, LoginRequest, RegisterRequest, User, UserRole } from '../types/auth'
+import type { CurrentUser, LoginRequest, RegisterRequest, UserRole } from '../types/auth'
 
 const mobileRoles: UserRole[] = ['CLIENT', 'TECHNICIEN']
 
@@ -17,7 +17,7 @@ type AuthContextValue = {
   isReady: boolean
   isAuthenticated: boolean
   isLoading: boolean
-  user: User | null
+  user: CurrentUser | null
   login: (payload: LoginRequest) => Promise<void>
   register: (payload: RegisterRequest) => Promise<void>
   logout: () => Promise<void>
@@ -29,7 +29,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 export function AuthProvider({ children }: PropsWithChildren) {
   const [isReady, setIsReady] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<CurrentUser | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [refreshToken, setRefreshToken] = useState<string | null>(null)
 
@@ -63,7 +63,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [])
 
   const persistSession = async (
-    sessionUser: User,
+    sessionUser: CurrentUser,
     sessionToken: string,
     sessionRefreshToken: string | null
   ) => {

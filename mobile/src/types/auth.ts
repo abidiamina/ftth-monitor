@@ -38,7 +38,7 @@ export interface RegisterRequest {
 }
 
 export interface AuthSession {
-  user: User | null
+  user: CurrentUser | null
   token: string | null
   refreshToken: string | null
 }
