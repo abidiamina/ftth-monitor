@@ -3,11 +3,13 @@ import { BellRing, KeyRound, ShieldCheck, TicketPlus, UserRound } from 'lucide-r
 import { useDispatch } from 'react-redux'
 import { toast } from 'react-hot-toast'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
+import { NotificationsPanel } from '@/components/dashboard/NotificationsPanel'
 import {
   validateInterventionForm,
   validatePasswordChangeForm,
   validateUserUpdateForm,
 } from '@/lib/validation'
+import { listNotifications, markNotificationAsRead } from '@/services/notificationApi'
 import { changeCurrentPassword, getCurrentUser, updateCurrentUser } from '@/services/authApi'
 import { createIntervention, listInterventions } from '@/services/interventionApi'
 import { setUser } from '@/store/authSlice'
@@ -17,6 +19,7 @@ import type {
   InterventionPriority,
   InterventionRecord,
   InterventionStatus,
+  NotificationRecord,
 } from '@/types/auth.types'
 
 const statusLabels: Record<InterventionStatus, string> = {
@@ -73,6 +76,7 @@ export const ClientDashboardPage = () => {
   const dispatch = useDispatch()
   const [user, setLocalUser] = useState<CurrentUser | null>(null)
   const [interventions, setInterventions] = useState<InterventionRecord[]>([])
+  const [notifications, setNotifications] = useState<NotificationRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [submittingRequest, setSubmittingRequest] = useState(false)
   const [profileForm, setProfileForm] = useState({
@@ -90,13 +94,15 @@ export const ClientDashboardPage = () => {
   const loadDashboard = async () => {
     setLoading(true)
     try {
-      const [userData, interventionsData] = await Promise.all([
+      const [userData, interventionsData, notificationsData] = await Promise.all([
         getCurrentUser(),
         listInterventions(),
+        listNotifications(),
       ])
 
       setLocalUser(userData)
       setInterventions(interventionsData)
+      setNotifications(notificationsData)
       setProfileForm({
         nom: userData.nom,
         prenom: userData.prenom,
@@ -123,8 +129,20 @@ export const ClientDashboardPage = () => {
     const total = interventions.length
     const ouvertes = interventions.filter((item) => item.statut !== 'TERMINEE').length
     const enCours = interventions.filter((item) => item.statut === 'EN_COURS').length
-    return { total, ouvertes, enCours }
-  }, [interventions])
+    const unread = notifications.filter((item) => !item.lu).length
+    return { total, ouvertes, enCours, unread }
+  }, [interventions, notifications])
+
+  const handleMarkNotificationAsRead = async (notificationId: number) => {
+    try {
+      await markNotificationAsRead(notificationId)
+      setNotifications((current) =>
+        current.map((item) => (item.id === notificationId ? { ...item, lu: true } : item))
+      )
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Notification impossible a marquer comme lue.'))
+    }
+  }
 
   const handleProfileSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -251,6 +269,10 @@ export const ClientDashboardPage = () => {
                 <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>En cours</p>
                 <p className='mt-3 text-3xl font-semibold text-white'>{stats.enCours}</p>
               </article>
+              <article className='dashboard-stat rounded-[1.6rem] p-4'>
+                <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>Alertes</p>
+                <p className='mt-3 text-3xl font-semibold text-white'>{stats.unread}</p>
+              </article>
             </div>
 
             <h2 className='mt-6 text-3xl font-semibold tracking-[-0.04em] text-white'>
@@ -359,6 +381,16 @@ export const ClientDashboardPage = () => {
               </button>
             </form>
           </article>
+        </section>
+
+        <section className='mt-6'>
+          <NotificationsPanel
+            description='Les notifications backend du sprint 2 apparaissent ici pour suivre les nouvelles demandes, affectations et changements de statut.'
+            notifications={notifications}
+            loading={loading}
+            accentClassName='bg-emerald-300/10 text-emerald-100'
+            onMarkAsRead={handleMarkNotificationAsRead}
+          />
         </section>
     </AppDashboardShell>
   )

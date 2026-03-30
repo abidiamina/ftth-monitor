@@ -68,6 +68,16 @@ export interface CurrentUser extends User {
   responsable?: ResponsableProfile | null
 }
 
+export interface NotificationRecord {
+  id: number
+  titre: string
+  message: string
+  lu: boolean
+  createdAt: string
+  interventionId?: number | null
+  userId: number
+}
+
 export interface UpdateProfileRequest {
   nom: string
   prenom: string

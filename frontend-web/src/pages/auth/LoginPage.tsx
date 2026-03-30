@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AuthShell } from '@/components/auth/AuthShell'
+import { env } from '@/config/env'
 import { validateLoginForm } from '@/lib/validation'
 import { loginUser } from '@/services/authApi'
 import { setCredentials, setLoading } from '@/store/authSlice'
@@ -159,7 +160,7 @@ export const LoginPage = () => {
           </div>
 
           <div className='rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] uppercase tracking-[0.22em] text-slate-300'>
-            {import.meta.env.VITE_APP_ENV ?? 'development'}
+            {env.appEnv}
           </div>
         </div>
       }
@@ -215,7 +216,7 @@ export const LoginPage = () => {
         />
 
         <div className='flex items-center justify-between gap-3 text-sm text-slate-400'>
-          <span>{import.meta.env.VITE_APP_NAME ?? 'FTTH Dashboard'}</span>
+          <span>{env.appName}</span>
           <Link to='/register' className='text-emerald-200 transition hover:text-white'>
             Creer un compte
           </Link>
