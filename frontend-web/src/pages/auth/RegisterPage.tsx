@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AuthShell } from '@/components/auth/AuthShell'
+import { validateRegisterForm } from '@/lib/validation'
 import { registerClient } from '@/services/authApi'
 import { setCredentials, setLoading } from '@/store/authSlice'
 
@@ -66,6 +67,7 @@ const InputField = ({
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
           autoComplete={autoComplete}
+          required
           className='w-full border-0 bg-transparent text-sm text-white outline-none placeholder:text-slate-500'
         />
         {trailing}
@@ -91,25 +93,10 @@ export const RegisterPage = () => {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    if (
-      !form.nom.trim() ||
-      !form.prenom.trim() ||
-      !form.email.trim() ||
-      !form.telephone.trim() ||
-      !form.adresse.trim() ||
-      !form.motDePasse.trim()
-    ) {
-      toast.error('Tous les champs sont obligatoires.')
-      return
-    }
+    const validationError = validateRegisterForm(form)
 
-    if (form.motDePasse.length < 8) {
-      toast.error('Le mot de passe doit contenir au moins 8 caracteres.')
-      return
-    }
-
-    if (form.motDePasse !== form.confirmation) {
-      toast.error('La confirmation du mot de passe ne correspond pas.')
+    if (validationError) {
+      toast.error(validationError)
       return
     }
 

@@ -3,6 +3,11 @@ import { BellRing, KeyRound, ShieldCheck, TicketPlus, UserRound } from 'lucide-r
 import { useDispatch } from 'react-redux'
 import { toast } from 'react-hot-toast'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
+import {
+  validateInterventionForm,
+  validatePasswordChangeForm,
+  validateUserUpdateForm,
+} from '@/lib/validation'
 import { changeCurrentPassword, getCurrentUser, updateCurrentUser } from '@/services/authApi'
 import { createIntervention, listInterventions } from '@/services/interventionApi'
 import { setUser } from '@/store/authSlice'
@@ -123,6 +128,12 @@ export const ClientDashboardPage = () => {
 
   const handleProfileSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    const validationError = validateUserUpdateForm(profileForm)
+
+    if (validationError) {
+      toast.error(validationError)
+      return
+    }
 
     try {
       const response = await updateCurrentUser(profileForm)
@@ -152,6 +163,12 @@ export const ClientDashboardPage = () => {
 
   const handlePasswordSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    const validationError = validatePasswordChangeForm(passwordForm)
+
+    if (validationError) {
+      toast.error(validationError)
+      return
+    }
 
     try {
       const response = await changeCurrentPassword(passwordForm)
@@ -166,6 +183,13 @@ export const ClientDashboardPage = () => {
 
   const handleRequestSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    const validationError = validateInterventionForm(requestForm)
+
+    if (validationError) {
+      toast.error(validationError)
+      return
+    }
+
     setSubmittingRequest(true)
 
     try {

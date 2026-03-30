@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
+import { validatePasswordChangeForm } from '@/lib/validation'
 import { changeCurrentPassword, getCurrentUser } from '@/services/authApi'
 import { listInterventions, updateIntervention } from '@/services/interventionApi'
 import type { CurrentUser, InterventionRecord, InterventionStatus } from '@/types/auth.types'
@@ -89,6 +90,15 @@ export const TechnicienDashboardPage = () => {
 
   const handlePasswordChange = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    const validationError = validatePasswordChangeForm({
+      motDePasseActuel,
+      nouveauMotDePasse,
+    })
+
+    if (validationError) {
+      toast.error(validationError)
+      return
+    }
 
     try {
       const response = await changeCurrentPassword({ motDePasseActuel, nouveauMotDePasse })

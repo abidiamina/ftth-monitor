@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { BellRing, ClipboardList, ShieldCheck, UsersRound, Wrench } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
+import { validateInterventionForm } from '@/lib/validation'
 import { listTechnicians } from '@/services/authApi'
 import {
   createIntervention,
@@ -140,6 +141,13 @@ export const ResponsableDashboardPage = () => {
 
   const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    const validationError = validateInterventionForm(form, { requireClient: true })
+
+    if (validationError) {
+      toast.error(validationError)
+      return
+    }
+
     setSubmitting(true)
 
     try {

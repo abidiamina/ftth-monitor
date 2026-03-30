@@ -5,6 +5,11 @@ const {
   sendEmployeeResetPasswordEmail,
   sendEmployeeWelcomeEmail,
 } = require('../utils/emailService');
+const {
+  normalizeText,
+  validateEmployeePayload,
+  validateUserProfilePayload,
+} = require('../utils/validation');
 
 const MANAGED_ADMIN_ROLES = ['ADMIN', 'RESPONSABLE', 'TECHNICIEN'];
 
@@ -168,21 +173,15 @@ const listTechnicians = async (req, res) => {
 const createEmployee = async (req, res) => {
   try {
     const { nom, prenom, email, telephone, role } = req.body;
-    const normalizedEmail = email?.trim()?.toLowerCase();
-    const normalizedRole = role?.trim()?.toUpperCase();
+    const normalizedEmail = normalizeText(email).toLowerCase();
+    const normalizedRole = normalizeText(role).toUpperCase();
+    const validationError = validateEmployeePayload(
+      { nom, prenom, email: normalizedEmail, telephone, role: normalizedRole },
+      MANAGED_ADMIN_ROLES
+    );
 
-    if (!nom?.trim() || !prenom?.trim() || !normalizedEmail || !normalizedRole) {
-      return res.status(400).json({
-        success: false,
-        message: 'Nom, prenom, email et role sont obligatoires.',
-      });
-    }
-
-    if (!MANAGED_ADMIN_ROLES.includes(normalizedRole)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Le role doit etre ADMIN, RESPONSABLE ou TECHNICIEN.',
-      });
+    if (validationError) {
+      return res.status(400).json({ success: false, message: validationError });
     }
 
     const existing = await prisma.utilisateur.findUnique({
@@ -254,14 +253,17 @@ const updateUser = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Utilisateur introuvable.' });
     }
 
-    if (!nom?.trim() || !prenom?.trim() || !email?.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Nom, prenom et email sont obligatoires.',
-      });
-    }
+    const normalizedEmail = normalizeText(email).toLowerCase();
+    const validationError = validateUserProfilePayload({
+      nom,
+      prenom,
+      email: normalizedEmail,
+      telephone,
+    });
 
-    const normalizedEmail = email.trim().toLowerCase();
+    if (validationError) {
+      return res.status(400).json({ success: false, message: validationError });
+    }
 
     const duplicate = await prisma.utilisateur.findFirst({
       where: {
