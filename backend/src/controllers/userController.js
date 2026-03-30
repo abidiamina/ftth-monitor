@@ -49,6 +49,53 @@ const findUserById = async (id) => {
   });
 };
 
+const getDeletionBlockers = async (userId, role) => {
+  if (role === 'RESPONSABLE') {
+    const responsable = await prisma.responsable.findUnique({
+      where: { utilisateurId: userId },
+      select: { id: true },
+    });
+
+    if (!responsable) {
+      return null;
+    }
+
+    const interventionsCount = await prisma.intervention.count({
+      where: { responsableId: responsable.id },
+    });
+
+    if (interventionsCount > 0) {
+      return `Impossible de supprimer ce responsable: ${interventionsCount} intervention(s) lui sont encore rattachees. Desactivez plutot le compte ou reaffectez d abord les interventions.`;
+    }
+  }
+
+  if (role === 'TECHNICIEN') {
+    const technicien = await prisma.technicien.findUnique({
+      where: { utilisateurId: userId },
+      select: { id: true },
+    });
+
+    if (!technicien) {
+      return null;
+    }
+
+    const [interventionsCount, rapportsCount] = await Promise.all([
+      prisma.intervention.count({
+        where: { technicienId: technicien.id },
+      }),
+      prisma.rapport.count({
+        where: { technicienId: technicien.id },
+      }),
+    ]);
+
+    if (interventionsCount > 0 || rapportsCount > 0) {
+      return `Impossible de supprimer ce technicien: ${interventionsCount} intervention(s) et ${rapportsCount} rapport(s) lui sont encore rattaches. Desactivez plutot le compte ou reaffectez d abord les donnees.`;
+    }
+  }
+
+  return null;
+};
+
 const listUsers = async (req, res) => {
   try {
     const role = req.query.role?.toString().trim().toUpperCase();
@@ -320,6 +367,15 @@ const deleteUser = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Un administrateur ne peut pas supprimer son propre compte.',
+      });
+    }
+
+    const deletionBlocker = await getDeletionBlockers(userId, existingUser.role);
+
+    if (deletionBlocker) {
+      return res.status(400).json({
+        success: false,
+        message: deletionBlocker,
       });
     }
 
