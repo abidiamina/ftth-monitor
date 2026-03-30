@@ -11,10 +11,17 @@ import {
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
+import { NotificationsPanel } from '@/components/dashboard/NotificationsPanel'
 import { validatePasswordChangeForm } from '@/lib/validation'
 import { changeCurrentPassword, getCurrentUser } from '@/services/authApi'
 import { listInterventions, updateIntervention } from '@/services/interventionApi'
-import type { CurrentUser, InterventionRecord, InterventionStatus } from '@/types/auth.types'
+import { listNotifications, markNotificationAsRead } from '@/services/notificationApi'
+import type {
+  CurrentUser,
+  InterventionRecord,
+  InterventionStatus,
+  NotificationRecord,
+} from '@/types/auth.types'
 
 const statusLabels: Record<InterventionStatus, string> = {
   EN_ATTENTE: 'A confirmer',
@@ -55,6 +62,7 @@ const formatDate = (value?: string | null) => {
 export const TechnicienDashboardPage = () => {
   const [user, setUser] = useState<CurrentUser | null>(null)
   const [interventions, setInterventions] = useState<InterventionRecord[]>([])
+  const [notifications, setNotifications] = useState<NotificationRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [actionId, setActionId] = useState<number | null>(null)
   const [motDePasseActuel, setMotDePasseActuel] = useState('')
@@ -63,12 +71,14 @@ export const TechnicienDashboardPage = () => {
   const loadDashboard = async () => {
     setLoading(true)
     try {
-      const [userData, interventionsData] = await Promise.all([
+      const [userData, interventionsData, notificationsData] = await Promise.all([
         getCurrentUser(),
         listInterventions(),
+        listNotifications(),
       ])
       setUser(userData)
       setInterventions(interventionsData)
+      setNotifications(notificationsData)
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, 'Impossible de charger l espace technicien.'))
     } finally {
@@ -85,8 +95,20 @@ export const TechnicienDashboardPage = () => {
       pending: interventions.filter((item) => item.statut === 'EN_ATTENTE'),
       active: interventions.filter((item) => item.statut === 'EN_COURS'),
       completed: interventions.filter((item) => item.statut === 'TERMINEE'),
+      unread: notifications.filter((item) => !item.lu).length,
     }
-  }, [interventions])
+  }, [interventions, notifications])
+
+  const handleMarkNotificationAsRead = async (notificationId: number) => {
+    try {
+      await markNotificationAsRead(notificationId)
+      setNotifications((current) =>
+        current.map((item) => (item.id === notificationId ? { ...item, lu: true } : item))
+      )
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Notification impossible a marquer comme lue.'))
+    }
+  }
 
   const handlePasswordChange = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -216,6 +238,10 @@ export const TechnicienDashboardPage = () => {
               <article className='dashboard-stat rounded-[1.6rem] p-4'>
                 <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>Technicien</p>
                 <p className='mt-3 text-base font-semibold text-white'>{user ? `${user.prenom} ${user.nom}` : 'Chargement...'}</p>
+              </article>
+              <article className='dashboard-stat rounded-[1.6rem] p-4'>
+                <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>Alertes</p>
+                <p className='mt-3 text-3xl font-semibold text-white'>{missionDeck.unread}</p>
               </article>
             </div>
           </div>
@@ -391,6 +417,16 @@ export const TechnicienDashboardPage = () => {
               </p>
             </article>
           </div>
+        </section>
+
+        <section className='mt-6'>
+          <NotificationsPanel
+            description='Affectations, changements de priorite et mises a jour de statut du sprint 2 remontent ici en temps reel applicatif.'
+            notifications={notifications}
+            loading={loading}
+            accentClassName='bg-emerald-300/10 text-emerald-100'
+            onMarkAsRead={handleMarkNotificationAsRead}
+          />
         </section>
     </AppDashboardShell>
   )
