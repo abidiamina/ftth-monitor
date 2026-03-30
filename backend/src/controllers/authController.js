@@ -1,6 +1,13 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../config/prisma');
 const { generateToken } = require('../utils/jwtUtils');
+const {
+  normalizeText,
+  validateLoginPayload,
+  validatePasswordChangePayload,
+  validateRegisterPayload,
+  validateUserProfilePayload,
+} = require('../utils/validation');
 
 const sanitizeUser = (user) => ({
   id: user.id,
@@ -17,29 +24,19 @@ const sanitizeUser = (user) => ({
 const register = async (req, res) => {
   try {
     const { nom, prenom, email, motDePasse, telephone, adresse } = req.body;
-    const normalizedEmail = email?.trim()?.toLowerCase();
-    const trimmedPassword = motDePasse?.trim();
+    const normalizedEmail = normalizeText(email).toLowerCase();
+    const trimmedPassword = normalizeText(motDePasse);
+    const validationError = validateRegisterPayload({
+      nom,
+      prenom,
+      email: normalizedEmail,
+      motDePasse: trimmedPassword,
+      telephone,
+      adresse,
+    });
 
-    if (
-      !nom?.trim() ||
-      !prenom?.trim() ||
-      !normalizedEmail ||
-      !trimmedPassword ||
-      !telephone?.trim() ||
-      !adresse?.trim()
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          'Nom, prenom, email, telephone, adresse et mot de passe sont obligatoires.',
-      });
-    }
-
-    if (trimmedPassword.length < 8) {
-      return res.status(400).json({
-        success: false,
-        message: 'Le mot de passe doit contenir au moins 8 caracteres.',
-      });
+    if (validationError) {
+      return res.status(400).json({ success: false, message: validationError });
     }
 
     const existing = await prisma.utilisateur.findUnique({
@@ -98,13 +95,11 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, motDePasse } = req.body;
-    const normalizedEmail = email?.trim()?.toLowerCase();
+    const normalizedEmail = normalizeText(email).toLowerCase();
+    const validationError = validateLoginPayload({ email: normalizedEmail, motDePasse });
 
-    if (!normalizedEmail || !motDePasse?.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email et mot de passe sont obligatoires.',
-      });
+    if (validationError) {
+      return res.status(400).json({ success: false, message: validationError });
     }
 
     const user = await prisma.utilisateur.findUnique({
@@ -177,12 +172,13 @@ const getMe = async (req, res) => {
 const updateMe = async (req, res) => {
   try {
     const { nom, prenom, telephone, adresse } = req.body;
+    const validationError = validateUserProfilePayload(
+      { nom, prenom, telephone, adresse },
+      { requireAddress: true }
+    );
 
-    if (!nom?.trim() || !prenom?.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Nom et prenom sont obligatoires.',
-      });
+    if (validationError) {
+      return res.status(400).json({ success: false, message: validationError });
     }
 
     const currentUser = await prisma.utilisateur.findUnique({
@@ -203,7 +199,7 @@ const updateMe = async (req, res) => {
       });
     }
 
-    if (currentUser.role === 'CLIENT' && !adresse?.trim()) {
+    if (currentUser.role === 'CLIENT' && !normalizeText(adresse)) {
       return res.status(400).json({
         success: false,
         message: 'L adresse est obligatoire pour un client.',
@@ -265,19 +261,13 @@ const updateMe = async (req, res) => {
 const changePassword = async (req, res) => {
   try {
     const { motDePasseActuel, nouveauMotDePasse } = req.body;
+    const validationError = validatePasswordChangePayload({
+      motDePasseActuel,
+      nouveauMotDePasse,
+    });
 
-    if (!motDePasseActuel?.trim() || !nouveauMotDePasse?.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Le mot de passe actuel et le nouveau mot de passe sont obligatoires.',
-      });
-    }
-
-    if (nouveauMotDePasse.trim().length < 8) {
-      return res.status(400).json({
-        success: false,
-        message: 'Le nouveau mot de passe doit contenir au moins 8 caracteres.',
-      });
+    if (validationError) {
+      return res.status(400).json({ success: false, message: validationError });
     }
 
     const user = await prisma.utilisateur.findUnique({
@@ -300,7 +290,7 @@ const changePassword = async (req, res) => {
       });
     }
 
-    const hashedPassword = await bcrypt.hash(nouveauMotDePasse.trim(), 10);
+    const hashedPassword = await bcrypt.hash(normalizeText(nouveauMotDePasse), 10);
 
     const updatedUser = await prisma.utilisateur.update({
       where: { id: req.user.id },

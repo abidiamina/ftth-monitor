@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { BellRing, ClipboardList, ShieldCheck, UsersRound, Wrench } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
+import { NotificationsPanel } from '@/components/dashboard/NotificationsPanel'
+import { validateInterventionForm } from '@/lib/validation'
 import { listTechnicians } from '@/services/authApi'
 import {
   createIntervention,
@@ -9,12 +11,14 @@ import {
   listInterventions,
   updateIntervention,
 } from '@/services/interventionApi'
+import { listNotifications, markNotificationAsRead } from '@/services/notificationApi'
 import type {
   ClientRecord,
   CreateInterventionRequest,
   InterventionPriority,
   InterventionRecord,
   InterventionStatus,
+  NotificationRecord,
   TechnicianRecord,
 } from '@/types/auth.types'
 
@@ -82,6 +86,7 @@ export const ResponsableDashboardPage = () => {
   const [technicians, setTechnicians] = useState<TechnicianRecord[]>([])
   const [clients, setClients] = useState<ClientRecord[]>([])
   const [interventions, setInterventions] = useState<InterventionRecord[]>([])
+  const [notifications, setNotifications] = useState<NotificationRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [statusFilter, setStatusFilter] = useState<'ALL' | InterventionStatus>('ALL')
@@ -93,15 +98,17 @@ export const ResponsableDashboardPage = () => {
   const loadDashboard = async () => {
     setLoading(true)
     try {
-      const [techniciansData, clientsData, interventionsData] = await Promise.all([
+      const [techniciansData, clientsData, interventionsData, notificationsData] = await Promise.all([
         listTechnicians(),
         listClients(),
         listInterventions(),
+        listNotifications(),
       ])
 
       setTechnicians(techniciansData)
       setClients(clientsData)
       setInterventions(interventionsData)
+      setNotifications(notificationsData)
       setAssignmentDrafts(
         Object.fromEntries(
           interventionsData.map((item) => [item.id, item.technicienId ? String(item.technicienId) : ''])
@@ -126,9 +133,21 @@ export const ResponsableDashboardPage = () => {
     const enCours = interventions.filter((item) => item.statut === 'EN_COURS').length
     const urgentes = interventions.filter((item) => item.priorite === 'URGENTE').length
     const sansTechnicien = interventions.filter((item) => !item.technicienId).length
+    const unread = notifications.filter((item) => !item.lu).length
 
-    return { total, enCours, urgentes, sansTechnicien }
-  }, [interventions])
+    return { total, enCours, urgentes, sansTechnicien, unread }
+  }, [interventions, notifications])
+
+  const handleMarkNotificationAsRead = async (notificationId: number) => {
+    try {
+      await markNotificationAsRead(notificationId)
+      setNotifications((current) =>
+        current.map((item) => (item.id === notificationId ? { ...item, lu: true } : item))
+      )
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Notification impossible a marquer comme lue.'))
+    }
+  }
 
   const filteredInterventions = useMemo(() => {
     return interventions.filter((item) => {
@@ -140,6 +159,13 @@ export const ResponsableDashboardPage = () => {
 
   const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    const validationError = validateInterventionForm(form, { requireClient: true })
+
+    if (validationError) {
+      toast.error(validationError)
+      return
+    }
+
     setSubmitting(true)
 
     try {
@@ -272,6 +298,10 @@ export const ResponsableDashboardPage = () => {
               <article className='dashboard-kpi rounded-[1.6rem] p-4'>
                 <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>Sans tech</p>
                 <p className='mt-3 text-3xl font-semibold text-white'>{stats.sansTechnicien}</p>
+              </article>
+              <article className='dashboard-kpi rounded-[1.6rem] p-4'>
+                <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>Alertes</p>
+                <p className='mt-3 text-3xl font-semibold text-white'>{stats.unread}</p>
               </article>
             </div>
 
@@ -610,21 +640,31 @@ export const ResponsableDashboardPage = () => {
         <article className='dashboard-panel rounded-[1.8rem] p-6'>
           <div className='flex items-center gap-3 text-blue-200'>
             <BellRing className='h-5 w-5' />
-            <p className='text-xs uppercase tracking-[0.24em]'>Notifications</p>
+            <p className='text-xs uppercase tracking-[0.24em]'>Signal Sprint 2</p>
           </div>
           <p className='mt-5 text-sm leading-7 text-slate-300'>
-            Les notifications backend existent deja. Cette zone reste dans l esprit sprint 2 pour
-            rendre visibles les alertes metier et les points d attention terrain.
+            Les notifications reelles du backend sont maintenant visibles plus bas avec lecture
+            manuelle, pour suivre le pilotage des interventions.
           </p>
           <div className='mt-5 space-y-3'>
             <div className='dashboard-card-soft rounded-[1.2rem] p-4 text-sm text-slate-300'>
-              Nouvelle intervention creee
+              {stats.unread} notification(s) en attente de lecture
             </div>
             <div className='dashboard-card-soft rounded-[1.2rem] p-4 text-sm text-slate-300'>
-              Affectation technicien mise a jour
+              {stats.enCours} intervention(s) actives a suivre
             </div>
           </div>
         </article>
+      </section>
+
+      <section className='mt-6'>
+        <NotificationsPanel
+          description='Le responsable voit ici les notifications backend liees aux creations, affectations, priorites et changements de statut.'
+          notifications={notifications}
+          loading={loading}
+          accentClassName='bg-blue-300/10 text-blue-100'
+          onMarkAsRead={handleMarkNotificationAsRead}
+        />
       </section>
     </AppDashboardShell>
   )

@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const { createNotifications } = require('../utils/notificationService');
+const { normalizeText, validateInterventionPayload } = require('../utils/validation');
 
 const interventionInclude = {
   client: true,
@@ -282,12 +283,13 @@ const createIntervention = async (req, res) => {
       titre, description, adresse, latitude, longitude,
       priorite, datePlanifiee, clientId, technicienId,
     } = req.body;
+    const validationError = validateInterventionPayload(
+      { titre, description, adresse, priorite, datePlanifiee, clientId, technicienId },
+      { requireClient: req.user.role !== 'CLIENT' }
+    );
 
-    if (!titre || !description || !adresse) {
-      return res.status(400).json({
-        success: false,
-        message: 'Champs requis : titre, description, adresse.',
-      });
+    if (validationError) {
+      return res.status(400).json({ success: false, message: validationError });
     }
 
     let resolvedClientId = parseOptionalInt(clientId);
@@ -332,9 +334,9 @@ const createIntervention = async (req, res) => {
 
     const intervention = await prisma.intervention.create({
       data: {
-        titre,
-        description,
-        adresse,
+        titre: normalizeText(titre),
+        description: normalizeText(description),
+        adresse: normalizeText(adresse),
         latitude: parseOptionalFloat(latitude),
         longitude: parseOptionalFloat(longitude),
         priorite: priorite || 'NORMALE',
@@ -375,6 +377,14 @@ const updateIntervention = async (req, res) => {
       titre, description, adresse, latitude, longitude,
       priorite, statut, datePlanifiee, technicienId,
     } = req.body;
+    const validationError = validateInterventionPayload(
+      { titre, description, adresse, priorite, statut, datePlanifiee, technicienId },
+      { partial: true }
+    );
+
+    if (validationError) {
+      return res.status(400).json({ success: false, message: validationError });
+    }
 
     const interventionId = parseInt(id, 10);
     const existing = await prisma.intervention.findUnique({
@@ -414,9 +424,9 @@ const updateIntervention = async (req, res) => {
     const intervention = await prisma.intervention.update({
       where: { id: interventionId },
       data: {
-        ...(titre && { titre }),
-        ...(description && { description }),
-        ...(adresse && { adresse }),
+        ...(titre !== undefined && { titre: normalizeText(titre) }),
+        ...(description !== undefined && { description: normalizeText(description) }),
+        ...(adresse !== undefined && { adresse: normalizeText(adresse) }),
         ...(latitude !== undefined && { latitude: parseOptionalFloat(latitude) }),
         ...(longitude !== undefined && { longitude: parseOptionalFloat(longitude) }),
         ...(priorite && { priorite }),
