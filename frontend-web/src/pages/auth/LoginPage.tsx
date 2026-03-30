@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AuthShell } from '@/components/auth/AuthShell'
+import { validateLoginForm } from '@/lib/validation'
 import { loginUser } from '@/services/authApi'
 import { setCredentials, setLoading } from '@/store/authSlice'
 import type { RootState } from '@/store'
@@ -71,6 +72,7 @@ const InputField = ({
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
           autoComplete={autoComplete}
+          required
           className='w-full border-0 bg-transparent text-sm text-white outline-none placeholder:text-slate-500'
         />
         {trailing}
@@ -95,8 +97,10 @@ export const LoginPage = () => {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    if (!email.trim() || !motDePasse.trim()) {
-      toast.error('Renseigne ton email et ton mot de passe.')
+    const validationError = validateLoginForm({ email, motDePasse })
+
+    if (validationError) {
+      toast.error(validationError)
       return
     }
 

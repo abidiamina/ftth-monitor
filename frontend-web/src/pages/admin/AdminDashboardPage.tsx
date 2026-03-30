@@ -3,6 +3,7 @@ import { Pencil, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
 import { Button } from '@/components/ui/button'
+import { validateEmployeeForm, validateUserUpdateForm } from '@/lib/validation'
 import {
   createEmployee,
   deleteUser,
@@ -84,6 +85,13 @@ export const AdminDashboardPage = () => {
 
   const handleCreateEmployee = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    const validationError = validateEmployeeForm(employeeForm)
+
+    if (validationError) {
+      toast.error(validationError)
+      return
+    }
+
     setSubmitting(true)
 
     try {
@@ -137,6 +145,13 @@ export const AdminDashboardPage = () => {
 
   const handleUpdateUser = async (event: React.FormEvent<HTMLFormElement>, userId: User['id']) => {
     event.preventDefault()
+    const validationError = validateUserUpdateForm(editForm)
+
+    if (validationError) {
+      toast.error(validationError)
+      return
+    }
+
     setSavingUser(true)
 
     try {
