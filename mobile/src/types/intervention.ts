@@ -36,6 +36,8 @@ export interface InterventionRecord {
   datePlanifiee?: string | null
   dateDebut?: string | null
   dateFin?: string | null
+  validee?: boolean
+  dateValidation?: string | null
   clientId: number
   technicienId?: number | null
   responsableId: number
@@ -55,6 +57,7 @@ export interface CreateInterventionRequest {
 
 export interface UpdateInterventionRequest {
   statut?: InterventionStatus
+  validee?: boolean
   technicienId?: number | string | null
 }
 

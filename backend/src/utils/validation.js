@@ -98,7 +98,7 @@ const validatePasswordChangePayload = ({ motDePasseActuel, nouveauMotDePasse }) 
 };
 
 const validateInterventionPayload = (
-  { titre, description, adresse, priorite, statut, datePlanifiee, clientId, technicienId },
+  { titre, description, adresse, priorite, statut, datePlanifiee, clientId, technicienId, validee },
   options = {}
 ) => {
   if (!options.partial || titre !== undefined) {
@@ -122,6 +122,10 @@ const validateInterventionPayload = (
 
   if (statut !== undefined && statut !== null && !INTERVENTION_STATUSES.includes(statut)) {
     return 'Statut invalide.';
+  }
+
+  if (validee !== undefined && typeof validee !== 'boolean') {
+    return 'Le statut de validation est invalide.';
   }
 
   if (options.requireClient && !normalizeText(clientId)) {

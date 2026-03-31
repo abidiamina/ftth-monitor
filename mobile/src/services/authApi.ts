@@ -10,6 +10,7 @@ export const setApiToken = (token: string | null) => {
 
 export const api = axios.create({
   baseURL: env.apiBaseUrl,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -30,6 +31,12 @@ type LoginApiResponse = {
 }
 
 type CurrentUserApiResponse = {
+  user: CurrentUser
+}
+
+type UpdatePushTokenApiResponse = {
+  success: boolean
+  message: string
   user: CurrentUser
 }
 
@@ -56,4 +63,17 @@ export const registerClient = async (payload: RegisterRequest): Promise<LoginRes
 export const getCurrentUser = async (): Promise<CurrentUser> => {
   const { data } = await api.get<CurrentUserApiResponse>('/auth/me')
   return data.user
+}
+
+export const updatePushToken = async (
+  pushToken: string | null
+): Promise<{ user: CurrentUser; message: string }> => {
+  const { data } = await api.patch<UpdatePushTokenApiResponse>('/auth/push-token', {
+    pushToken,
+  })
+
+  return {
+    user: data.user,
+    message: data.message,
+  }
 }
