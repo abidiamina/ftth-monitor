@@ -62,6 +62,9 @@ const buildStatusNotificationMessage = (statut, title) => {
   }
 };
 
+const buildValidationNotificationMessage = (title) =>
+  `L'intervention "${title}" a ete validee par le responsable.`;
+
 const buildNotificationPayloadsForCreation = (intervention) => {
   const payloads = [];
 
@@ -148,6 +151,17 @@ const buildNotificationPayloadsForUpdate = (before, after, actor) => {
       payloads.push({
         titre: 'Statut d intervention modifie',
         message: buildStatusNotificationMessage(after.statut, after.titre),
+        interventionId: after.id,
+        userId,
+      });
+    });
+  }
+
+  if (!before.validee && after.validee) {
+    targetUserIds.forEach((userId) => {
+      payloads.push({
+        titre: 'Intervention validee',
+        message: buildValidationNotificationMessage(after.titre),
         interventionId: after.id,
         userId,
       });
@@ -375,10 +389,10 @@ const updateIntervention = async (req, res) => {
 
     const {
       titre, description, adresse, latitude, longitude,
-      priorite, statut, datePlanifiee, technicienId,
+      priorite, statut, datePlanifiee, technicienId, validee,
     } = req.body;
     const validationError = validateInterventionPayload(
-      { titre, description, adresse, priorite, statut, datePlanifiee, technicienId },
+      { titre, description, adresse, priorite, statut, datePlanifiee, technicienId, validee },
       { partial: true }
     );
 
@@ -405,11 +419,38 @@ const updateIntervention = async (req, res) => {
 
       const technicianRuleError = validateTechnicianUpdate({
         existing,
-        payload: { titre, description, adresse, latitude, longitude, priorite, statut, datePlanifiee, technicienId },
+        payload: {
+          titre,
+          description,
+          adresse,
+          latitude,
+          longitude,
+          priorite,
+          statut,
+          datePlanifiee,
+          technicienId,
+          validee,
+        },
       });
 
       if (technicianRuleError) {
         return res.status(400).json({ success: false, message: technicianRuleError });
+      }
+    }
+
+    if (validee !== undefined) {
+      if (!['ADMIN', 'RESPONSABLE'].includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Seul un responsable peut valider une intervention terminee.',
+        });
+      }
+
+      if (validee && existing.statut !== 'TERMINEE') {
+        return res.status(400).json({
+          success: false,
+          message: 'Seule une intervention terminee peut etre validee.',
+        });
       }
     }
 
@@ -419,6 +460,18 @@ const updateIntervention = async (req, res) => {
     if (statut === 'EN_ATTENTE' && technicienId === null) {
       dateData.dateDebut = null;
       dateData.dateFin = null;
+    }
+    if (statut && statut !== 'TERMINEE') {
+      dateData.validee = false;
+      dateData.dateValidation = null;
+    }
+    if (validee === true) {
+      dateData.validee = true;
+      dateData.dateValidation = existing.dateValidation || new Date();
+    }
+    if (validee === false) {
+      dateData.validee = false;
+      dateData.dateValidation = null;
     }
 
     const intervention = await prisma.intervention.update({

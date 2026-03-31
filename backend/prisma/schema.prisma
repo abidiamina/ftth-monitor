@@ -14,6 +14,7 @@ model Utilisateur {
   email              String       @unique
   motDePasse         String
   telephone          String?
+  pushToken          String?
   role               Role
   actif              Boolean      @default(true)
   mustChangePassword Boolean      @default(false)
@@ -70,6 +71,8 @@ model Intervention {
   datePlanifiee DateTime?
   dateDebut     DateTime?
   dateFin       DateTime?
+  validee       Boolean            @default(false)
+  dateValidation DateTime?
   updatedAt     DateTime           @updatedAt
   clientId      Int
   technicienId  Int?

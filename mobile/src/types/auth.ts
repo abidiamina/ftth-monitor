@@ -6,6 +6,7 @@ export interface User {
   nom: string
   prenom: string
   telephone?: string | null
+  pushToken?: string | null
   role: UserRole
   actif?: boolean
   mustChangePassword?: boolean

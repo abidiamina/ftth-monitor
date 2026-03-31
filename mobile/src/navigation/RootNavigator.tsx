@@ -7,6 +7,7 @@ import { LoginScreen } from '../screens/LoginScreen'
 import { RegisterScreen } from '../screens/RegisterScreen'
 import { TechnicianDashboardScreen } from '../screens/TechnicianDashboardScreen'
 import { UnauthorizedMobileScreen } from '../screens/UnauthorizedMobileScreen'
+import { usePushNotificationsRegistration } from '../services/pushNotifications'
 
 export type RootStackParamList = {
   Login: undefined
@@ -18,6 +19,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>()
 
 function RootStack() {
   const { isAuthenticated, isReady, user } = useAuth()
+  usePushNotificationsRegistration(user, isAuthenticated)
 
   if (!isReady) {
     return <LoadingScreen />
