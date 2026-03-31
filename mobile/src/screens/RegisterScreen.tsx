@@ -48,14 +48,18 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
 
     setLocalError(null)
 
-    await register({
-      nom: form.nom.trim(),
-      prenom: form.prenom.trim(),
-      email: form.email.trim(),
-      telephone: form.telephone.trim(),
-      adresse: form.adresse.trim(),
-      motDePasse: form.motDePasse,
-    })
+    try {
+      await register({
+        nom: form.nom.trim(),
+        prenom: form.prenom.trim(),
+        email: form.email.trim(),
+        telephone: form.telephone.trim(),
+        adresse: form.adresse.trim(),
+        motDePasse: form.motDePasse,
+      })
+    } catch {
+      // L alerte est deja geree dans le contexte d authentification.
+    }
   }
 
   return (

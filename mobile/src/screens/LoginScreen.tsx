@@ -22,7 +22,11 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
   const [motDePasse, setMotDePasse] = useState('Password123')
 
   const handleLogin = async () => {
-    await login({ email: email.trim(), motDePasse })
+    try {
+      await login({ email: email.trim(), motDePasse })
+    } catch {
+      // L alerte est deja geree dans le contexte d authentification.
+    }
   }
 
   return (
