@@ -16,11 +16,28 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "plugins": [
+      "expo-notifications",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ],
     "android": {
-      "package": "com.ftthmonitor.mobile"
+      "package": "com.ftthmonitor.mobile",
+      "googleServicesFile": "./google-services.json"
     },
     "ios": {
       "bundleIdentifier": "com.ftthmonitor.mobile"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "d31c1a66-bf5d-4465-b65d-f737d39861fa"
+      }
     }
   }
 }

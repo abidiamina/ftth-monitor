@@ -68,6 +68,14 @@ const formatDate = (value?: string | null) => {
   })
 }
 
+const formatValidationDate = (value?: string | null) => {
+  if (!value) return 'En attente de validation'
+  return new Date(value).toLocaleString('fr-FR', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+}
+
 const getErrorMessage = (error: unknown, fallback: string) => {
   if (
     typeof error === 'object' &&
@@ -235,6 +243,18 @@ export const ResponsableDashboardPage = () => {
       )
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, 'Mise a jour du statut impossible.'))
+    }
+  }
+
+  const handleValidate = async (intervention: InterventionRecord) => {
+    try {
+      const response = await updateIntervention(intervention.id, { validee: true })
+      toast.success('Intervention validee.')
+      setInterventions((current) =>
+        current.map((item) => (item.id === intervention.id ? response.data : item))
+      )
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Validation impossible.'))
     }
   }
 
@@ -520,6 +540,12 @@ export const ResponsableDashboardPage = () => {
                       <p className='text-sm text-slate-500'>
                         Planifiee: {formatDate(intervention.datePlanifiee)}
                       </p>
+                      <p className='text-sm text-slate-500'>
+                        Validation: {intervention.validee ? 'Validee' : 'En attente'}
+                      </p>
+                      <p className='text-sm text-slate-500'>
+                        Date validation: {formatValidationDate(intervention.dateValidation)}
+                      </p>
                     </div>
 
                     <div className='flex w-full max-w-sm flex-col gap-3'>
@@ -587,9 +613,18 @@ export const ResponsableDashboardPage = () => {
                           onClick={() => handleStatus(intervention, 'TERMINEE')}
                           className='rounded-[1rem] border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100 transition hover:bg-emerald-300/15'
                         >
-                          Valider
+                          Marquer terminee
                         </button>
                       </div>
+                      {intervention.statut === 'TERMINEE' && !intervention.validee ? (
+                        <button
+                          type='button'
+                          onClick={() => handleValidate(intervention)}
+                          className='rounded-[1rem] border border-blue-300/20 bg-blue-300/10 px-4 py-3 text-sm text-blue-100 transition hover:bg-blue-300/15'
+                        >
+                          Valider l intervention
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 </div>

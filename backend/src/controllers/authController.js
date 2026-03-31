@@ -15,6 +15,7 @@ const sanitizeUser = (user) => ({
   prenom: user.prenom,
   email: user.email,
   telephone: user.telephone,
+  pushToken: user.pushToken,
   role: user.role,
   actif: user.actif,
   mustChangePassword: user.mustChangePassword,
@@ -76,6 +77,7 @@ const register = async (req, res) => {
         prenom: true,
         email: true,
         telephone: true,
+        pushToken: true,
         role: true,
         actif: true,
         mustChangePassword: true,
@@ -145,6 +147,7 @@ const getMe = async (req, res) => {
         prenom: true,
         email: true,
         telephone: true,
+        pushToken: true,
         role: true,
         actif: true,
         mustChangePassword: true,
@@ -237,6 +240,7 @@ const updateMe = async (req, res) => {
         prenom: true,
         email: true,
         telephone: true,
+        pushToken: true,
         role: true,
         actif: true,
         mustChangePassword: true,
@@ -304,6 +308,7 @@ const changePassword = async (req, res) => {
         prenom: true,
         email: true,
         telephone: true,
+        pushToken: true,
         role: true,
         actif: true,
         mustChangePassword: true,
@@ -325,4 +330,44 @@ const changePassword = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getMe, updateMe, changePassword };
+const updatePushToken = async (req, res) => {
+  try {
+    const pushToken =
+      typeof req.body?.pushToken === 'string' ? req.body.pushToken.trim() : '';
+
+    const updatedUser = await prisma.utilisateur.update({
+      where: { id: req.user.id },
+      data: {
+        pushToken: pushToken || null,
+      },
+      select: {
+        id: true,
+        nom: true,
+        prenom: true,
+        email: true,
+        telephone: true,
+        pushToken: true,
+        role: true,
+        actif: true,
+        mustChangePassword: true,
+        createdAt: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: pushToken
+        ? 'Token push enregistre avec succes.'
+        : 'Token push supprime avec succes.',
+      user: sanitizeUser(updatedUser),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la mise a jour du token push.',
+    });
+  }
+};
+
+module.exports = { register, login, getMe, updateMe, changePassword, updatePushToken };

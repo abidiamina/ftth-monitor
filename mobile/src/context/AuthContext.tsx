@@ -26,6 +26,24 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
+const getApiErrorMessage = (error: unknown, fallback: string) => {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'response' in error &&
+    typeof (error as { response?: unknown }).response === 'object' &&
+    (error as { response?: { data?: { message?: string } } }).response?.data?.message
+  ) {
+    return (error as { response?: { data?: { message?: string } } }).response!.data!.message!
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+
+  return fallback
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
   const [isReady, setIsReady] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -114,9 +132,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
 
       await persistSession(currentUser, session.token, session.refreshToken ?? null)
-    } catch (error: any) {
-      const message =
-        error?.response?.data?.message ?? "Verifie l'email, le mot de passe et l'URL API."
+    } catch (error: unknown) {
+      const message = getApiErrorMessage(
+        error,
+        "Verifie l'email, le mot de passe et l'URL API."
+      )
       Alert.alert('Connexion impossible', message)
       throw error
     } finally {
@@ -143,9 +163,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
 
       await persistSession(currentUser, session.token, session.refreshToken ?? null)
-    } catch (error) {
-      const message =
-        (error as any)?.response?.data?.message ?? "Verifie les champs saisis et l'URL API."
+    } catch (error: unknown) {
+      const message = getApiErrorMessage(
+        error,
+        "Verifie les champs saisis et l'URL API."
+      )
       Alert.alert('Inscription impossible', message)
       throw error
     } finally {

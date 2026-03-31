@@ -6,6 +6,7 @@ export interface User {
   nom: string
   prenom: string
   telephone?: string | null
+  pushToken?: string | null
   role: UserRole
   actif?: boolean
   mustChangePassword?: boolean
@@ -145,6 +146,8 @@ export interface InterventionRecord {
   datePlanifiee?: string | null
   dateDebut?: string | null
   dateFin?: string | null
+  validee?: boolean
+  dateValidation?: string | null
   updatedAt?: string
   clientId: number
   technicienId?: number | null
@@ -180,6 +183,7 @@ export interface UpdateInterventionRequest {
   longitude?: number | string
   priorite?: InterventionPriority
   statut?: InterventionStatus
+  validee?: boolean
   datePlanifiee?: string
   technicienId?: number | string | null
 }
