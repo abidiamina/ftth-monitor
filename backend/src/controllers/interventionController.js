@@ -1,6 +1,12 @@
 const prisma = require('../config/prisma');
 const { createNotifications } = require('../utils/notificationService');
-const { normalizeText, validateInterventionPayload } = require('../utils/validation');
+const {
+  normalizeText,
+  validateClientApprovalPayload,
+  validateEvidencePayload,
+  validateFieldCheckPayload,
+  validateInterventionPayload,
+} = require('../utils/validation');
 
 const interventionInclude = {
   client: true,
@@ -9,6 +15,9 @@ const interventionInclude = {
   },
   responsable: {
     include: { utilisateur: { select: { id: true, nom: true, prenom: true } } },
+  },
+  evidences: {
+    orderBy: { createdAt: 'desc' },
   },
 };
 
@@ -64,6 +73,54 @@ const buildStatusNotificationMessage = (statut, title) => {
 
 const buildValidationNotificationMessage = (title) =>
   `L'intervention "${title}" a ete validee par le responsable.`;
+
+const buildEvidenceNotificationPayloads = (intervention, commentaire, actorId) => {
+  const payloads = [];
+
+  if (intervention.responsable?.utilisateur?.id && intervention.responsable.utilisateur.id !== actorId) {
+    payloads.push({
+      titre: 'Nouvelle preuve terrain',
+      message: `Une preuve a ete ajoutee sur "${intervention.titre}".`,
+      interventionId: intervention.id,
+      userId: intervention.responsable.utilisateur.id,
+    });
+  }
+
+  if (intervention.client?.utilisateurId && intervention.client.utilisateurId !== actorId) {
+    payloads.push({
+      titre: 'Intervention documentee',
+      message: `Le technicien a ajoute une preuve: "${commentaire}".`,
+      interventionId: intervention.id,
+      userId: intervention.client.utilisateurId,
+    });
+  }
+
+  return payloads;
+};
+
+const buildClientApprovalNotificationPayloads = (intervention, actorId) => {
+  const payloads = [];
+
+  if (intervention.responsable?.utilisateur?.id && intervention.responsable.utilisateur.id !== actorId) {
+    payloads.push({
+      titre: 'Signature client recue',
+      message: `Le client a signe et evalue l intervention "${intervention.titre}".`,
+      interventionId: intervention.id,
+      userId: intervention.responsable.utilisateur.id,
+    });
+  }
+
+  if (intervention.technicien?.utilisateur?.id && intervention.technicien.utilisateur.id !== actorId) {
+    payloads.push({
+      titre: 'Feedback client recu',
+      message: `Le client a valide votre intervention "${intervention.titre}".`,
+      interventionId: intervention.id,
+      userId: intervention.technicien.utilisateur.id,
+    });
+  }
+
+  return payloads;
+};
 
 const buildNotificationPayloadsForCreation = (intervention) => {
   const payloads = [];
@@ -512,6 +569,210 @@ const updateIntervention = async (req, res) => {
   }
 };
 
+// PATCH /api/interventions/:id/field-check
+const updateInterventionFieldCheck = async (req, res) => {
+  try {
+    const interventionId = parseInt(req.params.id, 10);
+    const { gpsLatitude, gpsLongitude, qrCodeValue, confirmGps } = req.body ?? {};
+
+    const validationError = validateFieldCheckPayload({
+      gpsLatitude,
+      gpsLongitude,
+      qrCodeValue,
+      confirmGps,
+    });
+    if (validationError) {
+      return res.status(400).json({ success: false, message: validationError });
+    }
+
+    const technicien = await getTechnicienByUserId(req.user.id);
+    const existing = await prisma.intervention.findUnique({
+      where: { id: interventionId },
+      include: interventionInclude,
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Intervention introuvable.' });
+    }
+
+    if (!technicien || existing.technicienId !== technicien.id) {
+      return res.status(403).json({ success: false, message: 'Acces refuse a cette intervention.' });
+    }
+
+    if (!['EN_ATTENTE', 'EN_COURS'].includes(existing.statut)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Le controle terrain n est autorise que sur une intervention en attente ou en cours.',
+      });
+    }
+
+    const intervention = await prisma.intervention.update({
+      where: { id: interventionId },
+      data: {
+        ...(gpsLatitude !== undefined && { gpsLatitude: parseOptionalFloat(gpsLatitude) }),
+        ...(gpsLongitude !== undefined && { gpsLongitude: parseOptionalFloat(gpsLongitude) }),
+        ...(confirmGps || gpsLatitude !== undefined || gpsLongitude !== undefined
+          ? { gpsConfirmedAt: new Date() }
+          : {}),
+        ...(qrCodeValue !== undefined
+          ? {
+              qrCodeValue: normalizeText(qrCodeValue),
+              qrVerifiedAt: new Date(),
+            }
+          : {}),
+      },
+      include: interventionInclude,
+    });
+
+    res.json({
+      success: true,
+      data: intervention,
+      message: 'Controle terrain enregistre.',
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur lors du controle terrain.' });
+  }
+};
+
+// POST /api/interventions/:id/evidences
+const addInterventionEvidence = async (req, res) => {
+  try {
+    const interventionId = parseInt(req.params.id, 10);
+    const { commentaire, photoName, photoData } = req.body ?? {};
+
+    const validationError = validateEvidencePayload({ commentaire, photoName });
+    if (validationError) {
+      return res.status(400).json({ success: false, message: validationError });
+    }
+
+    const technicien = await getTechnicienByUserId(req.user.id);
+    const existing = await prisma.intervention.findUnique({
+      where: { id: interventionId },
+      include: interventionInclude,
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Intervention introuvable.' });
+    }
+
+    if (!technicien || existing.technicienId !== technicien.id) {
+      return res.status(403).json({ success: false, message: 'Acces refuse a cette intervention.' });
+    }
+
+    if (existing.statut !== 'EN_COURS') {
+      return res.status(400).json({
+        success: false,
+        message: 'Une preuve terrain ne peut etre ajoutee que sur une intervention en cours.',
+      });
+    }
+
+    const evidence = await prisma.interventionEvidence.create({
+      data: {
+        interventionId,
+        technicienId: technicien.id,
+        commentaire: normalizeText(commentaire),
+        photoName: normalizeText(photoName),
+        photoData: photoData ? String(photoData) : null,
+      },
+    });
+
+    const intervention = await prisma.intervention.findUnique({
+      where: { id: interventionId },
+      include: interventionInclude,
+    });
+
+    await createNotifications(
+      buildEvidenceNotificationPayloads(intervention, evidence.commentaire, req.user.id)
+    );
+
+    res.status(201).json({
+      success: true,
+      data: evidence,
+      intervention,
+      message: 'Preuve enregistree.',
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur lors de l ajout de la preuve.' });
+  }
+};
+
+// PATCH /api/interventions/:id/client-approval
+const submitInterventionClientApproval = async (req, res) => {
+  try {
+    const interventionId = parseInt(req.params.id, 10);
+    const {
+      signature,
+      signatureBy,
+      feedbackRating,
+      feedbackComment,
+    } = req.body ?? {};
+
+    const validationError = validateClientApprovalPayload({
+      signature,
+      signatureBy,
+      feedbackRating,
+      feedbackComment,
+    });
+    if (validationError) {
+      return res.status(400).json({ success: false, message: validationError });
+    }
+
+    const client = await getClientByUserId(req.user.id);
+    const existing = await prisma.intervention.findUnique({
+      where: { id: interventionId },
+      include: interventionInclude,
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Intervention introuvable.' });
+    }
+
+    if (!client || existing.clientId !== client.id) {
+      return res.status(403).json({ success: false, message: 'Acces refuse a cette intervention.' });
+    }
+
+    if (existing.statut !== 'TERMINEE') {
+      return res.status(400).json({
+        success: false,
+        message: 'Seule une intervention terminee peut etre signee par le client.',
+      });
+    }
+
+    if (existing.clientSignatureAt || existing.clientFeedbackAt) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cette intervention a deja ete signee et evaluee par le client.',
+      });
+    }
+
+    const intervention = await prisma.intervention.update({
+      where: { id: interventionId },
+      data: {
+        clientSignature: String(signature),
+        clientSignatureBy: normalizeText(signatureBy),
+        clientSignatureAt: new Date(),
+        clientFeedbackRating: Number(feedbackRating),
+        clientFeedbackComment: normalizeText(feedbackComment),
+        clientFeedbackAt: new Date(),
+      },
+      include: interventionInclude,
+    });
+
+    await createNotifications(buildClientApprovalNotificationPayloads(intervention, req.user.id));
+
+    res.json({
+      success: true,
+      data: intervention,
+      message: 'Validation client enregistree.',
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur lors de la validation client.' });
+  }
+};
+
 // DELETE /api/interventions/:id
 const deleteIntervention = async (req, res) => {
   try {
@@ -542,5 +803,8 @@ module.exports = {
   getIntervention,
   createIntervention,
   updateIntervention,
+  updateInterventionFieldCheck,
+  addInterventionEvidence,
+  submitInterventionClientApproval,
   deleteIntervention,
 };

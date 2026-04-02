@@ -35,6 +35,7 @@ model Technicien {
   longitude     Float?
   interventions Intervention[]
   rapports      Rapport[]
+  evidences     InterventionEvidence[]
   utilisateur   Utilisateur    @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
 }
 
@@ -73,6 +74,17 @@ model Intervention {
   dateFin       DateTime?
   validee       Boolean            @default(false)
   dateValidation DateTime?
+  gpsConfirmedAt DateTime?
+  gpsLatitude    Float?
+  gpsLongitude   Float?
+  qrCodeValue    String?
+  qrVerifiedAt   DateTime?
+  clientSignature String?
+  clientSignatureAt DateTime?
+  clientSignatureBy String?
+  clientFeedbackRating Int?
+  clientFeedbackComment String?
+  clientFeedbackAt DateTime?
   updatedAt     DateTime           @updatedAt
   clientId      Int
   technicienId  Int?
@@ -82,6 +94,7 @@ model Intervention {
   technicien    Technicien?        @relation(fields: [technicienId], references: [id])
   notifications Notification[]
   rapport       Rapport?
+  evidences     InterventionEvidence[]
 }
 
 model Rapport {
@@ -106,6 +119,18 @@ model Notification {
   interventionId Int?
   userId         Int
   intervention   Intervention? @relation(fields: [interventionId], references: [id])
+}
+
+model InterventionEvidence {
+  id             Int          @id @default(autoincrement())
+  interventionId Int
+  technicienId   Int?
+  commentaire    String
+  photoName      String
+  photoData      String?
+  createdAt      DateTime     @default(now())
+  intervention   Intervention @relation(fields: [interventionId], references: [id], onDelete: Cascade)
+  technicien     Technicien?  @relation(fields: [technicienId], references: [id])
 }
 
 enum Role {

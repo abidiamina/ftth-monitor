@@ -1,7 +1,11 @@
 import { api } from '@/services/authApi'
 import type {
+  AddEvidenceRequest,
+  ClientApprovalRequest,
   ClientRecord,
   CreateInterventionRequest,
+  FieldCheckRequest,
+  InterventionEvidenceRecord,
   InterventionRecord,
   InterventionPriority,
   InterventionStatus,
@@ -35,6 +39,13 @@ type ClientsApiResponse = {
 type ApiMessageResponse = {
   success: boolean
   message: string
+}
+
+type EvidenceApiResponse = {
+  success: boolean
+  data: InterventionEvidenceRecord
+  intervention: InterventionRecord
+  message?: string
 }
 
 export const listInterventions = async (
@@ -80,4 +91,43 @@ export const deleteIntervention = async (
 export const listClients = async (): Promise<ClientRecord[]> => {
   const { data } = await api.get<ClientsApiResponse>('/clients')
   return data.data
+}
+
+export const updateInterventionFieldCheck = async (
+  id: number | string,
+  payload: FieldCheckRequest
+): Promise<{ data: InterventionRecord; message: string }> => {
+  const { data } = await api.patch<InterventionApiResponse>(`/interventions/${id}/field-check`, payload)
+
+  return {
+    data: data.data,
+    message: data.message ?? 'Controle terrain enregistre.',
+  }
+}
+
+export const addInterventionEvidence = async (
+  id: number | string,
+  payload: AddEvidenceRequest
+): Promise<{ data: InterventionRecord; message: string }> => {
+  const { data } = await api.post<EvidenceApiResponse>(`/interventions/${id}/evidences`, payload)
+
+  return {
+    data: data.intervention,
+    message: data.message ?? 'Preuve enregistree.',
+  }
+}
+
+export const submitInterventionClientApproval = async (
+  id: number | string,
+  payload: ClientApprovalRequest
+): Promise<{ data: InterventionRecord; message: string }> => {
+  const { data } = await api.patch<InterventionApiResponse>(
+    `/interventions/${id}/client-approval`,
+    payload
+  )
+
+  return {
+    data: data.data,
+    message: data.message ?? 'Validation client enregistree.',
+  }
 }

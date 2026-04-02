@@ -6,6 +6,9 @@ const {
   getIntervention,
   createIntervention,
   updateIntervention,
+  updateInterventionFieldCheck,
+  addInterventionEvidence,
+  submitInterventionClientApproval,
   deleteIntervention,
 } = require('../controllers/interventionController');
 
@@ -24,5 +27,26 @@ router
   .get(protect, getIntervention)
   .put(protect, authorize('ADMIN', 'RESPONSABLE', 'TECHNICIEN'), updateIntervention)
   .delete(protect, authorize('ADMIN'), deleteIntervention);
+
+router.patch(
+  '/:id/field-check',
+  protect,
+  authorize('TECHNICIEN'),
+  updateInterventionFieldCheck
+);
+
+router.post(
+  '/:id/evidences',
+  protect,
+  authorize('TECHNICIEN'),
+  addInterventionEvidence
+);
+
+router.patch(
+  '/:id/client-approval',
+  protect,
+  authorize('CLIENT'),
+  submitInterventionClientApproval
+);
 
 module.exports = router;

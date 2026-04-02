@@ -154,6 +154,53 @@ const validateInterventionPayload = (
   return null;
 };
 
+const validateFieldCheckPayload = ({ gpsLatitude, gpsLongitude, qrCodeValue, confirmGps }) => {
+  if (gpsLatitude !== undefined && gpsLatitude !== null && Number.isNaN(Number(gpsLatitude))) {
+    return 'Latitude GPS invalide.';
+  }
+
+  if (gpsLongitude !== undefined && gpsLongitude !== null && Number.isNaN(Number(gpsLongitude))) {
+    return 'Longitude GPS invalide.';
+  }
+
+  if (qrCodeValue !== undefined && normalizeText(qrCodeValue).length < 6) {
+    return 'Le code QR doit contenir au moins 6 caracteres.';
+  }
+
+  if (confirmGps !== undefined && typeof confirmGps !== 'boolean') {
+    return 'La confirmation GPS est invalide.';
+  }
+
+  return null;
+};
+
+const validateEvidencePayload = ({ commentaire, photoName }) => {
+  const commentError = validateRequiredText('Le commentaire', commentaire, 8, 1500);
+  if (commentError) return commentError;
+
+  const photoError = validateRequiredText('Le nom de la photo', photoName, 3, 255);
+  if (photoError) return photoError;
+
+  return null;
+};
+
+const validateClientApprovalPayload = ({ signature, signatureBy, feedbackRating, feedbackComment }) => {
+  const signatureError = validateRequiredText('La signature', signature, 8, 500000);
+  if (signatureError) return signatureError;
+
+  const signerError = validateRequiredText('Le signataire', signatureBy, 2, 120);
+  if (signerError) return signerError;
+
+  if (!Number.isInteger(Number(feedbackRating)) || Number(feedbackRating) < 1 || Number(feedbackRating) > 5) {
+    return 'La note client doit etre comprise entre 1 et 5.';
+  }
+
+  const feedbackError = validateRequiredText('Le commentaire', feedbackComment, 10, 1500);
+  if (feedbackError) return feedbackError;
+
+  return null;
+};
+
 module.exports = {
   normalizeText,
   validateRegisterPayload,
@@ -162,4 +209,7 @@ module.exports = {
   validateUserProfilePayload,
   validatePasswordChangePayload,
   validateInterventionPayload,
+  validateFieldCheckPayload,
+  validateEvidencePayload,
+  validateClientApprovalPayload,
 };

@@ -16,12 +16,13 @@ import { validateEmployeeForm, validateUserUpdateForm } from '@/lib/validation'
 import {
   createEmployee,
   deleteUser,
+  getUserById,
   listUsers,
   resetEmployeePassword,
   updateUser,
   updateUserStatus,
 } from '@/services/authApi'
-import type { CreateEmployeeRequest, UpdateUserRequest, User, UserRole } from '@/types/auth.types'
+import type { CreateEmployeeRequest, CurrentUser, UpdateUserRequest, User, UserRole } from '@/types/auth.types'
 
 const roleLabels: Record<UserRole, string> = {
   ADMIN: 'Administrateur',
@@ -90,6 +91,8 @@ const toUpdatePayload = (user: User): UpdateUserRequest => ({
   prenom: user.prenom,
   email: user.email,
   telephone: user.telephone ?? '',
+  role: user.role,
+  adresse: '',
 })
 
 export const AdminDashboardPage = () => {
@@ -105,6 +108,8 @@ export const AdminDashboardPage = () => {
     prenom: '',
     email: '',
     telephone: '',
+    role: 'CLIENT',
+    adresse: '',
   })
 
   const loadUsers = async (role?: UserRole) => {
@@ -197,9 +202,18 @@ export const AdminDashboardPage = () => {
     }
   }
 
-  const handleStartEdit = (user: User) => {
-    setEditingUserId(user.id)
-    setEditForm(toUpdatePayload(user))
+  const handleStartEdit = async (user: User) => {
+    try {
+      const fullUser: CurrentUser = await getUserById(user.id)
+      setEditingUserId(user.id)
+      setEditForm({
+        ...toUpdatePayload(user),
+        role: fullUser.role,
+        adresse: fullUser.client?.adresse ?? '',
+      })
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? 'Chargement du profil utilisateur impossible.')
+    }
   }
 
   const handleCancelEdit = () => {
@@ -209,6 +223,8 @@ export const AdminDashboardPage = () => {
       prenom: '',
       email: '',
       telephone: '',
+      role: 'CLIENT',
+      adresse: '',
     })
   }
 
@@ -398,6 +414,21 @@ export const AdminDashboardPage = () => {
                         <div className='grid gap-3 sm:grid-cols-2'>
                           <input type='email' value={editForm.email} onChange={(event) => setEditForm((current) => ({ ...current, email: event.target.value }))} placeholder='email@ftth.com' className='dashboard-input rounded-[1rem] px-4 py-3 text-sm' />
                           <input value={editForm.telephone ?? ''} onChange={(event) => setEditForm((current) => ({ ...current, telephone: event.target.value }))} placeholder='Telephone' className='dashboard-input rounded-[1rem] px-4 py-3 text-sm' />
+                        </div>
+                        <div className='grid gap-3 sm:grid-cols-2'>
+                          <select value={editForm.role ?? user.role} onChange={(event) => setEditForm((current) => ({ ...current, role: event.target.value as UserRole }))} className='dashboard-input rounded-[1rem] px-4 py-3 text-sm'>
+                            <option value='ADMIN'>Administrateur</option>
+                            <option value='RESPONSABLE'>Responsable</option>
+                            <option value='TECHNICIEN'>Technicien</option>
+                            <option value='CLIENT'>Client</option>
+                          </select>
+                          {editForm.role === 'CLIENT' ? (
+                            <input value={editForm.adresse ?? ''} onChange={(event) => setEditForm((current) => ({ ...current, adresse: event.target.value }))} placeholder='Adresse client' className='dashboard-input rounded-[1rem] px-4 py-3 text-sm' />
+                          ) : (
+                            <div className='rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-400'>
+                              Changement de role interne disponible ici.
+                            </div>
+                          )}
                         </div>
                         <div className='flex flex-wrap gap-3'>
                           <Button type='submit' disabled={savingUser} className='border-0 bg-[linear-gradient(135deg,#d6ccff_0%,#a78bfa_56%,#f4be7e_100%)] text-slate-950 hover:brightness-105'>

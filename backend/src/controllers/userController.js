@@ -12,6 +12,7 @@ const {
 } = require('../utils/validation');
 
 const MANAGED_ADMIN_ROLES = ['ADMIN', 'RESPONSABLE', 'TECHNICIEN'];
+const EDITABLE_ROLES = ['ADMIN', 'RESPONSABLE', 'TECHNICIEN', 'CLIENT'];
 
 const sanitizeUser = (user) => ({
   id: user.id,
@@ -52,6 +53,65 @@ const findUserById = async (id) => {
     where: { id },
     select: userSelect,
   });
+};
+
+const findUserDetailsById = async (id) => {
+  if (!Number.isInteger(id) || id <= 0) {
+    return null;
+  }
+
+  return prisma.utilisateur.findUnique({
+    where: { id },
+    select: {
+      ...userSelect,
+      client: true,
+      technicien: true,
+      responsable: true,
+    },
+  });
+};
+
+const getRoleTransitionBlocker = async (user, nextRole) => {
+  if (!user || user.role === nextRole) {
+    return null;
+  }
+
+  if (user.role === 'RESPONSABLE' && user.responsable?.id) {
+    const interventionsCount = await prisma.intervention.count({
+      where: { responsableId: user.responsable.id },
+    });
+
+    if (interventionsCount > 0) {
+      return `Impossible de changer le role de ce responsable: ${interventionsCount} intervention(s) lui sont encore rattachees.`;
+    }
+  }
+
+  if (user.role === 'TECHNICIEN' && user.technicien?.id) {
+    const [interventionsCount, rapportsCount] = await Promise.all([
+      prisma.intervention.count({
+        where: { technicienId: user.technicien.id },
+      }),
+      prisma.rapport.count({
+        where: { technicienId: user.technicien.id },
+      }),
+    ]);
+
+    if (interventionsCount > 0 || rapportsCount > 0) {
+      return `Impossible de changer le role de ce technicien: ${interventionsCount} intervention(s) et ${rapportsCount} rapport(s) lui sont encore rattaches.`;
+    }
+  }
+
+  if (user.role === 'CLIENT' && user.client?.id) {
+    const interventionsCount = await prisma.intervention.count({
+      where: { clientId: user.client.id },
+    });
+
+    if (interventionsCount > 0) {
+      return `Impossible de changer le role de ce client: ${interventionsCount} intervention(s) lui sont encore rattachees.`;
+    }
+  }
+
+  return null;
 };
 
 const getDeletionBlockers = async (userId, role) => {
@@ -245,12 +305,25 @@ const createEmployee = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const userId = Number(req.params.id);
-    const { nom, prenom, telephone, email } = req.body;
+    const { nom, prenom, telephone, email, role, adresse } = req.body;
 
-    const existingUser = await findUserById(userId);
+    const existingUser = await findUserDetailsById(userId);
 
     if (!existingUser) {
       return res.status(404).json({ success: false, message: 'Utilisateur introuvable.' });
+    }
+
+    const normalizedRole = normalizeText(role).toUpperCase() || existingUser.role;
+
+    if (!EDITABLE_ROLES.includes(normalizedRole)) {
+      return res.status(400).json({ success: false, message: 'Role invalide.' });
+    }
+
+    if (req.user.id === userId && existingUser.role === 'ADMIN' && normalizedRole !== 'ADMIN') {
+      return res.status(400).json({
+        success: false,
+        message: 'Un administrateur ne peut pas changer son propre role.',
+      });
     }
 
     const normalizedEmail = normalizeText(email).toLowerCase();
@@ -259,10 +332,20 @@ const updateUser = async (req, res) => {
       prenom,
       email: normalizedEmail,
       telephone,
+      adresse,
+    }, {
+      requireAddress: normalizedRole === 'CLIENT',
     });
 
     if (validationError) {
       return res.status(400).json({ success: false, message: validationError });
+    }
+
+    if (normalizedRole === 'CLIENT' && !normalizeText(telephone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Le telephone est obligatoire pour un client.',
+      });
     }
 
     const duplicate = await prisma.utilisateur.findFirst({
@@ -277,25 +360,85 @@ const updateUser = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email deja utilise.' });
     }
 
+    const roleTransitionBlocker = await getRoleTransitionBlocker(existingUser, normalizedRole);
+
+    if (roleTransitionBlocker) {
+      return res.status(400).json({ success: false, message: roleTransitionBlocker });
+    }
+
+    const normalizedNom = normalizeText(nom);
+    const normalizedPrenom = normalizeText(prenom);
+    const normalizedTelephone = normalizeText(telephone);
+    const normalizedAdresse = normalizeText(adresse);
+
     await prisma.$transaction(async (tx) => {
       await tx.utilisateur.update({
         where: { id: userId },
         data: {
-          nom: nom.trim(),
-          prenom: prenom.trim(),
+          nom: normalizedNom,
+          prenom: normalizedPrenom,
           email: normalizedEmail,
-          telephone: telephone?.trim() || null,
+          telephone: normalizedTelephone || null,
+          role: normalizedRole,
         },
       });
 
-      if (existingUser.role === 'CLIENT') {
+      if (existingUser.role === 'CLIENT' && normalizedRole === 'CLIENT') {
         await tx.client.updateMany({
           where: { utilisateurId: userId },
           data: {
-            nom: nom.trim(),
-            prenom: prenom.trim(),
+            nom: normalizedNom,
+            prenom: normalizedPrenom,
             email: normalizedEmail,
-            telephone: telephone?.trim() || '',
+            telephone: normalizedTelephone,
+            adresse: normalizedAdresse,
+          },
+        });
+      }
+
+      if (existingUser.role === 'CLIENT' && normalizedRole !== 'CLIENT') {
+        await tx.client.deleteMany({
+          where: { utilisateurId: userId },
+        });
+      }
+
+      if (existingUser.role === 'RESPONSABLE' && normalizedRole !== 'RESPONSABLE') {
+        await tx.responsable.deleteMany({
+          where: { utilisateurId: userId },
+        });
+      }
+
+      if (existingUser.role === 'TECHNICIEN' && normalizedRole !== 'TECHNICIEN') {
+        await tx.technicien.deleteMany({
+          where: { utilisateurId: userId },
+        });
+      }
+
+      if (existingUser.role !== 'CLIENT' && normalizedRole === 'CLIENT') {
+        await tx.client.create({
+          data: {
+            utilisateurId: userId,
+            nom: normalizedNom,
+            prenom: normalizedPrenom,
+            email: normalizedEmail,
+            telephone: normalizedTelephone,
+            adresse: normalizedAdresse,
+          },
+        });
+      }
+
+      if (existingUser.role !== 'RESPONSABLE' && normalizedRole === 'RESPONSABLE') {
+        await tx.responsable.create({
+          data: {
+            utilisateurId: userId,
+          },
+        });
+      }
+
+      if (existingUser.role !== 'TECHNICIEN' && normalizedRole === 'TECHNICIEN') {
+        await tx.technicien.create({
+          data: {
+            utilisateurId: userId,
           },
         });
       }

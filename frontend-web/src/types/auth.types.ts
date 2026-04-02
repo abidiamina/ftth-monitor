@@ -104,6 +104,8 @@ export interface UpdateUserRequest {
   prenom: string
   email: string
   telephone?: string
+  role?: UserRole
+  adresse?: string
 }
 
 export interface TechnicianRecord {
@@ -148,10 +150,22 @@ export interface InterventionRecord {
   dateFin?: string | null
   validee?: boolean
   dateValidation?: string | null
+  gpsConfirmedAt?: string | null
+  gpsLatitude?: number | null
+  gpsLongitude?: number | null
+  qrCodeValue?: string | null
+  qrVerifiedAt?: string | null
+  clientSignature?: string | null
+  clientSignatureAt?: string | null
+  clientSignatureBy?: string | null
+  clientFeedbackRating?: number | null
+  clientFeedbackComment?: string | null
+  clientFeedbackAt?: string | null
   updatedAt?: string
   clientId: number
   technicienId?: number | null
   responsableId: number
+  evidences: InterventionEvidenceRecord[]
   client: ClientRecord
   technicien?: TechnicianRecord | null
   responsable?: {
@@ -161,6 +175,16 @@ export interface InterventionRecord {
       prenom: string
     }
   } | null
+}
+
+export interface InterventionEvidenceRecord {
+  id: number
+  interventionId: number
+  technicienId?: number | null
+  commentaire: string
+  photoName: string
+  photoData?: string | null
+  createdAt: string
 }
 
 export interface CreateInterventionRequest {
@@ -186,4 +210,24 @@ export interface UpdateInterventionRequest {
   validee?: boolean
   datePlanifiee?: string
   technicienId?: number | string | null
+}
+
+export interface FieldCheckRequest {
+  confirmGps?: boolean
+  gpsLatitude?: number | string | null
+  gpsLongitude?: number | string | null
+  qrCodeValue?: string
+}
+
+export interface AddEvidenceRequest {
+  commentaire: string
+  photoName: string
+  photoData?: string
+}
+
+export interface ClientApprovalRequest {
+  signature: string
+  signatureBy: string
+  feedbackRating: number
+  feedbackComment: string
 }

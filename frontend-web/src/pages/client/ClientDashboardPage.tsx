@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux'
 import { toast } from 'react-hot-toast'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
 import { NotificationsPanel } from '@/components/dashboard/NotificationsPanel'
+import { ClientSprint3Panel } from '@/components/sprint3/ClientSprint3Panel'
 import {
   validateInterventionForm,
   validatePasswordChangeForm,
@@ -392,6 +393,12 @@ export const ClientDashboardPage = () => {
             onMarkAsRead={handleMarkNotificationAsRead}
           />
         </section>
+
+        <ClientSprint3Panel
+          interventions={interventions}
+          signerName={user ? `${user.prenom} ${user.nom}` : 'Client'}
+          onRefresh={loadDashboard}
+        />
     </AppDashboardShell>
   )
 }
