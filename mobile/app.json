@@ -19,6 +19,12 @@
     "plugins": [
       "expo-notifications",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Autoriser l acces a la camera pour scanner les QR codes et prendre les preuves terrain."
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {

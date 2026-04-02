@@ -1,0 +1,3 @@
+ALTER TABLE "Intervention"
+ADD COLUMN "gpsLatitude" DOUBLE PRECISION,
+ADD COLUMN "gpsLongitude" DOUBLE PRECISION;

@@ -93,6 +93,11 @@ export const getCurrentUser = async (): Promise<CurrentUser> => {
   return data.user
 }
 
+export const getUserById = async (id: number | string): Promise<CurrentUser> => {
+  const { data } = await api.get<{ success: boolean; data: CurrentUser }>(`/users/${id}`)
+  return data.data
+}
+
 export const updateCurrentUser = async (
   payload: UpdateProfileRequest
 ): Promise<{ user: User; message: string }> => {

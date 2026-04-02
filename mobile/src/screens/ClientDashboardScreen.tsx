@@ -12,7 +12,11 @@ import {
 import { RoleBadge } from '../components/RoleBadge'
 import { Screen } from '../components/Screen'
 import { useAuth } from '../context/AuthContext'
-import { createIntervention, listInterventions } from '../services/interventionApi'
+import {
+  createIntervention,
+  listInterventions,
+  submitInterventionClientApproval,
+} from '../services/interventionApi'
 import { listNotifications, markNotificationAsRead } from '../services/notificationApi'
 import { colors } from '../theme/colors'
 import type {
@@ -61,7 +65,12 @@ export function ClientDashboardScreen() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [approvalSubmitting, setApprovalSubmitting] = useState(false)
   const [form, setForm] = useState<CreateInterventionRequest>(emptyForm)
+  const [selectedInterventionId, setSelectedInterventionId] = useState<number | null>(null)
+  const [signatureText, setSignatureText] = useState('')
+  const [feedbackComment, setFeedbackComment] = useState('')
+  const [feedbackRating, setFeedbackRating] = useState(5)
 
   const loadData = async (silent = false) => {
     if (!silent) {
@@ -77,6 +86,9 @@ export function ClientDashboardScreen() {
 
       setInterventions(interventionData)
       setNotifications(notificationData)
+      if (!selectedInterventionId) {
+        setSelectedInterventionId(interventionData.find((item) => item.statut === 'TERMINEE')?.id ?? interventionData[0]?.id ?? null)
+      }
     } catch (error: any) {
       Alert.alert(
         'Chargement impossible',
@@ -92,12 +104,16 @@ export function ClientDashboardScreen() {
     void loadData()
   }, [])
 
+  const selectedIntervention =
+    interventions.find((item) => item.id === selectedInterventionId) ??
+    interventions.find((item) => item.statut === 'TERMINEE') ??
+    null
+
   const stats = useMemo(() => {
     const total = interventions.length
     const enCours = interventions.filter((item) => item.statut === 'EN_COURS').length
     const terminees = interventions.filter((item) => item.statut === 'TERMINEE').length
     const unread = notifications.filter((item) => !item.lu).length
-
     return { total, enCours, terminees, unread }
   }, [interventions, notifications])
 
@@ -135,6 +151,35 @@ export function ClientDashboardScreen() {
     }
   }
 
+  const handleSubmitApproval = async () => {
+    if (!selectedIntervention) {
+      return
+    }
+
+    setApprovalSubmitting(true)
+
+    try {
+      const response = await submitInterventionClientApproval(selectedIntervention.id, {
+        signature: signatureText,
+        signatureBy: `${user?.prenom ?? ''} ${user?.nom ?? ''}`.trim() || 'Client',
+        feedbackRating,
+        feedbackComment,
+      })
+      Alert.alert('Validation client', response.message)
+      setSignatureText('')
+      setFeedbackComment('')
+      setFeedbackRating(5)
+      await loadData(true)
+    } catch (error: any) {
+      Alert.alert(
+        'Validation impossible',
+        error?.response?.data?.message ?? 'La validation client a echoue.'
+      )
+    } finally {
+      setApprovalSubmitting(false)
+    }
+  }
+
   const handleMarkAsRead = async (notificationId: number) => {
     try {
       await markNotificationAsRead(notificationId)
@@ -156,17 +201,11 @@ export function ClientDashboardScreen() {
   return (
     <Screen
       scrollable
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} />
-      }
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} />}
     >
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>Sprint 1 et 2 mobile</Text>
-        <Text style={styles.title}>Suivi client des interventions FTTH</Text>
-        <Text style={styles.subtitle}>
-          Creer une demande, consulter l avancement de vos interventions et suivre les alertes
-          envoyees par la plateforme.
-        </Text>
+        <Text style={styles.eyebrow}>Portail client</Text>
+        <Text style={styles.title}>Interventions FTTH</Text>
       </View>
 
       <View style={styles.profileCard}>
@@ -180,8 +219,7 @@ export function ClientDashboardScreen() {
           {user.prenom} {user.nom}
         </Text>
         <Text style={styles.detail}>{user.email}</Text>
-        <Text style={styles.detail}>{user.telephone ?? 'Telephone non renseigne'}</Text>
-        <Text style={styles.detail}>{user.client?.adresse ?? 'Adresse client non renseignee'}</Text>
+        <Text style={styles.detail}>{user.client?.adresse ?? 'Adresse non renseignee'}</Text>
       </View>
 
       <View style={styles.statsRow}>
@@ -205,22 +243,17 @@ export function ClientDashboardScreen() {
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Nouvelle demande</Text>
-        <Text style={styles.sectionDescription}>
-          Cette creation envoie directement une intervention au backend avec le profil client
-          connecte.
-        </Text>
-
         <TextInput
           value={form.titre}
           onChangeText={(value) => setForm((current) => ({ ...current, titre: value }))}
-          placeholder='Titre de la demande'
+          placeholder='Titre'
           placeholderTextColor={colors.muted}
           style={styles.input}
         />
         <TextInput
           value={form.description}
           onChangeText={(value) => setForm((current) => ({ ...current, description: value }))}
-          placeholder='Decrivez le probleme ou la demande'
+          placeholder='Description'
           placeholderTextColor={colors.muted}
           multiline
           textAlignVertical='top'
@@ -229,15 +262,13 @@ export function ClientDashboardScreen() {
         <TextInput
           value={form.adresse}
           onChangeText={(value) => setForm((current) => ({ ...current, adresse: value }))}
-          placeholder='Adresse de l intervention'
+          placeholder='Adresse'
           placeholderTextColor={colors.muted}
           style={styles.input}
         />
-
         <View style={styles.chipsRow}>
           {priorities.map((priority) => {
             const isActive = (form.priorite ?? 'NORMALE') === priority
-
             return (
               <Pressable
                 key={priority}
@@ -251,59 +282,94 @@ export function ClientDashboardScreen() {
             )
           })}
         </View>
-
         <Pressable
           style={[styles.primaryButton, submitting ? styles.buttonDisabled : null]}
           onPress={() => void handleCreate()}
           disabled={submitting}
         >
-          {submitting ? (
-            <ActivityIndicator color='#ffffff' />
-          ) : (
-            <Text style={styles.primaryButtonText}>Envoyer ma demande</Text>
-          )}
+          {submitting ? <ActivityIndicator color='#ffffff' /> : <Text style={styles.primaryButtonText}>Envoyer</Text>}
         </Pressable>
       </View>
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Mes interventions</Text>
-        <Text style={styles.sectionDescription}>
-          Liste synchronisee avec les routes d interventions du backend.
-        </Text>
-
         {loading ? (
           <ActivityIndicator color={colors.primary} />
         ) : interventions.length === 0 ? (
           <Text style={styles.emptyText}>Aucune intervention pour le moment.</Text>
         ) : (
           interventions.map((item) => (
-            <View key={item.id} style={styles.itemCard}>
+            <Pressable key={item.id} onPress={() => setSelectedInterventionId(item.id)} style={[styles.itemCard, selectedIntervention?.id === item.id ? styles.selectedCard : null]}>
               <View style={styles.itemHeader}>
                 <Text style={styles.itemTitle}>{item.titre}</Text>
                 <Text style={styles.badge}>{statusLabels[item.statut]}</Text>
               </View>
               <Text style={styles.itemDetail}>Priorite: {priorityLabels[item.priorite]}</Text>
               <Text style={styles.itemDetail}>Adresse: {item.adresse}</Text>
-              <Text style={styles.itemDetail}>Creation: {formatDate(item.dateCreation)}</Text>
-              <Text style={styles.itemDetail}>Planifiee: {formatDate(item.datePlanifiee)}</Text>
-              <Text style={styles.itemDescription}>{item.description}</Text>
-              <Text style={styles.itemMeta}>
-                Technicien:{' '}
-                {item.technicien
-                  ? `${item.technicien.utilisateur.prenom} ${item.technicien.utilisateur.nom}`
-                  : 'Affectation en attente'}
-              </Text>
-            </View>
+              <Text style={styles.itemMeta}>Creation: {formatDate(item.dateCreation)}</Text>
+            </Pressable>
           ))
         )}
       </View>
 
+      {selectedIntervention ? (
+        <>
+          <View style={styles.card}>
+            <Text style={styles.sectionEyebrow}>Validation</Text>
+            <Text style={styles.sectionTitle}>Signature client</Text>
+            <Text style={styles.itemDetail}>Derniere signature: {formatDate(selectedIntervention.clientSignatureAt)}</Text>
+            <TextInput
+              value={signatureText}
+              onChangeText={setSignatureText}
+              placeholder='Signature numerique (nom complet)'
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+            />
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.sectionEyebrow}>Qualite</Text>
+            <Text style={styles.sectionTitle}>Evaluation</Text>
+            <View style={styles.chipsRow}>
+              {[1, 2, 3, 4, 5].map((value) => {
+                const active = value <= feedbackRating
+                return (
+                  <Pressable
+                    key={value}
+                    style={[styles.chip, active ? styles.chipActive : null]}
+                    onPress={() => setFeedbackRating(value)}
+                  >
+                    <Text style={[styles.chipText, active ? styles.chipTextActive : null]}>{value}</Text>
+                  </Pressable>
+                )
+              })}
+            </View>
+            <TextInput
+              value={feedbackComment}
+              onChangeText={setFeedbackComment}
+              placeholder='Votre commentaire'
+              placeholderTextColor={colors.muted}
+              multiline
+              textAlignVertical='top'
+              style={[styles.input, styles.textarea]}
+            />
+            <Pressable
+              style={[styles.primaryButton, approvalSubmitting ? styles.buttonDisabled : null]}
+              onPress={() => void handleSubmitApproval()}
+              disabled={approvalSubmitting}
+            >
+              {approvalSubmitting ? <ActivityIndicator color='#ffffff' /> : <Text style={styles.primaryButtonText}>Valider</Text>}
+            </Pressable>
+            <View style={styles.subCard}>
+              <Text style={styles.itemDetail}>Note: {selectedIntervention.clientFeedbackRating ?? '-'}/5</Text>
+              <Text style={styles.itemDetail}>Commentaire: {selectedIntervention.clientFeedbackComment ?? 'Aucun'}</Text>
+            </View>
+          </View>
+        </>
+      ) : null}
+
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Notifications</Text>
-        <Text style={styles.sectionDescription}>
-          Les notifications creees par le backend apparaissent ici avec lecture manuelle.
-        </Text>
-
         {loading ? (
           <ActivityIndicator color={colors.primary} />
         ) : notifications.length === 0 ? (
@@ -318,12 +384,8 @@ export function ClientDashboardScreen() {
                 </Text>
               </View>
               <Text style={styles.itemDescription}>{item.message}</Text>
-              <Text style={styles.itemMeta}>{formatDate(item.createdAt)}</Text>
               {!item.lu ? (
-                <Pressable
-                  style={styles.inlineButton}
-                  onPress={() => void handleMarkAsRead(item.id)}
-                >
+                <Pressable style={styles.inlineButton} onPress={() => void handleMarkAsRead(item.id)}>
                   <Text style={styles.inlineButtonText}>Marquer comme lue</Text>
                 </Pressable>
               ) : null}
@@ -336,225 +398,45 @@ export function ClientDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    gap: 10,
-    marginTop: 12,
-    marginBottom: 18,
-  },
-  eyebrow: {
-    color: colors.primary,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 30,
-    lineHeight: 36,
-    fontWeight: '800',
-  },
-  subtitle: {
-    color: colors.muted,
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  profileCard: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 24,
-    padding: 20,
-    gap: 10,
-    marginBottom: 16,
-  },
-  profileTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 24,
-    padding: 20,
-    gap: 12,
-    marginBottom: 16,
-  },
-  cardTitle: {
-    fontSize: 22,
-    lineHeight: 28,
-    color: colors.text,
-    fontWeight: '800',
-  },
-  detail: {
-    color: colors.muted,
-    lineHeight: 21,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 16,
-  },
-  statCard: {
-    flexGrow: 1,
-    minWidth: '47%',
-    backgroundColor: colors.primarySoft,
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  statLabel: {
-    color: colors.primary,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  statValue: {
-    color: colors.text,
-    fontSize: 28,
-    fontWeight: '800',
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  sectionDescription: {
-    color: colors.muted,
-    lineHeight: 22,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    color: colors.text,
-    backgroundColor: '#fdfefe',
-  },
-  textarea: {
-    minHeight: 110,
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 999,
-    backgroundColor: '#ffffff',
-  },
-  chipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  chipText: {
-    color: colors.text,
-    fontWeight: '600',
-  },
-  chipTextActive: {
-    color: '#ffffff',
-  },
-  primaryButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  outlineButton: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: '#ffffff',
-  },
-  outlineButtonText: {
-    color: colors.text,
-    fontWeight: '700',
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  emptyText: {
-    color: colors.muted,
-    lineHeight: 22,
-  },
-  itemCard: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: '#fbfcfe',
-    borderRadius: 18,
-    padding: 16,
-    gap: 8,
-  },
-  unreadCard: {
-    borderColor: '#92d0ca',
-    backgroundColor: '#f3fbfa',
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  itemTitle: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  badge: {
-    color: colors.primary,
-    fontWeight: '700',
-    backgroundColor: colors.primarySoft,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    overflow: 'hidden',
-  },
-  readBadge: {
-    backgroundColor: '#eef3f7',
-    color: colors.muted,
-  },
-  unreadBadge: {
-    backgroundColor: colors.primarySoft,
-    color: colors.primary,
-  },
-  itemDetail: {
-    color: colors.muted,
-    lineHeight: 21,
-  },
-  itemDescription: {
-    color: colors.text,
-    lineHeight: 22,
-  },
-  itemMeta: {
-    color: colors.muted,
-    lineHeight: 20,
-  },
-  inlineButton: {
-    alignSelf: 'flex-start',
-    marginTop: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: colors.primarySoft,
-  },
-  inlineButtonText: {
-    color: colors.primary,
-    fontWeight: '700',
-  },
+  header: { gap: 8, marginTop: 8, marginBottom: 14 },
+  eyebrow: { color: colors.primary, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
+  title: { color: colors.text, fontSize: 28, lineHeight: 34, fontWeight: '800' },
+  profileCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 22, padding: 18, gap: 8, marginBottom: 14 },
+  profileTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 22, padding: 18, gap: 10, marginBottom: 14 },
+  subCard: { borderWidth: 1, borderColor: colors.border, backgroundColor: '#fbfcfe', borderRadius: 16, padding: 12, gap: 4 },
+  cardTitle: { fontSize: 21, lineHeight: 26, color: colors.text, fontWeight: '800' },
+  detail: { color: colors.muted, lineHeight: 20 },
+  statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
+  statCard: { flexGrow: 1, minWidth: '47%', backgroundColor: colors.primarySoft, borderRadius: 18, padding: 14, borderWidth: 1, borderColor: colors.border },
+  statLabel: { color: colors.primary, fontWeight: '700', marginBottom: 8 },
+  statValue: { color: colors.text, fontSize: 26, fontWeight: '800' },
+  sectionEyebrow: { color: colors.primary, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 11 },
+  sectionTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 13, color: colors.text, backgroundColor: '#fdfefe' },
+  textarea: { minHeight: 100 },
+  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  chip: { borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: '#ffffff' },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { color: colors.text, fontWeight: '600' },
+  chipTextActive: { color: '#ffffff' },
+  primaryButton: { backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 15, alignItems: 'center' },
+  primaryButtonText: { color: '#ffffff', fontWeight: '700', fontSize: 16 },
+  outlineButton: { borderWidth: 1, borderColor: colors.border, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#ffffff' },
+  outlineButtonText: { color: colors.text, fontWeight: '700' },
+  buttonDisabled: { opacity: 0.7 },
+  emptyText: { color: colors.muted, lineHeight: 21 },
+  itemCard: { borderWidth: 1, borderColor: colors.border, backgroundColor: '#fbfcfe', borderRadius: 16, padding: 14, gap: 6 },
+  selectedCard: { borderColor: colors.primary },
+  unreadCard: { borderColor: '#92d0ca', backgroundColor: '#f3fbfa' },
+  itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
+  itemTitle: { flex: 1, fontSize: 16, fontWeight: '800', color: colors.text },
+  badge: { color: colors.primary, fontWeight: '700', backgroundColor: colors.primarySoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, overflow: 'hidden' },
+  readBadge: { backgroundColor: '#eef3f7', color: colors.muted },
+  unreadBadge: { backgroundColor: colors.primarySoft, color: colors.primary },
+  itemDetail: { color: colors.muted, lineHeight: 20 },
+  itemDescription: { color: colors.text, lineHeight: 21 },
+  itemMeta: { color: colors.muted, lineHeight: 18, fontSize: 13 },
+  inlineButton: { alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: colors.primarySoft },
+  inlineButtonText: { color: colors.primary, fontWeight: '700' },
 })

@@ -7,11 +7,11 @@ import {
   RadioTower,
   ScanSearch,
   Wrench,
-  XCircle,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
 import { NotificationsPanel } from '@/components/dashboard/NotificationsPanel'
+import { TechnicianSprint3Panel } from '@/components/sprint3/TechnicianSprint3Panel'
 import { validatePasswordChangeForm } from '@/lib/validation'
 import { changeCurrentPassword, getCurrentUser } from '@/services/authApi'
 import { listInterventions, updateIntervention } from '@/services/interventionApi'
@@ -211,15 +211,12 @@ export const TechnicienDashboardPage = () => {
             <div>
               <div className='inline-flex items-center gap-2 rounded-full border border-emerald-300/15 bg-emerald-300/8 px-4 py-2 text-xs uppercase tracking-[0.24em] text-emerald-100'>
                 <RadioTower className='h-4 w-4' />
-                Sprint 2 us-20 us-21 us-22
+                Operations technicien
               </div>
               <h1 className='mt-5 text-4xl font-semibold tracking-[-0.05em] text-white sm:text-5xl'>
-                Mission deck technicien
+                Missions
               </h1>
-              <p className='mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base'>
-                Un tableau de bord concu pour trier rapidement les taches affectees, accepter ou
-                refuser une mission, puis pousser son avancement en temps reel.
-              </p>
+             
             </div>
 
             <div className='grid gap-3 sm:grid-cols-2'>
@@ -381,7 +378,7 @@ export const TechnicienDashboardPage = () => {
 
               {user?.mustChangePassword ? (
                 <div className='mt-6 rounded-[1.4rem] border border-amber-300/15 bg-amber-300/8 p-5 text-sm leading-7 text-amber-100'>
-                  Le backend impose encore un changement de mot de passe avant utilisation normale.
+                  Changement de mot de passe requis.
                 </div>
               ) : null}
             </article>
@@ -405,29 +402,20 @@ export const TechnicienDashboardPage = () => {
                 </button>
               </form>
             </article>
-
-            <article className='dashboard-panel rounded-[2rem] p-6 sm:p-8'>
-              <div className='flex items-center gap-3 text-emerald-200'>
-                <XCircle className='h-5 w-5' />
-                <p className='text-xs uppercase tracking-[0.24em]'>Regle metier retenue</p>
-              </div>
-              <p className='mt-5 text-sm leading-7 text-slate-300'>
-                Dans cette version, <strong>Accepter</strong> fait passer la mission en cours,
-                tandis que <strong>Refuser</strong> la renvoie au responsable pour reaffectation.
-              </p>
-            </article>
           </div>
         </section>
 
         <section className='mt-6'>
           <NotificationsPanel
-            description='Affectations, changements de priorite et mises a jour de statut du sprint 2 remontent ici en temps reel applicatif.'
+            description='Affectations et mises a jour recentes.'
             notifications={notifications}
             loading={loading}
             accentClassName='bg-emerald-300/10 text-emerald-100'
             onMarkAsRead={handleMarkNotificationAsRead}
           />
         </section>
+
+        <TechnicianSprint3Panel interventions={interventions} onRefresh={loadDashboard} />
     </AppDashboardShell>
   )
 }
