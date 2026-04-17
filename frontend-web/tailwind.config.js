@@ -1,6 +1,5 @@
-import type { Config } from 'tailwindcss'
-
-export default {
+/** @type {import('tailwindcss').Config} */
+module.exports = {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
@@ -19,8 +18,8 @@ export default {
           cancelled: '#EF4444'
         },
       },
-      fontFamily: { sans: ['Inter', 'Arial', 'sans-serif'] },
+      fontFamily: { sans: ['"Plus Jakarta Sans"', '"Geist Variable"', 'system-ui', 'sans-serif'] },
     },
   },
   plugins: [],
-} satisfies Config
+}

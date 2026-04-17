@@ -7,6 +7,7 @@ import {
   type PropsWithChildren,
 } from 'react'
 import { Alert } from 'react-native'
+import { env } from '../config/env'
 import { getCurrentUser, loginUser, registerClient, setApiToken } from '../services/authApi'
 import { storage } from '../services/storage'
 import type { CurrentUser, LoginRequest, RegisterRequest, UserRole } from '../types/auth'
@@ -137,7 +138,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         error,
         "Verifie l'email, le mot de passe et l'URL API."
       )
-      Alert.alert('Connexion impossible', message)
+      Alert.alert('Connexion impossible', `${message}\n\nURL API: ${env.apiBaseUrl}`)
       throw error
     } finally {
       setIsLoading(false)
@@ -168,7 +169,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         error,
         "Verifie les champs saisis et l'URL API."
       )
-      Alert.alert('Inscription impossible', message)
+      Alert.alert('Inscription impossible', `${message}\n\nURL API: ${env.apiBaseUrl}`)
       throw error
     } finally {
       setIsLoading(false)

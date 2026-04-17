@@ -39,21 +39,22 @@ export function AuthField({
 
 const styles = StyleSheet.create({
   label: {
-    marginBottom: 8,
-    marginTop: 6,
-    fontSize: 13,
+    marginBottom: 7,
+    marginTop: 4,
+    fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
     color: colors.muted,
   },
   input: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 16,
+    borderRadius: 18,
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: '#fbfdff',
+    paddingVertical: 15,
+    backgroundColor: '#f8fbff',
     color: colors.text,
+    fontSize: 17,
   },
 })
