@@ -20,24 +20,30 @@ export function AuthCard({ title, subtitle, children }: AuthCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 24,
-    padding: 20,
+    borderRadius: 28,
+    padding: 22,
     borderWidth: 1,
     borderColor: colors.border,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
   },
   cardTitle: {
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 30,
+    lineHeight: 36,
     fontWeight: '800',
     color: colors.text,
   },
   cardSubtitle: {
-    marginTop: 8,
+    marginTop: 6,
     color: colors.muted,
-    lineHeight: 22,
+    lineHeight: 23,
+    fontSize: 16,
   },
   content: {
-    marginTop: 18,
-    gap: 10,
+    marginTop: 16,
+    gap: 12,
   },
 })

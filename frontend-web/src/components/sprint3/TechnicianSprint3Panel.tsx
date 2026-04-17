@@ -46,13 +46,56 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback
 }
 
-const readFileAsDataUrl = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result ?? ''))
-    reader.onerror = () => reject(new Error('Lecture du fichier impossible.'))
-    reader.readAsDataURL(file)
+const loadImage = (src: string) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error('Lecture de l image impossible.'))
+    img.src = src
   })
+
+const compressImageFileToBase64 = async (file: File) => {
+  if (!file.type.startsWith('image/')) {
+    throw new Error('Fichier image requis.')
+  }
+
+  const objectUrl = URL.createObjectURL(file)
+  try {
+    const img = await loadImage(objectUrl)
+    const maxDim = 1400
+    const scale = Math.min(1, maxDim / Math.max(img.width || 1, img.height || 1))
+    const targetWidth = Math.max(1, Math.round((img.width || 1) * scale))
+    const targetHeight = Math.max(1, Math.round((img.height || 1) * scale))
+
+    const canvas = document.createElement('canvas')
+    canvas.width = targetWidth
+    canvas.height = targetHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      throw new Error('Canvas indisponible.')
+    }
+
+    ctx.drawImage(img, 0, 0, targetWidth, targetHeight)
+
+    // Keep proofs light so the API stays responsive and the DB doesn't explode.
+    const maxBase64Chars = 3_800_000
+    let quality = 0.72
+    let dataUrl = canvas.toDataURL('image/jpeg', quality)
+    while (dataUrl.length > maxBase64Chars && quality > 0.42) {
+      quality -= 0.08
+      dataUrl = canvas.toDataURL('image/jpeg', quality)
+    }
+
+    const base64 = dataUrl.split(',')[1] ?? ''
+    if (!base64 || base64.length > maxBase64Chars) {
+      throw new Error('Image trop lourde. Choisis une photo plus petite.')
+    }
+
+    return base64
+  } finally {
+    URL.revokeObjectURL(objectUrl)
+  }
+}
 
 const getStageState = (intervention: InterventionRecord) => ({
   gpsDone: Boolean(intervention.gpsConfirmedAt),
@@ -254,9 +297,15 @@ export function TechnicianSprint3Panel({
     setBusyAction('evidence')
 
     try {
-      const photoData = await readFileAsDataUrl(evidenceFile)
+      const note = evidenceNote.trim()
+      if (note.length < 8) {
+        toast.error('Commentaire trop court.')
+        return
+      }
+
+      const photoData = await compressImageFileToBase64(evidenceFile)
       await addInterventionEvidence(selectedIntervention.id, {
-        commentaire: evidenceNote.trim(),
+        commentaire: note,
         photoName: evidenceFile.name,
         photoData,
       })
@@ -273,31 +322,28 @@ export function TechnicianSprint3Panel({
 
   return (
     <section className='mt-6 grid gap-6 xl:grid-cols-[1.12fr_0.88fr]'>
-      <article className='dashboard-panel rounded-[2rem] border border-white/30 bg-[linear-gradient(180deg,rgba(248,252,251,0.98)_0%,rgba(236,246,243,0.96)_100%)] p-6 sm:p-8'>
+      <article className='dashboard-panel rounded-[2rem] border border-slate-100 bg-[linear-gradient(180deg,#ffffff_0%,#f5fbfc_100%)] p-6 sm:p-8'>
         <div className='flex flex-wrap items-start justify-between gap-4'>
           <div>
-            <div className='inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-xs uppercase tracking-[0.24em] text-emerald-700'>
+            <div className='inline-flex items-center gap-2 rounded-full border border-sky-100 bg-sky-50 px-4 py-2 text-xs uppercase tracking-[0.24em] text-sky-700'>
               <MapPin className='h-4 w-4' />
               Terrain
             </div>
             <h2 className='mt-4 text-3xl font-semibold tracking-[-0.04em] text-slate-950'>
               Controle mission
             </h2>
-            <p className='mt-3 max-w-2xl text-sm leading-7 text-slate-600'>
-              Valide la presence, le QR et les preuves depuis une fiche unique, plus lisible et plus rapide a utiliser.
-            </p>
           </div>
 
           <div className='grid gap-3 sm:grid-cols-3'>
-            <div className='rounded-[1.3rem] border border-slate-200 bg-white px-4 py-3'>
+            <div className='rounded-[1.3rem] border border-sky-100 bg-[linear-gradient(135deg,#f3fbff_0%,#edf8ff_100%)] px-4 py-3'>
               <p className='text-xs uppercase tracking-[0.18em] text-slate-500'>GPS</p>
               <p className='mt-2 text-2xl font-semibold text-slate-950'>{summary.gps}</p>
             </div>
-            <div className='rounded-[1.3rem] border border-slate-200 bg-white px-4 py-3'>
+            <div className='rounded-[1.3rem] border border-emerald-100 bg-[linear-gradient(135deg,#f2fffb_0%,#ebfcf5_100%)] px-4 py-3'>
               <p className='text-xs uppercase tracking-[0.18em] text-slate-500'>QR</p>
               <p className='mt-2 text-2xl font-semibold text-slate-950'>{summary.qr}</p>
             </div>
-            <div className='rounded-[1.3rem] border border-slate-200 bg-white px-4 py-3'>
+            <div className='rounded-[1.3rem] border border-violet-100 bg-[linear-gradient(135deg,#f6f3ff_0%,#f1eeff_100%)] px-4 py-3'>
               <p className='text-xs uppercase tracking-[0.18em] text-slate-500'>Preuves</p>
               <p className='mt-2 text-2xl font-semibold text-slate-950'>{summary.evidences}</p>
             </div>
@@ -322,7 +368,7 @@ export function TechnicianSprint3Panel({
                     onClick={() => setSelectedInterventionId(intervention.id)}
                     className={`w-full rounded-[1.4rem] border p-4 text-left transition ${
                       selectedIntervention?.id === intervention.id
-                        ? 'border-emerald-300 bg-emerald-50 shadow-[0_16px_40px_rgba(16,185,129,0.08)]'
+                        ? 'border-sky-200 bg-[linear-gradient(180deg,#f3fbff_0%,#edf8ff_100%)] shadow-[0_16px_40px_rgba(76,191,255,0.1)]'
                         : 'border-slate-200 bg-white hover:border-emerald-200'
                     }`}
                   >
@@ -354,7 +400,7 @@ export function TechnicianSprint3Panel({
 
           {selectedIntervention ? (
             <div className='space-y-5'>
-              <div className='rounded-[1.6rem] border border-slate-200 bg-white p-5'>
+              <div className='rounded-[1.6rem] border border-slate-100 bg-[linear-gradient(180deg,#ffffff_0%,#f9fcff_100%)] p-5 shadow-[0_16px_36px_rgba(148,163,184,0.08)]'>
                 <div className='flex flex-wrap items-center justify-between gap-4'>
                   <div>
                     <p className='text-xs uppercase tracking-[0.18em] text-emerald-700'>Fiche mission</p>
@@ -374,7 +420,7 @@ export function TechnicianSprint3Panel({
               </div>
 
               <div className='grid gap-5 lg:grid-cols-2'>
-                <div className='rounded-[1.6rem] border border-slate-200 bg-white p-5'>
+                <div className='rounded-[1.6rem] border border-emerald-100 bg-[linear-gradient(180deg,#ffffff_0%,#f2fffb_100%)] p-5'>
                   <div className='flex items-center gap-3 text-emerald-700'>
                     <Crosshair className='h-5 w-5' />
                     <p className='text-xs uppercase tracking-[0.18em]'>Presence</p>
@@ -400,7 +446,7 @@ export function TechnicianSprint3Panel({
                   </button>
                 </div>
 
-                <div className='rounded-[1.6rem] border border-slate-200 bg-white p-5'>
+                <div className='rounded-[1.6rem] border border-sky-100 bg-[linear-gradient(180deg,#ffffff_0%,#f3fbff_100%)] p-5'>
                   <div className='flex items-center gap-3 text-sky-700'>
                     <QrCode className='h-5 w-5' />
                     <p className='text-xs uppercase tracking-[0.18em]'>Controle acces</p>
@@ -445,15 +491,13 @@ export function TechnicianSprint3Panel({
                 </div>
               </div>
 
-              <div className='rounded-[1.6rem] border border-slate-200 bg-white p-5'>
+              <div className='rounded-[1.6rem] border border-violet-100 bg-[linear-gradient(180deg,#ffffff_0%,#f7f4ff_100%)] p-5'>
                 <div className='flex items-center gap-3 text-emerald-700'>
                   <Upload className='h-5 w-5' />
                   <p className='text-xs uppercase tracking-[0.18em]'>Preuves</p>
                 </div>
                 <h4 className='mt-4 text-lg font-semibold text-slate-950'>Documents terrain</h4>
-                <p className='mt-2 text-sm text-slate-600'>
-                  Ajout autorise uniquement pendant une intervention en cours.
-                </p>
+                <p className='mt-2 text-sm text-slate-600'>Ajout pendant une mission en cours.</p>
                 <div className='mt-4 grid gap-4 lg:grid-cols-[1fr_0.9fr_auto]'>
                   <textarea
                     value={evidenceNote}
@@ -505,7 +549,7 @@ export function TechnicianSprint3Panel({
         </div>
       </article>
 
-      <article className='dashboard-panel rounded-[2rem] border border-white/30 bg-[linear-gradient(180deg,rgba(252,254,254,0.98)_0%,rgba(238,247,244,0.94)_100%)] p-6 sm:p-8'>
+      <article className='dashboard-panel rounded-[2rem] border border-slate-100 bg-[linear-gradient(180deg,#ffffff_0%,#f6fbff_100%)] p-6 sm:p-8'>
         <div className='flex items-center gap-3 text-emerald-700'>
           <History className='h-5 w-5' />
           <p className='text-xs uppercase tracking-[0.24em]'>Historique personnel</p>
@@ -513,9 +557,6 @@ export function TechnicianSprint3Panel({
         <h2 className='mt-5 text-3xl font-semibold tracking-[-0.04em] text-slate-950'>
           Historique
         </h2>
-        <p className='mt-3 text-sm leading-7 text-slate-600'>
-          Vue compacte des missions deja traitees avec les points de controle realises.
-        </p>
 
         <div className='mt-6 space-y-4'>
           {historicalInterventions.length === 0 ? (

@@ -16,7 +16,7 @@ export const BackToLoginButton = () => {
   return (
     <Button
       variant='outline'
-      className='h-11 rounded-full border-white/10 bg-white/5 px-5 text-white hover:bg-white/10'
+      className='h-11 rounded-full border-slate-200 bg-white px-5 text-slate-800 hover:bg-slate-50'
       onClick={handleBackToLogin}
     >
       <ArrowLeft className='h-4 w-4' />

@@ -14,7 +14,7 @@ export const ProtectedRoute = ({ children, allowedRoles }: Props) => {
 
   if (!isReady) {
     return (
-      <main className='flex min-h-screen items-center justify-center bg-[#071412] px-6 text-sm text-slate-300'>
+      <main className='flex min-h-screen items-center justify-center px-6 text-sm text-slate-800'>
         Verification de la session...
       </main>
     )

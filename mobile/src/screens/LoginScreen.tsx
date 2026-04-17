@@ -32,14 +32,9 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
   return (
     <Screen scrollable>
       <View style={styles.hero}>
-        <Text style={styles.kicker}>Application mobile</Text>
-        <Text style={styles.title}>
-          Plateforme Intelligente de Monitoring et d'Optimisation des Interventions FTTH
-        </Text>
-        <Text style={styles.subtitle}>
-          Le mobile sert aux clients pour suivre leurs demandes et aux techniciens pour piloter les
-          interventions terrain.
-        </Text>
+        <Text style={styles.kicker}>FTTH Mobile</Text>
+        <Text style={styles.title}>Plateforme Intelligente de Monitoring et d'Optimisation des Interventions FTTH</Text>
+        <Text style={styles.subtitle}>Connexion client et technicien.</Text>
       </View>
 
       <AuthCard
@@ -63,7 +58,11 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
           onChangeText={setMotDePasse}
         />
 
-        <Pressable style={styles.button} onPress={handleLogin} disabled={isLoading}>
+        <Pressable
+          style={({ pressed }) => [styles.button, pressed ? styles.buttonPressed : null]}
+          onPress={handleLogin}
+          disabled={isLoading}
+        >
           {isLoading ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
@@ -71,14 +70,17 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
           )}
         </Pressable>
 
-        <Pressable style={styles.secondaryButton} onPress={() => navigation.navigate('Register')}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            pressed ? styles.secondaryButtonPressed : null,
+          ]}
+          onPress={() => navigation.navigate('Register')}
+        >
           <Text style={styles.secondaryButtonText}>Creer un compte client</Text>
         </Pressable>
 
-        <Text style={styles.help}>
-          Les comptes admin et responsable utilisent le dashboard web. Pense aussi a definir
-          `EXPO_PUBLIC_API_BASE_URL` selon ton emulateur ou ton telephone.
-        </Text>
+        <Text style={styles.help}>Inscription reservee aux clients.</Text>
       </AuthCard>
     </Screen>
   )
@@ -86,61 +88,79 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
 
 const styles = StyleSheet.create({
   hero: {
-    marginTop: 24,
-    marginBottom: 24,
-    gap: 10,
+    marginTop: 10,
+    marginBottom: 20,
+    gap: 8,
   },
   kicker: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.primarySoft,
+    backgroundColor: '#dbeafe',
+    borderColor: '#bfdbfe',
+    borderWidth: 1,
     color: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
     borderRadius: 999,
     fontSize: 12,
     fontWeight: '700',
+    letterSpacing: 0.6,
   },
   title: {
-    fontSize: 34,
-    lineHeight: 40,
+    fontSize: 38,
+    lineHeight: 44,
     fontWeight: '800',
     color: colors.text,
   },
   subtitle: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 26,
     color: colors.muted,
   },
   button: {
     marginTop: 12,
-    backgroundColor: colors.primary,
-    borderRadius: 16,
+    backgroundColor: colors.info,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 17,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
   },
   buttonText: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
+  },
+  buttonPressed: {
+    transform: [{ scale: 0.985 }],
+    opacity: 0.95,
   },
   secondaryButton: {
     marginTop: 10,
-    borderRadius: 16,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 17,
     borderWidth: 1,
     borderColor: colors.border,
+    backgroundColor: '#f8fbff',
   },
   secondaryButtonText: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
+  },
+  secondaryButtonPressed: {
+    transform: [{ scale: 0.985 }],
+    opacity: 0.95,
   },
   help: {
     marginTop: 8,
     color: colors.muted,
     lineHeight: 20,
+    fontSize: 13,
   },
 })

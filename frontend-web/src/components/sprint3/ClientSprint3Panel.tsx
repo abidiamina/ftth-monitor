@@ -131,8 +131,8 @@ export function ClientSprint3Panel({
             <h2 className='mt-4 text-3xl font-semibold tracking-[-0.04em] text-slate-950'>
               Signature
             </h2>
-            <p className='mt-3 max-w-2xl text-sm leading-7 text-slate-600'>
-              Valide une intervention terminee avec une signature propre, puis enchaine avec une evaluation claire.
+            <p className='mt-3 max-w-2xl text-sm leading-6 text-slate-600'>
+              Validation simple d une intervention terminee.
             </p>
           </div>
 
@@ -257,11 +257,9 @@ export function ClientSprint3Panel({
           <p className='text-xs uppercase tracking-[0.24em]'>Retour client</p>
         </div>
         <h2 className='mt-5 text-3xl font-semibold tracking-[-0.04em] text-slate-950'>
-          Evaluation
+          Note d evaluation
         </h2>
-        <p className='mt-3 text-sm leading-7 text-slate-600'>
-          Donne une note rapide et un commentaire lisible pour cloturer l experience de service.
-        </p>
+        <p className='mt-3 text-sm leading-6 text-slate-600'>Note et commentaire.</p>
 
         {selectedIntervention ? (
           <div className='mt-6 space-y-5'>

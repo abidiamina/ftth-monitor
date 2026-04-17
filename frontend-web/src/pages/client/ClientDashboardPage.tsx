@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { BellRing, KeyRound, ShieldCheck, TicketPlus, UserRound } from 'lucide-react'
 import { useDispatch } from 'react-redux'
 import { toast } from 'react-hot-toast'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
+import { DashboardTabs } from '@/components/dashboard/DashboardTabs'
 import { NotificationsPanel } from '@/components/dashboard/NotificationsPanel'
 import { ClientSprint3Panel } from '@/components/sprint3/ClientSprint3Panel'
 import {
@@ -38,10 +39,10 @@ const priorityLabels: Record<InterventionPriority, string> = {
 }
 
 const statusBadgeClasses: Record<InterventionStatus, string> = {
-  EN_ATTENTE: 'border-amber-300/15 bg-amber-300/8 text-amber-100',
-  EN_COURS: 'border-sky-300/15 bg-sky-300/8 text-sky-100',
-  TERMINEE: 'border-emerald-300/15 bg-emerald-300/8 text-emerald-100',
-  ANNULEE: 'border-rose-300/15 bg-rose-300/8 text-rose-100',
+  EN_ATTENTE: 'border-amber-200 bg-amber-50 text-amber-700',
+  EN_COURS: 'border-sky-200 bg-sky-50 text-sky-700',
+  TERMINEE: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  ANNULEE: 'border-rose-200 bg-rose-50 text-rose-700',
 }
 
 const emptyRequest: CreateInterventionRequest = {
@@ -80,6 +81,7 @@ export const ClientDashboardPage = () => {
   const [notifications, setNotifications] = useState<NotificationRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [submittingRequest, setSubmittingRequest] = useState(false)
+  const [tab, setTab] = useState<'APERCU' | 'DEMANDE' | 'SUIVI' | 'VALIDATION' | 'COMPTE' | 'NOTIFICATIONS'>('APERCU')
   const [profileForm, setProfileForm] = useState({
     nom: '',
     prenom: '',
@@ -92,7 +94,7 @@ export const ClientDashboardPage = () => {
   })
   const [requestForm, setRequestForm] = useState<CreateInterventionRequest>(emptyRequest)
 
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async () => {
     setLoading(true)
     try {
       const [userData, interventionsData, notificationsData] = await Promise.all([
@@ -120,11 +122,11 @@ export const ClientDashboardPage = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [dispatch])
 
   useEffect(() => {
     loadDashboard()
-  }, [dispatch])
+  }, [loadDashboard])
 
   const stats = useMemo(() => {
     const total = interventions.length
@@ -133,6 +135,18 @@ export const ClientDashboardPage = () => {
     const unread = notifications.filter((item) => !item.lu).length
     return { total, ouvertes, enCours, unread }
   }, [interventions, notifications])
+
+  const tabs = useMemo(
+    () => [
+      { id: 'APERCU', label: 'Apercu', icon: ShieldCheck },
+      { id: 'DEMANDE', label: 'Nouvelle demande', icon: TicketPlus },
+      { id: 'SUIVI', label: 'Suivi', icon: BellRing },
+      { id: 'VALIDATION', label: 'Validation', icon: TicketPlus },
+      { id: 'COMPTE', label: 'Compte', icon: UserRound },
+      { id: 'NOTIFICATIONS', label: 'Notifications', icon: BellRing, badge: stats.unread || undefined },
+    ],
+    [stats.unread]
+  )
 
   const handleMarkNotificationAsRead = async (notificationId: number) => {
     try {
@@ -231,174 +245,199 @@ export const ClientDashboardPage = () => {
       role='CLIENT'
       workspaceLabel='Suivi des interventions'
       workspaceTitle='Portail client'
+      sectionTabs={tabs}
+      sectionTab={tab}
+      onSectionTabChange={(value) => setTab(value as typeof tab)}
     >
         <header className='dashboard-hero rounded-[2.4rem] p-6 sm:p-8'>
           <div className='flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between'>
             <div>
-              <div className='inline-flex items-center gap-2 rounded-full border border-emerald-300/15 bg-emerald-300/8 px-4 py-2 text-xs uppercase tracking-[0.24em] text-emerald-100'>
+              <div className='inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs uppercase tracking-[0.24em] text-emerald-700'>
                 <ShieldCheck className='h-4 w-4' />
-                Customer space live
+                Client
               </div>
-              <h1 className='mt-5 text-4xl font-semibold tracking-[-0.05em] text-white sm:text-5xl'>
-                Espace client interventions
+              <h1 className='mt-5 text-4xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-5xl'>
+                Tableau de bord
               </h1>
-              <p className='mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base'>
-                Le client peut maintenant garder son profil a jour, envoyer une demande
-                d intervention et suivre l avancement de ses tickets.
-              </p>
             </div>
           </div>
         </header>
 
-        <section className='mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]'>
-          <article className='dashboard-panel dashboard-panel-accent rounded-[2rem] p-6 sm:p-8'>
-            <div className='flex items-center gap-3 text-emerald-200'>
-              <TicketPlus className='h-5 w-5' />
-              <p className='text-xs uppercase tracking-[0.24em]'>US-19 Demande intervention</p>
-            </div>
+        <section className='mt-6 space-y-6'>
+          <div className='xl:hidden'>
+            <DashboardTabs value={tab} onChange={(value) => setTab(value as typeof tab)} tabs={tabs} />
+          </div>
 
-            <div className='mt-6 grid gap-3 sm:grid-cols-3'>
-              <article className='dashboard-stat rounded-[1.6rem] p-4'>
-                <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>Total</p>
-                <p className='mt-3 text-3xl font-semibold text-white'>{stats.total}</p>
-              </article>
-              <article className='dashboard-stat rounded-[1.6rem] p-4'>
-                <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>Ouvertes</p>
-                <p className='mt-3 text-3xl font-semibold text-white'>{stats.ouvertes}</p>
-              </article>
-              <article className='dashboard-stat rounded-[1.6rem] p-4'>
-                <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>En cours</p>
-                <p className='mt-3 text-3xl font-semibold text-white'>{stats.enCours}</p>
-              </article>
-              <article className='dashboard-stat rounded-[1.6rem] p-4'>
-                <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>Alertes</p>
-                <p className='mt-3 text-3xl font-semibold text-white'>{stats.unread}</p>
-              </article>
-            </div>
+          {tab === 'APERCU' ? (
+            <article className='dashboard-panel dashboard-panel-accent rounded-[2rem] p-6 sm:p-8'>
+              <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-4'>
+                <article className='dashboard-stat rounded-[1.6rem] p-4'>
+                  <p className='text-xs uppercase tracking-[0.22em] text-slate-700'>Total</p>
+                  <p className='mt-3 text-3xl font-semibold text-slate-950'>{stats.total}</p>
+                </article>
+                <article className='dashboard-stat rounded-[1.6rem] p-4'>
+                  <p className='text-xs uppercase tracking-[0.22em] text-slate-700'>Ouvertes</p>
+                  <p className='mt-3 text-3xl font-semibold text-slate-950'>{stats.ouvertes}</p>
+                </article>
+                <article className='dashboard-stat rounded-[1.6rem] p-4'>
+                  <p className='text-xs uppercase tracking-[0.22em] text-slate-700'>En cours</p>
+                  <p className='mt-3 text-3xl font-semibold text-slate-950'>{stats.enCours}</p>
+                </article>
+                <article className='dashboard-stat rounded-[1.6rem] p-4'>
+                  <p className='text-xs uppercase tracking-[0.22em] text-slate-700'>Alertes</p>
+                  <p className='mt-3 text-3xl font-semibold text-slate-950'>{stats.unread}</p>
+                </article>
+              </div>
 
-            <h2 className='mt-6 text-3xl font-semibold tracking-[-0.04em] text-white'>
-              Declarer un besoin technique
-            </h2>
+              <div className='mt-6'>
+                <div className='flex items-center gap-3 text-emerald-700'>
+                  <BellRing className='h-5 w-5' />
+                  <p className='text-xs uppercase tracking-[0.24em]'>Dernieres demandes</p>
+                </div>
+                <div className='mt-4 space-y-4'>
+                  {loading ? (
+                    <div className='dashboard-card rounded-[1.5rem] p-5 text-sm text-slate-800'>Chargement...</div>
+                  ) : interventions.length === 0 ? (
+                    <div className='dashboard-card rounded-[1.5rem] p-5 text-sm text-slate-800'>Aucune intervention.</div>
+                  ) : (
+                    interventions.slice(0, 3).map((intervention) => (
+                      <div key={intervention.id} className='dashboard-card rounded-[1.5rem] p-5'>
+                        <div className='flex flex-wrap items-center gap-3'>
+                          <p className='text-sm font-medium text-slate-950'>{intervention.titre}</p>
+                          <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${statusBadgeClasses[intervention.statut]}`}>{statusLabels[intervention.statut]}</span>
+                        </div>
+                        {intervention.description ? (
+                          <p className='mt-3 text-sm leading-7 text-slate-800'>{intervention.description}</p>
+                        ) : null}
+                        <p className='mt-2 text-sm text-slate-700'>{formatDate(intervention.datePlanifiee)}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </article>
+          ) : null}
 
-            <form className='mt-6 grid gap-4' onSubmit={handleRequestSubmit}>
-              <input value={requestForm.titre} onChange={(event) => setRequestForm((current) => ({ ...current, titre: event.target.value }))} placeholder='Exemple: Panne fibre au domicile' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
-              <textarea value={requestForm.description} onChange={(event) => setRequestForm((current) => ({ ...current, description: event.target.value }))} placeholder='Decris le probleme, l impact et les disponibilites d acces...' rows={4} className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
-              <textarea value={requestForm.adresse} onChange={(event) => setRequestForm((current) => ({ ...current, adresse: event.target.value }))} placeholder='Adresse de l intervention' rows={3} className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
-              <select value={requestForm.priorite ?? 'NORMALE'} onChange={(event) => setRequestForm((current) => ({ ...current, priorite: event.target.value as InterventionPriority }))} className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm'>
-                {(['BASSE', 'NORMALE', 'HAUTE', 'URGENTE'] as InterventionPriority[]).map((priority) => (
-                  <option key={priority} value={priority}>
-                    {priorityLabels[priority]}
-                  </option>
-                ))}
-              </select>
+          {tab === 'DEMANDE' ? (
+            <article className='dashboard-panel dashboard-panel-accent rounded-[2rem] p-6 sm:p-8'>
+              <div className='flex items-center gap-3 text-emerald-700'>
+                <TicketPlus className='h-5 w-5' />
+                <p className='text-xs uppercase tracking-[0.24em]'>Demande</p>
+              </div>
 
-              <button type='submit' disabled={submittingRequest} className='rounded-[1.2rem] border-0 bg-[linear-gradient(135deg,#a3ffe0_0%,#68e6b1_56%,#f4be7e_100%)] px-4 py-3 text-sm font-medium text-slate-950 transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60'>
-                {submittingRequest ? 'Envoi...' : 'Envoyer ma demande'}
-              </button>
-            </form>
-          </article>
+              <form className='mt-6 grid gap-4 sm:max-w-2xl' onSubmit={handleRequestSubmit}>
+                <input value={requestForm.titre} onChange={(event) => setRequestForm((current) => ({ ...current, titre: event.target.value }))} placeholder='Titre' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
+                <textarea value={requestForm.description} onChange={(event) => setRequestForm((current) => ({ ...current, description: event.target.value }))} placeholder='Description' rows={4} className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
+                <textarea value={requestForm.adresse} onChange={(event) => setRequestForm((current) => ({ ...current, adresse: event.target.value }))} placeholder='Adresse' rows={3} className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
+                <select value={requestForm.priorite ?? 'NORMALE'} onChange={(event) => setRequestForm((current) => ({ ...current, priorite: event.target.value as InterventionPriority }))} className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm'>
+                  {(['BASSE', 'NORMALE', 'HAUTE', 'URGENTE'] as InterventionPriority[]).map((priority) => (
+                    <option key={priority} value={priority}>
+                      {priorityLabels[priority]}
+                    </option>
+                  ))}
+                </select>
 
-          <article className='dashboard-panel rounded-[2rem] p-6 sm:p-8'>
-            <div className='flex items-center gap-3 text-emerald-200'>
-              <BellRing className='h-5 w-5' />
-              <p className='text-xs uppercase tracking-[0.24em]'>US-07 et consultation</p>
-            </div>
-
-            <div className='mt-6 space-y-4'>
-              {loading ? (
-                <div className='dashboard-card rounded-[1.5rem] p-5 text-sm text-slate-300'>Chargement de tes interventions...</div>
-              ) : interventions.length === 0 ? (
-                <div className='dashboard-card rounded-[1.5rem] p-5 text-sm text-slate-300'>Aucune intervention n a encore ete enregistree pour ce compte.</div>
-              ) : (
-                interventions.map((intervention) => (
-                  <div key={intervention.id} className='dashboard-card rounded-[1.5rem] p-5'>
-                    <div className='flex flex-wrap items-center gap-3'>
-                      <p className='text-sm font-medium text-white'>{intervention.titre}</p>
-                      <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${statusBadgeClasses[intervention.statut]}`}>{statusLabels[intervention.statut]}</span>
-                    </div>
-                    <p className='mt-3 text-sm leading-7 text-slate-300'>{intervention.description}</p>
-                    <p className='mt-2 text-sm text-slate-400'>{intervention.adresse}</p>
-                    <p className='text-sm text-slate-400'>Priorite: {priorityLabels[intervention.priorite]}</p>
-                    <p className='text-sm text-slate-500'>Planifiee: {formatDate(intervention.datePlanifiee)}</p>
-                    <p className='text-sm text-slate-500'>
-                      Technicien: {intervention.technicien ? `${intervention.technicien.utilisateur.prenom} ${intervention.technicien.utilisateur.nom}` : 'En attente d affectation'}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
-          </article>
-        </section>
-
-        <section className='mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]'>
-          <article className='dashboard-panel dashboard-panel-accent rounded-[2rem] p-6 sm:p-8'>
-            <div className='flex items-center gap-3 text-emerald-200'>
-              <UserRound className='h-5 w-5' />
-              <p className='text-xs uppercase tracking-[0.24em]'>PATCH /auth/me</p>
-            </div>
-
-            <h2 className='mt-5 text-3xl font-semibold tracking-[-0.04em] text-white'>
-              Mettre a jour mes informations
-            </h2>
-
-            {loading ? (
-              <div className='dashboard-card rounded-[1.5rem] p-5 text-sm text-slate-300'>Chargement du profil...</div>
-            ) : (
-              <form className='mt-6 grid gap-4' onSubmit={handleProfileSubmit}>
-                <input value={profileForm.prenom} onChange={(event) => setProfileForm((current) => ({ ...current, prenom: event.target.value }))} placeholder='Prenom' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
-                <input value={profileForm.nom} onChange={(event) => setProfileForm((current) => ({ ...current, nom: event.target.value }))} placeholder='Nom' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
-                <input value={profileForm.telephone} onChange={(event) => setProfileForm((current) => ({ ...current, telephone: event.target.value }))} placeholder='Telephone' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
-                <textarea value={profileForm.adresse} onChange={(event) => setProfileForm((current) => ({ ...current, adresse: event.target.value }))} placeholder='Adresse' rows={4} className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
-
-                <button type='submit' className='rounded-[1.2rem] border-0 bg-[linear-gradient(135deg,#a3ffe0_0%,#68e6b1_56%,#f4be7e_100%)] px-4 py-3 text-sm font-medium text-slate-950 transition hover:brightness-105'>
-                  Enregistrer le profil
+                <button type='submit' disabled={submittingRequest} className='rounded-[1.2rem] border-0 bg-[linear-gradient(135deg,#a3ffe0_0%,#68e6b1_56%,#f4be7e_100%)] px-4 py-3 text-sm font-medium text-slate-950 transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60'>
+                  {submittingRequest ? 'Envoi...' : 'Envoyer'}
                 </button>
               </form>
-            )}
-          </article>
+            </article>
+          ) : null}
 
-          <article className='dashboard-panel rounded-[2rem] p-6 sm:p-8'>
-            <div className='flex items-center gap-3 text-emerald-200'>
-              <KeyRound className='h-5 w-5' />
-              <p className='text-xs uppercase tracking-[0.24em]'>PATCH /auth/change-password</p>
-            </div>
+          {tab === 'SUIVI' ? (
+            <article className='dashboard-panel rounded-[2rem] p-6 sm:p-8'>
+              <div className='flex items-center gap-3 text-emerald-700'>
+                <BellRing className='h-5 w-5' />
+                <p className='text-xs uppercase tracking-[0.24em]'>Suivi</p>
+              </div>
 
-            <h2 className='mt-5 text-3xl font-semibold tracking-[-0.04em] text-white'>
-              Securite du compte
-            </h2>
+              <div className='mt-6 space-y-4'>
+                {loading ? (
+                  <div className='dashboard-card rounded-[1.5rem] p-5 text-sm text-slate-800'>Chargement...</div>
+                ) : interventions.length === 0 ? (
+                  <div className='dashboard-card rounded-[1.5rem] p-5 text-sm text-slate-800'>Aucune intervention.</div>
+                ) : (
+                  interventions.map((intervention) => (
+                    <div key={intervention.id} className='dashboard-card rounded-[1.5rem] p-5'>
+                      <div className='flex flex-wrap items-center gap-3'>
+                        <p className='text-sm font-medium text-slate-950'>{intervention.titre}</p>
+                        <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${statusBadgeClasses[intervention.statut]}`}>{statusLabels[intervention.statut]}</span>
+                      </div>
+                      {intervention.description ? (
+                        <p className='mt-3 text-sm leading-7 text-slate-800'>{intervention.description}</p>
+                      ) : null}
+                      <p className='mt-2 text-sm text-slate-800'>{intervention.adresse}</p>
+                      <p className='text-sm text-slate-800'>Priorite: {priorityLabels[intervention.priorite]}</p>
+                      <p className='text-sm text-slate-800'>Planifiee: {formatDate(intervention.datePlanifiee)}</p>
+                      <p className='text-sm text-slate-800'>
+                        Technicien: {intervention.technicien ? `${intervention.technicien.utilisateur.prenom} ${intervention.technicien.utilisateur.nom}` : 'En attente d affectation'}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </article>
+          ) : null}
 
-            <div className='dashboard-card mt-6 rounded-[1.5rem] p-5'>
-              <p className='text-sm font-medium text-white'>Profil charge depuis l API</p>
-              <p className='mt-2 text-sm leading-7 text-slate-300'>{user ? `${user.prenom} ${user.nom} - ${user.email}` : 'Aucune information disponible.'}</p>
-              <p className='text-sm leading-7 text-slate-400'>{user?.client?.adresse || 'Adresse client non disponible.'}</p>
-            </div>
+          {tab === 'COMPTE' ? (
+            <section className='grid gap-6 xl:grid-cols-[0.95fr_1.05fr]'>
+              <article className='dashboard-panel dashboard-panel-accent rounded-[2rem] p-6 sm:p-8'>
+                <div className='flex items-center gap-3 text-emerald-700'>
+                  <UserRound className='h-5 w-5' />
+                  <p className='text-xs uppercase tracking-[0.24em]'>Profil</p>
+                </div>
 
-            <form className='mt-6 grid gap-4' onSubmit={handlePasswordSubmit}>
-              <input type='password' value={passwordForm.motDePasseActuel} onChange={(event) => setPasswordForm((current) => ({ ...current, motDePasseActuel: event.target.value }))} placeholder='Mot de passe actuel' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
-              <input type='password' value={passwordForm.nouveauMotDePasse} onChange={(event) => setPasswordForm((current) => ({ ...current, nouveauMotDePasse: event.target.value }))} placeholder='Nouveau mot de passe' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
+                {loading ? (
+                  <div className='dashboard-card rounded-[1.5rem] p-5 text-sm text-slate-800'>Chargement...</div>
+                ) : (
+                  <form className='mt-6 grid gap-4' onSubmit={handleProfileSubmit}>
+                    <input value={profileForm.prenom} onChange={(event) => setProfileForm((current) => ({ ...current, prenom: event.target.value }))} placeholder='Prenom' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
+                    <input value={profileForm.nom} onChange={(event) => setProfileForm((current) => ({ ...current, nom: event.target.value }))} placeholder='Nom' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
+                    <input value={profileForm.telephone} onChange={(event) => setProfileForm((current) => ({ ...current, telephone: event.target.value }))} placeholder='Telephone' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
+                    <textarea value={profileForm.adresse} onChange={(event) => setProfileForm((current) => ({ ...current, adresse: event.target.value }))} placeholder='Adresse' rows={4} className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
 
-              <button type='submit' className='rounded-[1.2rem] border-0 bg-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/15'>
-                Changer le mot de passe
-              </button>
-            </form>
-          </article>
+                    <button type='submit' className='rounded-[1.2rem] border-0 bg-[linear-gradient(135deg,#a3ffe0_0%,#68e6b1_56%,#f4be7e_100%)] px-4 py-3 text-sm font-medium text-slate-950 transition hover:brightness-105'>
+                      Enregistrer
+                    </button>
+                  </form>
+                )}
+              </article>
+
+              <article className='dashboard-panel rounded-[2rem] p-6 sm:p-8'>
+                <div className='flex items-center gap-3 text-emerald-700'>
+                  <KeyRound className='h-5 w-5' />
+                  <p className='text-xs uppercase tracking-[0.24em]'>Securite</p>
+                </div>
+
+                <form className='mt-6 grid gap-4' onSubmit={handlePasswordSubmit}>
+                  <input type='password' value={passwordForm.motDePasseActuel} onChange={(event) => setPasswordForm((current) => ({ ...current, motDePasseActuel: event.target.value }))} placeholder='Mot de passe actuel' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
+                  <input type='password' value={passwordForm.nouveauMotDePasse} onChange={(event) => setPasswordForm((current) => ({ ...current, nouveauMotDePasse: event.target.value }))} placeholder='Nouveau mot de passe' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
+
+                  <button type='submit' className='rounded-[1.2rem] border-0 bg-[linear-gradient(135deg,#a3ffe0_0%,#68e6b1_56%,#f4be7e_100%)] px-4 py-3 text-sm font-medium text-slate-950 transition hover:brightness-105'>
+                    Mettre a jour
+                  </button>
+                </form>
+              </article>
+            </section>
+          ) : null}
+
+          {tab === 'NOTIFICATIONS' ? (
+            <NotificationsPanel
+              notifications={notifications}
+              loading={loading}
+              accentClassName='bg-emerald-100 text-emerald-800'
+              onMarkAsRead={handleMarkNotificationAsRead}
+            />
+          ) : null}
+
+          {tab === 'VALIDATION' ? (
+            <ClientSprint3Panel
+              interventions={interventions}
+              signerName={user ? `${user.prenom} ${user.nom}` : 'Client'}
+              onRefresh={loadDashboard}
+            />
+          ) : null}
         </section>
-
-        <section className='mt-6'>
-          <NotificationsPanel
-            description='Les notifications backend du sprint 2 apparaissent ici pour suivre les nouvelles demandes, affectations et changements de statut.'
-            notifications={notifications}
-            loading={loading}
-            accentClassName='bg-emerald-300/10 text-emerald-100'
-            onMarkAsRead={handleMarkNotificationAsRead}
-          />
-        </section>
-
-        <ClientSprint3Panel
-          interventions={interventions}
-          signerName={user ? `${user.prenom} ${user.nom}` : 'Client'}
-          onRefresh={loadDashboard}
-        />
     </AppDashboardShell>
   )
 }

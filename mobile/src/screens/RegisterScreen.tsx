@@ -66,10 +66,8 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
     <Screen scrollable>
       <View style={styles.hero}>
         <Text style={styles.kicker}>Inscription client</Text>
-        <Text style={styles.title}>Cree ton acces mobile</Text>
-        <Text style={styles.subtitle}>
-          Le client peut creer son compte directement depuis le mobile puis se connecter aussitot.
-        </Text>
+        <Text style={styles.title}>Creer un compte</Text>
+        <Text style={styles.subtitle}>Acces reserve aux clients.</Text>
       </View>
 
       <AuthCard
@@ -140,7 +138,11 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
 
         {localError ? <Text style={styles.error}>{localError}</Text> : null}
 
-        <Pressable style={styles.button} onPress={handleSubmit} disabled={isLoading}>
+        <Pressable
+          style={({ pressed }) => [styles.button, pressed ? styles.buttonPressed : null]}
+          onPress={handleSubmit}
+          disabled={isLoading}
+        >
           {isLoading ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
@@ -148,7 +150,13 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
           )}
         </Pressable>
 
-        <Pressable style={styles.secondaryButton} onPress={() => navigation.goBack()}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            pressed ? styles.secondaryButtonPressed : null,
+          ]}
+          onPress={() => navigation.goBack()}
+        >
           <Text style={styles.secondaryButtonText}>J'ai deja un compte</Text>
         </Pressable>
       </AuthCard>
@@ -158,29 +166,32 @@ export function RegisterScreen({ navigation }: RegisterScreenProps) {
 
 const styles = StyleSheet.create({
   hero: {
-    marginTop: 24,
-    marginBottom: 24,
-    gap: 10,
+    marginTop: 10,
+    marginBottom: 20,
+    gap: 8,
   },
   kicker: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.primarySoft,
+    backgroundColor: '#dcfce7',
+    borderColor: '#bbf7d0',
+    borderWidth: 1,
     color: colors.primary,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 999,
     fontSize: 12,
     fontWeight: '700',
+    letterSpacing: 0.5,
   },
   title: {
-    fontSize: 34,
-    lineHeight: 40,
+    fontSize: 38,
+    lineHeight: 44,
     fontWeight: '800',
     color: colors.text,
   },
   subtitle: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 26,
     color: colors.muted,
   },
   row: {
@@ -198,29 +209,43 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 12,
-    backgroundColor: colors.primary,
-    borderRadius: 16,
+    backgroundColor: colors.info,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 17,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
   },
   buttonText: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
+  },
+  buttonPressed: {
+    transform: [{ scale: 0.985 }],
+    opacity: 0.95,
   },
   secondaryButton: {
     marginTop: 10,
-    borderRadius: 16,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 17,
     borderWidth: 1,
     borderColor: colors.border,
+    backgroundColor: '#f8fbff',
   },
   secondaryButtonText: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
+  },
+  secondaryButtonPressed: {
+    transform: [{ scale: 0.985 }],
+    opacity: 0.95,
   },
 })
