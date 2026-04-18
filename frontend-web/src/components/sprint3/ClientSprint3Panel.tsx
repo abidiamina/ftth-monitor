@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { MessageSquareQuote, PenTool, Star, ThumbsUp } from 'lucide-react'
+import { MessageSquareQuote, PenTool, Star, ThumbsUp, MapPin, QrCode, Image as ImageIcon } from 'lucide-react'
 import SignatureCanvas from 'react-signature-canvas'
 import { toast } from 'react-hot-toast'
 import { submitInterventionClientApproval } from '@/services/interventionApi'
+import { normalizePhotoData, parseSignatureToPath } from '@/lib/interventionUtils'
 import type { InterventionRecord } from '@/types/auth.types'
 
 type ClientSprint3PanelProps = {
@@ -191,30 +192,81 @@ export function ClientSprint3Panel({
           {selectedIntervention ? (
             <div className='space-y-5'>
               <div className='rounded-[1.6rem] border border-slate-200 bg-white p-5'>
-                <p className='text-xs uppercase tracking-[0.18em] text-emerald-700'>Fiche validation</p>
-                <h3 className='mt-2 text-2xl font-semibold text-slate-950'>
+                <p className='text-xs uppercase tracking-[0.18em] text-emerald-700 font-semibold mb-3'>Fiche de Travail</p>
+                <h3 className='text-2xl font-semibold text-slate-950'>
                   {selectedIntervention.titre}
                 </h3>
-                <div className='mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-2'>
-                  <p>
-                    Technicien:{' '}
-                    <span className='font-medium text-slate-900'>
-                      {selectedIntervention.technicien
-                        ? `${selectedIntervention.technicien.utilisateur.prenom} ${selectedIntervention.technicien.utilisateur.nom}`
-                        : 'Non renseigne'}
-                    </span>
-                  </p>
-                  <p>
-                    Signataire: <span className='font-medium text-slate-900'>{signerName}</span>
-                  </p>
+                
+                <div className='mt-4 space-y-4'>
+                  {/* Photo Evidence Gallery */}
+                  {selectedIntervention.evidences.length > 0 && (
+                    <div className='bg-slate-50 rounded-xl p-3 border border-slate-100'>
+                      <p className='text-[11px] uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1'>
+                        <ImageIcon className="h-3 w-3" /> Photos terrain ({selectedIntervention.evidences.length})
+                      </p>
+                      <div className='flex gap-2 overflow-x-auto pb-2'>
+                        {selectedIntervention.evidences.map((ev) => (
+                          <img
+                            key={ev.id}
+                            src={normalizePhotoData(ev.photoData)}
+                            alt={ev.photoName}
+                            className='h-16 w-16 rounded-lg object-cover border border-white shadow-sm'
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className='grid gap-3 text-sm text-slate-600 sm:grid-cols-2'>
+                    <p>
+                      Technicien:{' '}
+                      <span className='font-medium text-slate-900'>
+                        {selectedIntervention.technicien
+                          ? `${selectedIntervention.technicien.utilisateur.prenom} ${selectedIntervention.technicien.utilisateur.nom}`
+                          : 'Non renseigné'}
+                      </span>
+                    </p>
+                    <p>
+                      Signataire : <span className='font-medium text-slate-900'>{signerName}</span>
+                    </p>
+                  </div>
+
+                  <div className='flex flex-wrap gap-3 pt-2'>
+                    {selectedIntervention.gpsConfirmedAt && (
+                      <div className='flex items-center gap-1.5 text-[11px] text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100'>
+                        <MapPin className='h-3 w-3' /> GPS OK
+                      </div>
+                    )}
+                    {selectedIntervention.qrVerifiedAt && (
+                      <div className='flex items-center gap-1.5 text-[11px] text-sky-700 bg-sky-50 px-2 py-1 rounded-md border border-sky-100'>
+                        <QrCode className='h-3 w-3' /> Equipement OK
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
               <div className='rounded-[1.6rem] border border-slate-200 bg-white p-5'>
                 <p className='text-xs uppercase tracking-[0.18em] text-emerald-700'>Signature</p>
                 {selectedIntervention.clientSignatureAt ? (
-                  <div className='mt-4 rounded-[1rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700'>
-                    Cette intervention a deja ete signee le {formatDate(selectedIntervention.clientSignatureAt)}.
+                  <div className='mt-4 space-y-4'>
+                    <div className='rounded-[1rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700'>
+                      Cette intervention a été signée le {formatDate(selectedIntervention.clientSignatureAt)}.
+                    </div>
+                    {selectedIntervention.clientSignature && (
+                       <div className='bg-white rounded-2xl border border-slate-100 p-2 w-fit shadow-sm'>
+                          <svg width="160" height="80" viewBox="0 0 160 80" className="opacity-80">
+                            <path 
+                              d={parseSignatureToPath(selectedIntervention.clientSignature)} 
+                              fill="none" 
+                              stroke="#0f172a" 
+                              strokeWidth="3" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round" 
+                            />
+                          </svg>
+                       </div>
+                    )}
                   </div>
                 ) : null}
                 <div className='mt-4 overflow-hidden rounded-[1.3rem] border border-slate-200 bg-white'>

@@ -1,4 +1,4 @@
-const fallbackApiBaseUrl = 'http://localhost:8000/api'
+const fallbackApiBaseUrl = '/api'
 
 const normalizeBaseUrl = (value?: string) => {
   const trimmed = value?.trim()

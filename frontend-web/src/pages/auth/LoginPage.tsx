@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
-import { ArrowRight, Eye, EyeOff, LockKeyhole, UserCircle2 } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AuthShell } from '@/components/auth/AuthShell'
 import { validateLoginForm } from '@/lib/validation'
@@ -17,63 +17,6 @@ const roleRedirects: Record<UserRole, string> = {
   TECHNICIEN: '/technicien/dashboard',
   CLIENT: '/client/dashboard',
 }
-
-const getErrorMessage = (error: unknown, fallback: string) => {
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'response' in error &&
-    typeof (error as { response?: unknown }).response === 'object' &&
-    (error as { response?: { data?: { message?: string } } }).response?.data?.message
-  ) {
-    return (error as { response?: { data?: { message?: string } } }).response!.data!.message!
-  }
-
-  return fallback
-}
-
-type InputFieldProps = {
-  label: string
-  type: 'email' | 'password' | 'text'
-  value: string
-  placeholder: string
-  autoComplete: string
-  onChange: (value: string) => void
-  leadingIcon: React.ReactNode
-  trailing?: React.ReactNode
-}
-
-const InputField = ({
-  label,
-  type,
-  value,
-  placeholder,
-  autoComplete,
-  onChange,
-  leadingIcon,
-  trailing,
-}: InputFieldProps) => (
-  <label className='block'>
-    <span className='mb-2 block text-[0.68rem] font-medium uppercase tracking-[0.28em] text-slate-500'>
-      {label}
-    </span>
-    <div className='rounded-[1.5rem] border border-slate-200 bg-white p-[1px] transition focus-within:border-emerald-300/60 focus-within:shadow-[0_0_0_3px_rgba(120,240,195,0.1)]'>
-      <div className='flex items-center gap-3 rounded-[1.45rem] bg-[linear-gradient(180deg,#ffffff,#f8fbfc)] px-4 py-4'>
-        <span className='text-slate-500'>{leadingIcon}</span>
-        <input
-          type={type}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={placeholder}
-          autoComplete={autoComplete}
-          required
-          className='w-full border-0 bg-transparent text-sm text-slate-950 outline-none placeholder:text-slate-400'
-        />
-        {trailing}
-      </div>
-    </div>
-  </label>
-)
 
 export const LoginPage = () => {
   const dispatch = useDispatch()
@@ -90,87 +33,101 @@ export const LoginPage = () => {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-
     const validationError = validateLoginForm({ email, motDePasse })
-
     if (validationError) {
       toast.error(validationError)
       return
     }
 
     dispatch(setLoading(true))
-
     try {
-      const response = await loginUser({
-        email: email.trim(),
-        motDePasse,
-      })
-
+      const response = await loginUser({ email: email.trim(), motDePasse })
       dispatch(setCredentials(response))
-      toast.success(`Bienvenue ${response.user.prenom} ${response.user.nom}`)
+      toast.success(`Heureux de vous revoir, ${response.user.prenom}`)
       navigate(roleRedirects[response.user.role], { replace: true })
     } catch (error: unknown) {
-      toast.error(getErrorMessage(error, 'Connexion impossible pour le moment.'))
+      toast.error('Identifiants incorrects ou problème technique.')
       dispatch(setLoading(false))
     }
   }
 
-  if (!isReady) {
-    return (
-      <main className='flex min-h-screen items-center justify-center px-6 text-sm text-slate-700'>
-        Verification de la session...
-      </main>
-    )
-  }
+  if (!isReady) return null
 
   return (
-    <AuthShell layout='single' title='Connexion' sideLabel=''>
-      <form className='mt-10 space-y-5' onSubmit={handleSubmit}>
-        <InputField
-          label='Email'
-          type='email'
-          value={email}
-          placeholder='nom@entreprise.com'
-          autoComplete='email'
-          onChange={setEmail}
-          leadingIcon={<UserCircle2 className='h-5 w-5' />}
-        />
-
-        <InputField
-          label='Mot de passe'
-          type={showPassword ? 'text' : 'password'}
-          value={motDePasse}
-          placeholder='********'
-          autoComplete='current-password'
-          onChange={setMotDePasse}
-          leadingIcon={<LockKeyhole className='h-5 w-5' />}
-          trailing={
-            <button
-              type='button'
-              onClick={() => setShowPassword((value) => !value)}
-              className='rounded-full p-1 text-slate-500 transition hover:text-slate-900'
-              aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-            >
-              {showPassword ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
-            </button>
-          }
-        />
-
-        <div className='flex items-center justify-end text-sm text-slate-700'>
-          <Link to='/register' className='text-emerald-700 transition hover:text-emerald-800'>
-            Creer un compte client
-          </Link>
+    <AuthShell 
+      layout='split' 
+      title={<>L'expertise <span className="text-emerald-500 italic">Connectée.</span></>}
+      description="Gérez vos interventions FTTH avec une précision chirurgicale et une fluidité absolue."
+      sideLabel="FTTH MONITOR PRO"
+      sideTitle="Performance Réseau"
+      sideDescription="Une visibilité totale sur vos déploiements en temps réel."
+      sideChips={['Fibre Optique', 'Haute Disponibilité', 'Support 24/7']}
+    >
+      <div className='mt-10'>
+        <div className="mb-8">
+            <h2 className="text-3xl font-black text-slate-950 tracking-tight">Connexion</h2>
+            <p className="text-slate-500 font-medium mt-2">Accédez à votre espace sécurisé.</p>
         </div>
 
-        <Button
-          type='submit'
-          size='lg'
-          className='h-14 w-full rounded-[1.5rem] border-0 bg-[linear-gradient(135deg,#b8ffe7_0%,#6ee7b7_52%,#ffbe78_100%)] text-slate-950 shadow-[0_20px_48px_rgba(103,232,178,0.2)] hover:brightness-105'
-        >
-          Se connecter
-          <ArrowRight className='h-4 w-4' />
-        </Button>
-      </form>
+        <form className='space-y-6' onSubmit={handleSubmit}>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-4">Email Professionnel</label>
+            <div className="relative group">
+              <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+              <input 
+                type="email" 
+                placeholder="nom@entreprise.com" 
+                className="w-full bg-slate-50 border-none rounded-[1.8rem] pl-14 pr-6 py-5 text-sm font-bold placeholder:text-slate-300 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-4">Clé d'accès</label>
+            <div className="relative group">
+              <LockKeyhole className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+              <input 
+                type={showPassword ? 'text' : 'password'} 
+                placeholder="********" 
+                className="w-full bg-slate-50 border-none rounded-[1.8rem] pl-14 pr-14 py-5 text-sm font-bold placeholder:text-slate-300 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                value={motDePasse}
+                onChange={e => setMotDePasse(e.target.value)}
+              />
+              <button 
+                type="button" 
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 transition-colors"
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+          </div>
+
+          <div className='flex items-center justify-between px-2'>
+            <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" className="rounded border-slate-200 text-emerald-500 focus:ring-emerald-500/20 h-4 w-4" />
+                <span className="text-xs font-bold text-slate-500">Rester connecté</span>
+            </label>
+            <Link to='/register' className='text-xs font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700 transition-colors'>
+              Nouveau Client ?
+            </Link>
+          </div>
+
+          <button
+            type='submit'
+            className='btn-premium w-full py-5 flex items-center justify-center gap-3 text-lg'
+          >
+            S'identifier
+            <ArrowRight className='h-5 w-5' />
+          </button>
+        </form>
+
+        <p className="mt-10 text-center text-xs font-medium text-slate-400">
+            En vous connectant, vous acceptez nos <span className="text-slate-600 underline">Conditions d'Utilisation</span>.
+        </p>
+      </div>
     </AuthShell>
   )
 }

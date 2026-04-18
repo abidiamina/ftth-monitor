@@ -1,21 +1,8 @@
 import type { ReactNode } from 'react'
-import {
-  BarChart3,
-  Bell,
-  CircleHelp,
-  LayoutDashboard,
-  LogOut,
-  MapPinned,
-  Search,
-  Settings,
-  Shield,
-  Ticket,
-  UserCog,
-  Users,
-  Wrench,
-} from 'lucide-react'
+import { Search, Bell, LogOut, LayoutDashboard, Ticket, Wrench, MapPinned, UserCog, CircleHelp, Settings, Shield, BarChart3, Users, Menu, X } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { logout } from '@/store/authSlice'
 import type { RootState } from '@/store'
@@ -78,50 +65,65 @@ export const AppDashboardShell = ({
   onSectionTabChange,
   children,
 }: AppDashboardShellProps) => {
-  const location = useLocation()
-  const navigate = useNavigate()
   const dispatch = useDispatch()
-  const user = useSelector((state: RootState) => state.auth.user)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { user } = useSelector((state: RootState) => state.auth)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const handleLogout = () => {
     dispatch(logout())
     navigate('/login', { replace: true })
   }
 
+  const navItems = sectionTabs?.length && sectionTab && onSectionTabChange
+    ? sectionTabs.map((tab) => ({
+        id: tab.id,
+        label: tab.label,
+        icon: tab.icon ?? LayoutDashboard,
+        badge: tab.badge !== undefined ? String(tab.badge) : undefined,
+      }))
+    : roleNav[role].map((item) => ({
+        id: item.label,
+        label: item.label,
+        icon: item.icon,
+        badge: item.badge,
+      }))
+
   return (
-    <main className='dashboard-shell min-h-screen px-4 py-6 sm:px-6 lg:px-8'>
-      <div className='dashboard-frame relative mx-auto flex max-w-[1600px] gap-6 rounded-[2.2rem] p-3 sm:p-4'>
-        <aside className='dashboard-sidebar hidden w-[276px] shrink-0 xl:flex xl:flex-col'>
-          <div className='dashboard-brand rounded-[2rem] p-5'>
-            <div className='flex items-center gap-4'>
-              <div className='flex h-14 w-14 items-center justify-center rounded-[1.35rem] bg-[linear-gradient(135deg,#7edbff_0%,#4cbfff_45%,#72e7c7_100%)] shadow-[0_14px_32px_rgba(76,191,255,0.22)]'>
-                <div className='flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-sky-500'>
-                  <LayoutDashboard className='h-4 w-4' />
-                </div>
+    <div className='dashboard-shell min-h-screen relative overflow-hidden'>
+      {/* Mesh Gradient Decorations */}
+      <div className='absolute -top-[10%] -left-[5%] w-[40%] h-[40%] bg-sky-200/20 rounded-full blur-[120px] pointer-events-none' />
+      <div className='absolute top-[20%] -right-[10%] w-[50%] h-[50%] bg-emerald-100/20 rounded-full blur-[140px] pointer-events-none' />
+      <div className='absolute -bottom-[10%] left-[20%] w-[35%] h-[35%] bg-amber-100/10 rounded-full blur-[100px] pointer-events-none' />
+
+      <div className='dashboard-frame relative z-10 mx-auto max-w-[1600px] flex overflow-hidden lg:h-[calc(100vh-2rem)] min-h-[500px] shadow-2xl'>
+        {/* Sidebar Overlay for Mobile */}
+        {isMobileMenuOpen && (
+          <div 
+            className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm xl:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+
+        {/* Sidebar */}
+        <aside className={`
+          fixed inset-y-0 left-0 z-50 w-72 transform border-r border-white/40 bg-white/60 p-6 backdrop-blur-3xl transition-transform duration-500 ease-in-out xl:relative xl:translate-x-0
+          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}>
+          <div className='flex flex-col h-full'>
+            <div className='mb-10 flex items-center gap-4 px-2'>
+              <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 shadow-xl shadow-slate-200'>
+                <Shield className='h-6 w-6 text-white' />
               </div>
-              <div>
-                <p className='text-sm font-semibold tracking-[0.02em] text-slate-900'>{workspaceLabel}</p>
-                <p className='text-sm text-slate-500'>{workspaceTitle}</p>
+              <div className='min-w-0'>
+                <h2 className='text-lg font-bold truncate tracking-tight text-slate-950'>{workspaceLabel}</h2>
+                <p className='text-[10px] uppercase tracking-widest font-bold text-slate-400'>{workspaceTitle}</p>
               </div>
             </div>
-          </div>
 
-          <nav className='dashboard-nav mt-4 flex-1 rounded-[2rem] p-4'>
-            <div className='space-y-2'>
-              {(sectionTabs?.length && sectionTab && onSectionTabChange
-                ? sectionTabs.map((tab) => ({
-                    id: tab.id,
-                    label: tab.label,
-                    icon: tab.icon ?? LayoutDashboard,
-                    badge: tab.badge !== undefined ? String(tab.badge) : undefined,
-                  }))
-                : roleNav[role].map((item) => ({
-                    id: item.label,
-                    label: item.label,
-                    icon: item.icon,
-                    badge: item.badge,
-                  }))
-              ).map((item, index) => {
+            <nav className='flex-1 space-y-1.5 overflow-y-auto no-scrollbar'>
+              {navItems.map((item, index) => {
                 const Icon = item.icon
                 const active = sectionTabs?.length && sectionTab ? item.id === sectionTab : index === 0 || location.pathname.includes(item.label.toLowerCase())
 
@@ -129,98 +131,95 @@ export const AppDashboardShell = ({
                   <button
                     key={item.id}
                     type='button'
-                    data-active={active}
                     onClick={() => {
                       if (sectionTabs?.length && onSectionTabChange) {
                         onSectionTabChange(item.id)
+                        setIsMobileMenuOpen(false)
                       }
                     }}
-                    className={`dashboard-nav-item flex w-full items-center gap-3 rounded-[1.15rem] px-4 py-3 text-left text-sm transition ${
-                      active
-                        ? 'bg-[linear-gradient(135deg,rgba(82,174,255,0.18),rgba(25,185,147,0.14))] text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]'
-                        : 'text-slate-600 hover:bg-white/60'
-                    }`}
+                    className={`nav-item w-full ${active ? 'nav-item-active' : 'nav-item-inactive'}`}
                   >
-                    <Icon className='h-4 w-4' />
-                    <span className='flex-1'>{item.label}</span>
-                    {item.badge ? (
-                      <span
-                        className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.16em] ${
-                          active
-                            ? 'bg-white/70 text-sky-700'
-                            : 'bg-slate-100 text-slate-500'
-                        }`}
-                      >
+                    <Icon className={`h-4.5 w-4.5 ${active ? 'text-white' : 'text-slate-400'}`} />
+                    <span className='flex-1 font-semibold'>{item.label}</span>
+                    {item.badge && (
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
                         {item.badge}
                       </span>
-                    ) : null}
+                    )}
                   </button>
                 )
               })}
-            </div>
+            </nav>
 
-            <div className='mt-6 rounded-[1.5rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-4 shadow-[0_16px_36px_rgba(148,163,184,0.08)]'>
-              <p className='text-xs uppercase tracking-[0.24em] text-slate-500'>Session</p>
-              <p className='mt-3 text-sm font-medium text-slate-900'>
-                {user ? `${user.prenom} ${user.nom}` : 'Utilisateur FTTH'}
-              </p>
-              <p className='mt-1 text-sm text-slate-500'>{role}</p>
-              <div className='mt-4 grid grid-cols-2 gap-2'>
-                <div className='dashboard-card-soft rounded-[1rem] p-3'>
-                  <p className='text-[10px] uppercase tracking-[0.18em] text-slate-500'>Mode</p>
-                  <p className='mt-2 text-sm font-semibold text-slate-900'>Ops</p>
-                </div>
-                <div className='dashboard-card-soft rounded-[1rem] p-3'>
-                  <p className='text-[10px] uppercase tracking-[0.18em] text-slate-500'>Etat</p>
-                  <p className='mt-2 text-sm font-semibold text-emerald-600'>En ligne</p>
-                </div>
+            {/* Profile Summary Card */}
+            <div className='mt-6 p-5 rounded-3xl bg-slate-50/50 border border-white relative overflow-hidden group hover:bg-white transition-all duration-300'>
+              <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:rotate-12 transition-transform">
+                <LayoutDashboard className="h-12 w-12" />
+              </div>
+              <p className='text-[9px] uppercase tracking-widest font-bold text-slate-400 mb-2'>Session Active</p>
+              <p className='text-sm font-bold text-slate-900 truncate'>{user ? `${user.prenom} ${user.nom}` : 'Equipe FTTH'}</p>
+              <div className="mt-3 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">{role}</span>
               </div>
             </div>
-          </nav>
+          </div>
         </aside>
 
-        <section className='min-w-0 flex-1'>
-          <header className='dashboard-topbar rounded-[2rem] px-5 py-4'>
-            <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
-              <div className='flex min-w-0 items-center gap-3'>
-                <div className='dashboard-search flex min-w-0 flex-1 items-center gap-3 rounded-[1.2rem] px-4 py-3 lg:min-w-[360px]'>
-                  <Search className='h-4 w-4 text-slate-500' />
-                  <input
-                    value=''
-                    readOnly
-                    placeholder='Rechercher une intervention...'
-                    className='w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400'
-                  />
+        {/* Main Content Area */}
+        <div className='flex-1 flex flex-col min-w-0 h-full overflow-hidden'>
+          {/* Top Header */}
+          <header className='h-20 flex items-center justify-between px-8 bg-white/30 border-b border-white/40 backdrop-blur-md sticky top-0 z-40'>
+            <div className='flex items-center gap-4 flex-1'>
+              <button 
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="xl:hidden p-2 rounded-xl bg-white border border-slate-200"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              
+              <div className='hidden md:flex items-center gap-3 bg-white/70 border border-white rounded-2xl px-4 py-2.5 w-full max-w-md focus-within:shadow-lg focus-within:shadow-slate-100 transition-all'>
+                <Search className='h-4 w-4 text-slate-400' />
+                <input placeholder='Rechercher un dossier...' className='bg-transparent border-none focus:ring-0 text-sm w-full outline-none' />
+              </div>
+            </div>
+
+            <div className='flex items-center gap-4'>
+              <button className='relative p-2.5 rounded-2xl bg-white border border-white shadow-sm hover:scale-105 active:scale-95 transition-all'>
+                <Bell className='h-4.5 w-4.5 text-slate-600' />
+                <span className='absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white' />
+              </button>
+
+              <div className='h-10 w-[1px] bg-slate-200 mx-1 hidden sm:block' />
+
+              <div className='flex items-center gap-3 bg-white/80 border border-white rounded-2xl p-1.5 pr-4 shadow-sm hover:shadow-md transition-all'>
+                <div className='flex h-8 w-8 items-center justify-center rounded-xl bg-slate-950 text-xs font-bold text-white uppercase'>
+                  {user?.prenom?.[0] ?? 'U'}
+                </div>
+                <div className='hidden lg:block min-w-0'>
+                  <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1'>{role}</p>
+                  <p className='text-sm font-bold text-slate-900 truncate'>{user?.prenom ?? 'Admin'}</p>
                 </div>
               </div>
 
-              <div className='flex items-center gap-3 self-end lg:self-auto'>
-                <button type='button' className='dashboard-icon-btn'>
-                  <Bell className='h-4 w-4' />
-                </button>
-                <div className='dashboard-user-chip flex items-center gap-3 rounded-[1.2rem] px-3 py-2'>
-                  <div className='flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#8bcbff_0%,#79f0d4_100%)] text-sm font-semibold text-white shadow-[0_10px_20px_rgba(76,191,255,0.2)]'>
-                    {user?.prenom?.[0] ?? 'U'}
-                  </div>
-                  <div className='hidden sm:block'>
-                    <p className='text-xs text-slate-500'>Bonjour,</p>
-                    <p className='text-sm font-semibold text-slate-900'>{user?.prenom ?? 'Equipe'}</p>
-                  </div>
-                </div>
-                <Button
-                  variant='outline'
-                  className='h-11 rounded-[1.2rem] border-slate-200 bg-white px-4 text-slate-800 hover:bg-slate-50'
-                  onClick={handleLogout}
-                >
-                  <LogOut className='h-4 w-4' />
-                </Button>
-              </div>
+              <button 
+                onClick={handleLogout}
+                className='p-2.5 rounded-2xl bg-white border border-rose-100 shadow-sm text-rose-500 hover:bg-rose-50 hover:scale-105 active:scale-95 transition-all'
+                title="Déconnexion"
+              >
+                <LogOut className='h-4.5 w-4.5' />
+              </button>
             </div>
           </header>
 
-          <div className='mt-6 space-y-6'>{children}</div>
-        </section>
+          {/* Page Body */}
+          <div className='flex-1 overflow-y-auto p-8 no-scrollbar scroll-smooth'>
+            <div className="max-w-6xl mx-auto space-y-8 pb-10">
+              {children}
+            </div>
+          </div>
+        </div>
       </div>
-    </main>
+    </div>
   )
 }

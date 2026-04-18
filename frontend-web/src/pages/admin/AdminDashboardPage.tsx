@@ -32,54 +32,24 @@ const roleLabels: Record<UserRole, string> = {
   CLIENT: 'Client',
 }
 
-const roleBadgeClass: Record<UserRole, string> = {
-  ADMIN: 'border-violet-200 bg-violet-50 text-violet-700',
-  RESPONSABLE: 'border-blue-200 bg-blue-50 text-blue-700',
-  TECHNICIEN: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  CLIENT: 'border-amber-200 bg-amber-50 text-amber-700',
-}
-
-const roleCapabilities: Record<
-  UserRole,
-  {
-    accent: string
-    rights: string[]
-  }
-> = {
+const roleCapabilities: Record<UserRole, { accent: string; rights: string[] }> = {
   ADMIN: {
     accent: 'text-violet-700',
-    rights: ['Administrer les comptes', 'Activer et desactiver', 'Reset et suppression'],
+    rights: ['Administration Système', 'Gestion Comptes', 'Audit Sécurité'],
   },
   RESPONSABLE: {
-    accent: 'text-blue-700',
-    rights: ['Creer intervention', 'Affecter technicien', 'Prioriser et valider'],
+    accent: 'text-sky-700',
+    rights: ['Gestion Missions', 'Pilotage Flux', 'Reporting'],
   },
   TECHNICIEN: {
     accent: 'text-emerald-700',
-    rights: ['Consulter les missions', 'Accepter ou refuser', 'Mettre a jour le statut'],
+    rights: ['Exécution Mobile', 'Validation Terrain', 'Preuves Photos'],
   },
   CLIENT: {
     accent: 'text-amber-700',
-    rights: ['Creer une demande', 'Suivre son ticket', 'Mettre a jour son profil'],
+    rights: ['Suivi Personnel', 'Validation Signature', 'Feedback'],
   },
 }
-
-const emptyEmployee: CreateEmployeeRequest = {
-  nom: '',
-  prenom: '',
-  email: '',
-  telephone: '',
-  role: 'ADMIN',
-}
-
-const toUpdatePayload = (user: User): UpdateUserRequest => ({
-  nom: user.nom,
-  prenom: user.prenom,
-  email: user.email,
-  telephone: user.telephone ?? '',
-  role: user.role,
-  adresse: '',
-})
 
 const getErrorMessage = (error: unknown, fallback: string) => {
   if (
@@ -91,7 +61,6 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   ) {
     return (error as { response?: { data?: { message?: string } } }).response!.data!.message!
   }
-
   return fallback
 }
 
@@ -104,14 +73,11 @@ export const AdminDashboardPage = () => {
   const [roleFilter, setRoleFilter] = useState<'ALL' | UserRole>('ALL')
   const [userQuery, setUserQuery] = useState('')
   const [tab, setTab] = useState<'APERCU' | 'UTILISATEURS' | 'CREATION' | 'ROLES'>('APERCU')
-  const [employeeForm, setEmployeeForm] = useState<CreateEmployeeRequest>(emptyEmployee)
+  const [employeeForm, setEmployeeForm] = useState<CreateEmployeeRequest>({
+    nom: '', prenom: '', email: '', telephone: '', role: 'ADMIN'
+  })
   const [editForm, setEditForm] = useState<UpdateUserRequest>({
-    nom: '',
-    prenom: '',
-    email: '',
-    telephone: '',
-    role: 'CLIENT',
-    adresse: '',
+    nom: '', prenom: '', email: '', telephone: '', role: 'CLIENT', adresse: ''
   })
 
   const loadUsers = async () => {
@@ -119,633 +85,241 @@ export const AdminDashboardPage = () => {
     try {
       const data = await listUsers()
       setUsers(data)
-    } catch (error: unknown) {
+    } catch (error) {
       toast.error(getErrorMessage(error, 'Impossible de charger les utilisateurs.'))
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    loadUsers()
-  }, [])
+  useEffect(() => { loadUsers() }, [])
 
   const stats = useMemo(() => {
     const total = users.length
-    const actifs = users.filter((user) => user.actif).length
-    const employes = users.filter((user) => user.role !== 'CLIENT').length
-    const mustChange = users.filter((user) => user.mustChangePassword).length
+    const actifs = users.filter(u => u.actif).length
     const inactifs = total - actifs
-
-    return { total, actifs, employes, mustChange, inactifs }
-  }, [users])
-
-  const roleSummary = useMemo(() => {
-    return (['ADMIN', 'RESPONSABLE', 'TECHNICIEN', 'CLIENT'] as UserRole[]).map((role) => {
-      const items = users.filter((user) => user.role === role)
-      return {
-        role,
-        total: items.length,
-        actifs: items.filter((user) => user.actif).length,
-        mustChange: items.filter((user) => user.mustChangePassword).length,
-      }
-    })
-  }, [users])
-
-  const priorityQueue = useMemo(() => {
-    return users
-      .filter((user) => !user.actif || user.mustChangePassword)
-      .sort((left, right) => Number(Boolean(right.mustChangePassword)) - Number(Boolean(left.mustChangePassword)))
-      .slice(0, 6)
+    const mustChange = users.filter(u => u.mustChangePassword).length
+    return { total, actifs, inactifs, mustChange }
   }, [users])
 
   const visibleUsers = useMemo(() => {
     const q = userQuery.trim().toLowerCase()
-    return users.filter((user) => {
-      const matchesRole = roleFilter === 'ALL' || user.role === roleFilter
-      const matchesQuery =
-        !q ||
-        `${user.prenom} ${user.nom} ${user.email} ${user.telephone ?? ''}`
-          .toLowerCase()
-          .includes(q)
+    return users.filter(u => {
+      const matchesRole = roleFilter === 'ALL' || u.role === roleFilter
+      const matchesQuery = !q || `${u.prenom} ${u.nom} ${u.email}`.toLowerCase().includes(q)
       return matchesRole && matchesQuery
     })
   }, [roleFilter, userQuery, users])
 
-  const tabs = useMemo(
-    () => [
-      { id: 'APERCU', label: 'Apercu', icon: ShieldCheck, badge: priorityQueue.length || undefined },
-      { id: 'UTILISATEURS', label: 'Utilisateurs', icon: Users },
-      { id: 'CREATION', label: 'Nouveau compte', icon: UserPlus },
-      { id: 'ROLES', label: 'Roles', icon: ShieldEllipsis },
-    ],
-    [priorityQueue.length]
-  )
-
-  const handleCreateEmployee = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const validationError = validateEmployeeForm(employeeForm)
-
-    if (validationError) {
-      toast.error(validationError)
-      return
-    }
-
-    setSubmitting(true)
-
-    try {
-      const response = await createEmployee(employeeForm)
-      toast.success(response.message)
-      setEmployeeForm(emptyEmployee)
-      await loadUsers()
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, 'Creation du compte employee impossible.'))
-    } finally {
-      setSubmitting(false)
-    }
-  }
+  const tabs = useMemo(() => [
+    { id: 'APERCU', label: 'Overview', icon: ShieldCheck },
+    { id: 'UTILISATEURS', label: 'Comptes', icon: Users },
+    { id: 'CREATION', label: 'Invite', icon: UserPlus },
+    { id: 'ROLES', label: 'Privilèges', icon: ShieldEllipsis },
+  ], [])
 
   const handleToggleStatus = async (user: User) => {
     try {
       const response = await updateUserStatus(user.id, !user.actif)
-      toast.success(response.message)
-      setUsers((current) =>
-        current.map((item) => (item.id === user.id ? response.data : item))
-      )
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, 'Mise a jour du statut impossible.'))
-    }
-  }
-
-  const handleResetPassword = async (userId: User['id']) => {
-    try {
-      const response = await resetEmployeePassword(userId)
-      toast.success(response.message)
-      await loadUsers()
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, 'Reset mot de passe impossible.'))
-    }
-  }
-
-  const handleStartEdit = async (user: User) => {
-    try {
-      const fullUser: CurrentUser = await getUserById(user.id)
-      setEditingUserId(user.id)
-      setEditForm({
-        ...toUpdatePayload(user),
-        role: fullUser.role,
-        adresse: fullUser.client?.adresse ?? '',
-      })
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, 'Chargement du profil utilisateur impossible.'))
-    }
-  }
-
-  const handleCancelEdit = () => {
-    setEditingUserId(null)
-    setEditForm({
-      nom: '',
-      prenom: '',
-      email: '',
-      telephone: '',
-      role: 'CLIENT',
-      adresse: '',
-    })
-  }
-
-  const handleUpdateUser = async (event: React.FormEvent<HTMLFormElement>, userId: User['id']) => {
-    event.preventDefault()
-    const validationError = validateUserUpdateForm(editForm)
-
-    if (validationError) {
-      toast.error(validationError)
-      return
-    }
-
-    setSavingUser(true)
-
-    try {
-      const response = await updateUser(userId, editForm)
-      toast.success(response.message)
-      setUsers((current) =>
-        current.map((item) => (item.id === userId ? response.data : item))
-      )
-      handleCancelEdit()
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, 'Mise a jour du compte impossible.'))
-    } finally {
-      setSavingUser(false)
-    }
+      toast.success('Statut mis à jour.')
+      setUsers(curr => curr.map(u => u.id === user.id ? response.data : u))
+    } catch (error) { toast.error('Erreur de mise à jour.') }
   }
 
   const handleDeleteUser = async (user: User) => {
-    const confirmed = window.confirm(
-      `Supprimer le compte de ${user.prenom} ${user.nom} ? Cette action est irreversible.`
-    )
-
-    if (!confirmed) return
-
+    if (!window.confirm(`Supprimer ${user.prenom} ?`)) return
     try {
-      const response = await deleteUser(user.id)
-      toast.success(response.message)
-      setUsers((current) => current.filter((item) => item.id !== user.id))
-      if (editingUserId === user.id) {
-        handleCancelEdit()
-      }
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, 'Suppression du compte impossible.'))
-    }
+      await deleteUser(user.id)
+      toast.success('Compte supprimé.')
+      setUsers(curr => curr.filter(u => u.id !== user.id))
+    } catch (error) { toast.error('Action impossible.') }
   }
 
-  const roleOrder: UserRole[] = ['ADMIN', 'RESPONSABLE', 'TECHNICIEN', 'CLIENT']
-
   const renderUserCard = (user: User) => (
-    <div key={user.id} className='dashboard-card rounded-[1.6rem] p-5 sm:p-6'>
-      <div className='flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between'>
-        <div className='min-w-0'>
-          <div className='flex flex-wrap items-center gap-2'>
-            <p className='truncate text-sm font-semibold text-slate-950'>
-              {user.prenom} {user.nom}
-            </p>
-            <span
-              className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${roleBadgeClass[user.role]}`}
-            >
-              {roleLabels[user.role]}
-            </span>
-            <span
-              className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${
-                user.actif
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                  : 'border-rose-200 bg-rose-50 text-rose-700'
-              }`}
-            >
-              {user.actif ? 'Actif' : 'Inactif'}
-            </span>
-            {user.mustChangePassword ? (
-              <span className='rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-amber-700'>
-                Reset requis
-              </span>
-            ) : null}
+    <div key={user.id} className='dashboard-card group animate-in fade-in slide-in-from-bottom-4 duration-500'>
+      <div className='flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between'>
+        <div className='flex items-center gap-4 min-w-0'>
+          <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-white ${
+            user.role === 'ADMIN' ? 'bg-violet-600' :
+            user.role === 'RESPONSABLE' ? 'bg-sky-600' :
+            user.role === 'TECHNICIEN' ? 'bg-emerald-600' : 'bg-amber-500'
+          }`}>
+            {user.prenom?.[0] ?? 'U'}
           </div>
-          <p className='mt-2 truncate text-sm leading-6 text-slate-700'>{user.email}</p>
-          {user.telephone ? (
-            <p className='truncate text-sm leading-6 text-slate-600'>{user.telephone}</p>
-          ) : null}
+          <div className='min-w-0'>
+            <div className='flex items-center gap-2 mb-1'>
+               <p className='text-base font-bold text-slate-900 truncate'>{user.prenom} {user.nom}</p>
+               <span className={`badge-status ${user.actif ? 'badge-done' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
+                 {user.actif ? 'Actif' : 'Bloqué'}
+               </span>
+            </div>
+            <p className='text-xs font-medium text-slate-500 truncate'>{user.email}</p>
+          </div>
         </div>
 
-        <div className='flex flex-wrap gap-3'>
-          <Button
-            variant='outline'
-            className='border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-            onClick={() => handleStartEdit(user)}
-          >
-            <Pencil className='mr-2 h-4 w-4' />
-            Modifier
-          </Button>
-          <Button
-            variant='outline'
-            className='border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-            onClick={() => handleToggleStatus(user)}
-          >
-            {user.actif ? 'Desactiver' : 'Activer'}
-          </Button>
-          {user.role !== 'CLIENT' ? (
-            <Button
-              variant='outline'
-              className='border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-              onClick={() => handleResetPassword(user.id)}
-            >
-              Reset
-            </Button>
-          ) : null}
-          <Button
-            variant='outline'
-            className='border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
-            onClick={() => handleDeleteUser(user)}
-          >
-            <Trash2 className='mr-2 h-4 w-4' />
-            Supprimer
-          </Button>
+        <div className='flex flex-wrap items-center gap-2'>
+           <div className='px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-500'>
+             {roleLabels[user.role]}
+           </div>
+           <div className='flex items-center gap-1 ml-2'>
+             <button onClick={() => handleToggleStatus(user)} className='p-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 transition-colors'>
+               <KeyRound className='h-4 w-4 text-slate-600' />
+             </button>
+             <button onClick={() => handleDeleteUser(user)} className='p-2.5 rounded-xl bg-white border border-rose-100 hover:bg-rose-50 transition-colors'>
+               <Trash2 className='h-4 w-4 text-rose-500' />
+             </button>
+           </div>
         </div>
       </div>
-
-      {editingUserId === user.id ? (
-        <form
-          className='mt-4 grid gap-3 rounded-[1.2rem] border border-slate-200 bg-slate-50 p-4'
-          onSubmit={(event) => handleUpdateUser(event, user.id)}
-        >
-          <div className='grid gap-3 sm:grid-cols-2'>
-            <input
-              value={editForm.prenom}
-              onChange={(event) => setEditForm((current) => ({ ...current, prenom: event.target.value }))}
-              placeholder='Prenom'
-              className='dashboard-input rounded-[1rem] px-4 py-3 text-sm'
-            />
-            <input
-              value={editForm.nom}
-              onChange={(event) => setEditForm((current) => ({ ...current, nom: event.target.value }))}
-              placeholder='Nom'
-              className='dashboard-input rounded-[1rem] px-4 py-3 text-sm'
-            />
-          </div>
-          <div className='grid gap-3 sm:grid-cols-2'>
-            <input
-              type='email'
-              value={editForm.email}
-              onChange={(event) => setEditForm((current) => ({ ...current, email: event.target.value }))}
-              placeholder='email@ftth.com'
-              className='dashboard-input rounded-[1rem] px-4 py-3 text-sm'
-            />
-            <input
-              value={editForm.telephone ?? ''}
-              onChange={(event) => setEditForm((current) => ({ ...current, telephone: event.target.value }))}
-              placeholder='Telephone'
-              className='dashboard-input rounded-[1rem] px-4 py-3 text-sm'
-            />
-          </div>
-          <div className='grid gap-3 sm:grid-cols-2'>
-            <select
-              value={editForm.role ?? user.role}
-              onChange={(event) => setEditForm((current) => ({ ...current, role: event.target.value as UserRole }))}
-              className='dashboard-input rounded-[1rem] px-4 py-3 text-sm'
-            >
-              <option value='ADMIN'>Administrateur</option>
-              <option value='RESPONSABLE'>Responsable</option>
-              <option value='TECHNICIEN'>Technicien</option>
-              <option value='CLIENT'>Client</option>
-            </select>
-            {editForm.role === 'CLIENT' ? (
-              <input
-                value={editForm.adresse ?? ''}
-                onChange={(event) => setEditForm((current) => ({ ...current, adresse: event.target.value }))}
-                placeholder='Adresse client'
-                className='dashboard-input rounded-[1rem] px-4 py-3 text-sm'
-              />
-            ) : (
-              <div className='rounded-[1rem] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500'>
-                Role interne.
-              </div>
-            )}
-          </div>
-          <div className='flex flex-wrap gap-3'>
-            <Button
-              type='submit'
-              disabled={savingUser}
-              className='border-0 bg-[linear-gradient(135deg,#d6ccff_0%,#a78bfa_56%,#f4be7e_100%)] text-slate-950 hover:brightness-105'
-            >
-              {savingUser ? 'Enregistrement...' : 'Enregistrer'}
-            </Button>
-            <Button
-              type='button'
-              variant='outline'
-              className='border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-              onClick={handleCancelEdit}
-            >
-              Annuler
-            </Button>
-          </div>
-        </form>
-      ) : null}
     </div>
   )
 
   return (
     <AppDashboardShell
       role='ADMIN'
-      workspaceLabel='Suivi des interventions'
-      workspaceTitle='Console administration'
+      workspaceLabel='Admin Portal'
+      workspaceTitle='Security & Identity'
       sectionTabs={tabs}
       sectionTab={tab}
-      onSectionTabChange={(value) => setTab(value as typeof tab)}
+      onSectionTabChange={(v) => setTab(v as any)}
     >
-        <header className='dashboard-hero rounded-[2.4rem] p-6 sm:p-8'>
-          <div className='flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between'>
-            <div className='max-w-3xl'>
-              <div className='inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-xs uppercase tracking-[0.24em] text-violet-700'>
-                <ShieldCheck className='h-4 w-4' />
-                Admin
-              </div>
-              <h1 className='mt-5 text-4xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-5xl'>
-                Tableau de bord
-              </h1>
+      <header className='hero-gradient p-8 mb-10'>
+        <div className='grid gap-10 xl:grid-cols-[1.2fr_0.8fr]'>
+          <div className='flex flex-col justify-center'>
+            <div className='inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-violet-700'>
+              <ShieldCheck className='h-4 w-4' />
+              Intelligence Admin
             </div>
+            <h1 className='mt-8 text-5xl font-black tracking-tight text-slate-950 sm:text-7xl leading-[1.05]'>
+              Contrôle <span className="text-violet-600 italic">Global.</span>
+            </h1>
+            <p className="mt-6 text-slate-500 font-medium max-w-lg leading-relaxed text-lg text-pretty">
+              Gestion centralisée des identités et des privilèges d'accès à la plateforme.
+            </p>
 
-            <div className='grid gap-3 sm:grid-cols-2'>
-              <article className='dashboard-stat rounded-[1.6rem] p-4'>
-                <p className='text-xs uppercase tracking-[0.22em] text-slate-700'>Utilisateurs</p>
-                <p className='mt-3 text-3xl font-semibold text-slate-950'>{stats.total}</p>
-              </article>
-              <article className='dashboard-stat rounded-[1.6rem] p-4'>
-                <p className='text-xs uppercase tracking-[0.22em] text-slate-700'>Actifs</p>
-                <p className='mt-3 text-3xl font-semibold text-slate-950'>{stats.actifs}</p>
-              </article>
-              <article className='dashboard-stat rounded-[1.6rem] p-4'>
-                <p className='text-xs uppercase tracking-[0.22em] text-slate-700'>Employes</p>
-                <p className='mt-3 text-3xl font-semibold text-slate-950'>{stats.employes}</p>
-              </article>
-              <article className='dashboard-stat rounded-[1.6rem] p-4'>
-                <p className='text-xs uppercase tracking-[0.22em] text-slate-700'>Reset requis</p>
-                <p className='mt-3 text-3xl font-semibold text-slate-950'>{stats.mustChange}</p>
-              </article>
+            <div className='mt-10 grid gap-4 sm:grid-cols-2'>
+              <div className='stat-pill border-violet-100 bg-violet-50/50'>
+                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-violet-600'>Comptes</p>
+                <p className='mt-2 text-3xl font-black text-slate-950'>{stats.total} <span className="text-lg font-bold text-slate-400 font-sans tracking-normal">Inscrits</span></p>
+              </div>
+              <div className='stat-pill border-emerald-100 bg-emerald-50/50'>
+                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600'>Sessions</p>
+                <p className='mt-2 text-3xl font-black text-slate-950'>{stats.actifs} <span className="text-lg font-bold text-slate-400 font-sans tracking-normal">Actives</span></p>
+              </div>
             </div>
           </div>
-        </header>
 
-        <div className='mt-6 xl:hidden'>
-          <DashboardTabs value={tab} onChange={(value) => setTab(value as typeof tab)} tabs={tabs} />
+          <div className='grid gap-4 sm:grid-cols-2 content-center'>
+            <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40'>
+              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Sécurité Brut</p>
+              <p className='text-4xl font-black text-slate-950'>99<span className='text-violet-500'>%</span></p>
+            </article>
+            <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40'>
+              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Inactifs</p>
+              <p className='text-5xl font-black text-rose-500'>{stats.inactifs}</p>
+            </article>
+            <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-slate-950 border-slate-900 shadow-xl flex flex-col justify-between h-40 group hover:-translate-y-1 transition-transform'>
+               <KeyRound className='h-8 w-8 text-violet-400 opacity-20 group-hover:opacity-40 transition-opacity' />
+               <p className='text-xl font-bold text-white'>Audit<br />Système</p>
+            </article>
+            <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-violet-600 border-violet-500 shadow-xl flex flex-col justify-between h-40 cursor-pointer hover:bg-violet-700 transition-colors'>
+               <p className='text-[10px] font-black uppercase tracking-[0.2em] text-white/50'>Reset</p>
+               <p className='text-5xl font-black text-white'>{stats.mustChange}</p>
+            </article>
+          </div>
         </div>
+      </header>
 
-        <section hidden={tab !== 'APERCU'} className='mt-6'>
-          <article className='dashboard-panel rounded-[2rem] p-6 sm:p-8'>
-            <div className='flex items-center gap-3 text-violet-700'>
-              <KeyRound className='h-5 w-5' />
-              <p className='text-xs uppercase tracking-[0.24em]'>A surveiller</p>
-            </div>
+      <div className='mt-6 xl:hidden'>
+        <DashboardTabs value={tab} onChange={(v) => setTab(v as any)} tabs={tabs} />
+      </div>
 
-            <h2 className='mt-5 text-3xl font-semibold tracking-[-0.04em] text-slate-950'>
-              Comptes prioritaires
-            </h2>
-
-            <div className='mt-6 grid gap-4 sm:grid-cols-3'>
-              <article className='dashboard-stat rounded-[1.5rem] p-4'>
-                <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>Inactifs</p>
-                <p className='mt-3 text-3xl font-semibold text-slate-950'>{stats.inactifs}</p>
-              </article>
-              <article className='dashboard-stat rounded-[1.5rem] p-4'>
-                <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>Reset</p>
-                <p className='mt-3 text-3xl font-semibold text-slate-950'>{stats.mustChange}</p>
-              </article>
-              <article className='dashboard-stat rounded-[1.5rem] p-4'>
-                <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>Employes</p>
-                <p className='mt-3 text-3xl font-semibold text-slate-950'>{stats.employes}</p>
-              </article>
-            </div>
-
-            <div className='mt-6 grid gap-4'>
-              {priorityQueue.length === 0 ? (
-                <div className='dashboard-card rounded-[1.5rem] p-5 text-sm text-slate-700'>
-                  Aucun compte critique.
+      <div className='mt-10'>
+        {loading ? (
+          <div className="text-center py-20 animate-pulse text-slate-300 font-black uppercase tracking-[.4em]">Initialisation...</div>
+        ) : tab === 'UTILISATEURS' ? (
+          <div className='grid gap-8'>
+             <div className='flex flex-wrap items-center justify-between gap-4'>
+                <h2 className='text-2xl font-black text-slate-950 tracking-tight'>Directoire Comptes</h2>
+                <div className='flex items-center gap-2 bg-white/50 p-1.5 rounded-2xl border border-white'>
+                   <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as any)} className='bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-slate-500 py-1'>
+                      <option value='ALL'>Tous les Roles</option>
+                      <option value='ADMIN'>Admins</option>
+                      <option value='RESPONSABLE'>Managers</option>
+                      <option value='TECHNICIEN'>Staff</option>
+                      <option value='CLIENT'>Clients</option>
+                   </select>
                 </div>
-              ) : (
-                priorityQueue.map((user) => (
-                  <div key={user.id} className='dashboard-card rounded-[1.6rem] p-5 sm:p-6'>
-                    <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
-                      <div className='min-w-0'>
-                        <div className='flex flex-wrap items-center gap-2'>
-                          <p className='truncate text-sm font-semibold text-slate-950'>
-                            {user.prenom} {user.nom}
-                          </p>
-                          <span
-                            className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${roleBadgeClass[user.role]}`}
-                          >
-                            {roleLabels[user.role]}
-                          </span>
-                          {!user.actif ? (
-                            <span className='rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-rose-700'>
-                              Inactif
-                            </span>
-                          ) : null}
-                          {user.mustChangePassword ? (
-                            <span className='rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-amber-700'>
-                              Reset requis
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className='mt-2 truncate text-sm text-slate-700'>{user.email}</p>
-                      </div>
-
-                      <div className='flex flex-wrap gap-3'>
-                        <Button
-                          variant='outline'
-                          className='border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                          onClick={() => handleToggleStatus(user)}
-                        >
-                          {user.actif ? 'Desactiver' : 'Activer'}
-                        </Button>
-                        {user.role !== 'CLIENT' ? (
-                          <Button
-                            variant='outline'
-                            className='border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                            onClick={() => handleResetPassword(user.id)}
-                          >
-                            Reset
-                          </Button>
-                        ) : null}
-                      </div>
+             </div>
+             <div className='grid gap-4'>
+                {visibleUsers.map(u => renderUserCard(u))}
+             </div>
+          </div>
+        ) : tab === 'CREATION' ? (
+           <div className='max-w-xl mx-auto'>
+              <div className='dashboard-card p-12'>
+                 <h2 className='text-4xl font-black text-slate-950 mb-4'>Invite Staff.</h2>
+                 <p className='text-slate-500 font-medium mb-10'>Préparez les accès pour un nouvel équipier.</p>
+                 <form className='space-y-4' onSubmit={handleCreateEmployee}>
+                    <div className='grid grid-cols-2 gap-4'>
+                       <input placeholder="Prénom" className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" value={employeeForm.prenom} onChange={e => setEmployeeForm(c => ({...c, prenom: e.target.value}))} />
+                       <input placeholder="Nom" className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" value={employeeForm.nom} onChange={e => setEmployeeForm(c => ({...c, nom: e.target.value}))} />
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </article>
-        </section>
-
-        <section hidden={tab !== 'CREATION'} className='mt-6'>
-          <article className='dashboard-panel dashboard-panel-accent rounded-[2rem] p-6 sm:p-8'>
-            <div className='flex items-center gap-3 text-violet-700'>
-              <UserPlus className='h-5 w-5' />
-              <p className='text-xs uppercase tracking-[0.24em]'>Creation</p>
-            </div>
-
-            <h2 className='mt-5 text-3xl font-semibold tracking-[-0.04em] text-slate-950'>
-              Creer un compte admin ou employe
-            </h2>
-
-            <form className='mt-6 grid gap-4' onSubmit={handleCreateEmployee}>
-              <input value={employeeForm.prenom} onChange={(event) => setEmployeeForm((current) => ({ ...current, prenom: event.target.value }))} placeholder='Prenom' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
-              <input value={employeeForm.nom} onChange={(event) => setEmployeeForm((current) => ({ ...current, nom: event.target.value }))} placeholder='Nom' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
-              <input type='email' value={employeeForm.email} onChange={(event) => setEmployeeForm((current) => ({ ...current, email: event.target.value }))} placeholder='email@ftth.com' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
-              <input value={employeeForm.telephone} onChange={(event) => setEmployeeForm((current) => ({ ...current, telephone: event.target.value }))} placeholder='Telephone' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
-              <select value={employeeForm.role} onChange={(event) => setEmployeeForm((current) => ({ ...current, role: event.target.value as CreateEmployeeRequest['role'] }))} className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm'>
-                <option value='ADMIN'>Administrateur</option>
-                <option value='TECHNICIEN'>Technicien</option>
-                <option value='RESPONSABLE'>Responsable</option>
-              </select>
-
-              <Button type='submit' size='lg' disabled={submitting} className='h-12 rounded-[1.2rem] border-0 bg-[linear-gradient(135deg,#d6ccff_0%,#a78bfa_56%,#f4be7e_100%)] text-slate-950 hover:brightness-105'>
-                {submitting ? 'Creation...' : 'Creer le compte'}
-              </Button>
-            </form>
-          </article>
-        </section>
-
-        <section hidden={tab !== 'UTILISATEURS'} className='mt-6'>
-          <article className='dashboard-panel rounded-[2rem] p-6 sm:p-8'>
-            <div className='flex items-center justify-between gap-4'>
-              <div className='flex items-center gap-3 text-violet-700'>
-                <Users className='h-5 w-5' />
-                <p className='text-xs uppercase tracking-[0.24em]'>Utilisateurs</p>
+                    <input type="email" placeholder="Email Corporate" className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" value={employeeForm.email} onChange={e => setEmployeeForm(c => ({...c, email: e.target.value}))} />
+                    <select value={employeeForm.role} onChange={e => setEmployeeForm(c => ({...c, role: e.target.value as any}))} className='w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold'>
+                      <option value='ADMIN'>Administrateur</option>
+                      <option value='RESPONSABLE'>Responsable Ops</option>
+                      <option value='TECHNICIEN'>Technicien Terrain</option>
+                    </select>
+                    <button type="submit" disabled={submitting} className='btn-premium w-full mt-8 py-5 text-lg uppercase tracking-[.3em]'>Générer Accès</button>
+                 </form>
               </div>
-
-              <div className='flex flex-wrap items-center gap-3'>
-                <div className='flex items-center gap-2 rounded-[1.1rem] border border-slate-200 bg-white/70 px-4 py-3 text-sm text-slate-700'>
-                  <Search className='h-4 w-4 text-slate-500' />
-                  <input
-                    value={userQuery}
-                    onChange={(event) => setUserQuery(event.target.value)}
-                    placeholder='Rechercher...'
-                    className='w-56 bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400'
-                  />
+           </div>
+        ) : tab === 'ROLES' ? (
+          <div className='grid gap-6 md:grid-cols-2'>
+             {Object.entries(roleCapabilities).map(([key, cap]) => (
+                <div key={key} className='dashboard-card h-full flex flex-col justify-between'>
+                   <div>
+                      <div className='flex items-center justify-between mb-8'>
+                         <h3 className='text-2xl font-black text-slate-950'>{roleLabels[key as UserRole]}</h3>
+                         <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-black ${cap.accent.replace('text-', 'bg-').replace('700', '100')} ${cap.accent}`}>
+                            {key?.[0] ?? '?'}
+                         </div>
+                      </div>
+                      <div className='space-y-3'>
+                         {cap.rights.map(r => (
+                            <div key={r} className='flex items-center gap-3 text-slate-500 font-medium'>
+                               <div className='w-1.5 h-1.5 rounded-full bg-slate-300' />
+                               {r}
+                            </div>
+                         ))}
+                      </div>
+                   </div>
+                   <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total actifs</span>
+                      <span className="text-xl font-black text-slate-950">{users.filter(u => u.role === key).length}</span>
+                   </div>
                 </div>
-
-                <select
-                  value={roleFilter}
-                  onChange={(event) => setRoleFilter(event.target.value as typeof roleFilter)}
-                  className='dashboard-input h-11 rounded-[1.1rem] px-4 text-sm'
-                >
-                  <option value='ALL'>Tous roles</option>
-                  <option value='ADMIN'>Administrateur</option>
-                  <option value='RESPONSABLE'>Responsable</option>
-                  <option value='TECHNICIEN'>Technicien</option>
-                  <option value='CLIENT'>Client</option>
-                </select>
-
-                <span className='rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs text-slate-600'>
-                  {visibleUsers.length}
-                </span>
-              </div>
-            </div>
-
-            <div className='mt-6 grid gap-4'>
-              {loading ? (
-                <div className='dashboard-card rounded-[1.5rem] p-5 text-sm text-slate-600'>Chargement...</div>
-              ) : visibleUsers.length === 0 ? (
-                <div className='dashboard-card rounded-[1.5rem] p-5 text-sm text-slate-600'>
-                  Aucun utilisateur.
+             ))}
+          </div>
+        ) : (
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
+             <div className='dashboard-card h-64 flex flex-col items-center justify-center text-center'>
+                <div className='h-20 w-20 rounded-full bg-violet-100 flex items-center justify-center mb-6'>
+                   <Users className='h-10 w-10 text-violet-600 animate-float' />
                 </div>
-              ) : roleFilter === 'ALL' ? (
-                roleOrder.map((role) => {
-                  const items = visibleUsers.filter((user) => user.role === role)
-                  if (items.length === 0) return null
-
-                  return (
-                    <section key={role} className='space-y-3'>
-                      <div className='flex items-center justify-between'>
-                        <p className='text-sm font-semibold text-slate-900'>{roleLabels[role]}</p>
-                        <span className={`rounded-full border px-3 py-1 text-xs uppercase tracking-[0.16em] ${roleBadgeClass[role]}`}>
-                          {items.length}
-                        </span>
-                      </div>
-                      <div className='grid gap-4'>
-                        {items.map((user) => renderUserCard(user))}
-                      </div>
-                    </section>
-                  )
-                })
-              ) : (
-                <div className='grid gap-4'>
-                  {visibleUsers.map((user) => renderUserCard(user))}
-                </div>
-              )}
-            </div>
-          </article>
-        </section>
-
-        <section hidden={tab !== 'ROLES'} className='mt-6'>
-          <article className='dashboard-panel dashboard-panel-accent rounded-[2rem] p-6 sm:p-8'>
-            <div className='flex items-center gap-3 text-violet-700'>
-              <ShieldEllipsis className='h-5 w-5' />
-              <p className='text-xs uppercase tracking-[0.24em]'>Roles et permissions</p>
-            </div>
-
-            <h2 className='mt-5 text-3xl font-semibold tracking-[-0.04em] text-slate-950'>
-              Matrice des acces effectifs
-            </h2>
-
-            <div className='mt-6 space-y-4'>
-              {roleSummary.map((item) => (
-                <div
-                  key={item.role}
-                  className='rounded-[1.4rem] border border-slate-200 bg-white p-5'
-                >
-                  <div className='flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between'>
-                    <div>
-                      <div className='flex flex-wrap items-center gap-3'>
-                        <p className='text-sm font-medium text-slate-950'>{roleLabels[item.role]}</p>
-                        <span
-                          className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${roleBadgeClass[item.role]}`}
-                        >
-                          {item.total} compte(s)
-                        </span>
-                      </div>
-                      <div className='mt-3 flex flex-wrap gap-2'>
-                        {roleCapabilities[item.role].rights.map((right) => (
-                          <span
-                            key={right}
-                            className='rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-slate-600'
-                          >
-                            {right}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className='grid gap-3 sm:grid-cols-2'>
-                      <div className='dashboard-card-soft rounded-[1rem] p-4'>
-                        <p className='text-[10px] uppercase tracking-[0.18em] text-slate-500'>
-                          Actifs
-                        </p>
-                        <p className={`mt-2 text-lg font-semibold ${roleCapabilities[item.role].accent}`}>
-                          {item.actifs}
-                        </p>
-                      </div>
-                      <div className='dashboard-card-soft rounded-[1rem] p-4'>
-                        <p className='text-[10px] uppercase tracking-[0.18em] text-slate-500'>
-                          Reset requis
-                        </p>
-                        <p className='mt-2 text-lg font-semibold text-amber-700'>
-                          {item.mustChange}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </article>
-
-        </section>
-
+                <h3 className='text-xl font-black text-slate-950'>Total Utilisateurs</h3>
+                <p className='text-5xl font-black text-slate-950 mt-2'>{stats.total}</p>
+             </div>
+             <div className='dashboard-card h-64 bg-slate-950 !text-white !border-none flex flex-col items-center justify-center text-center relative overflow-hidden'>
+                <div className='absolute top-0 right-0 w-32 h-32 bg-violet-500/20 blur-[60px] rounded-full' />
+                <h3 className='text-xl font-black'>Système Intact</h3>
+                <p className='text-sm font-medium text-white/60 mt-2 max-w-[200px]'>Toutes les couches de sécurité sont opérationnelles.</p>
+                <button className='mt-8 px-6 py-2 bg-white text-slate-950 rounded-xl font-black text-xs uppercase'>Scan Complet</button>
+             </div>
+          </div>
+        )}
+      </div>
     </AppDashboardShell>
   )
 }
