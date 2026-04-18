@@ -455,12 +455,13 @@ export function TechnicianDashboardScreen() {
 
                     <View style={styles.actionsRow}>
                       {item.statut === 'EN_ATTENTE' ? (
-                        <>
+                        <View style={styles.actionsRow}>
                           <Pressable
                             style={[
                               styles.actionButton,
                               styles.startButton,
                               styles.pressableAction,
+                              { flex: 1 },
                               isBusy ? styles.buttonDisabled : null,
                             ]}
                             onPress={() => void handleAccept(item)}
@@ -471,31 +472,46 @@ export function TechnicianDashboardScreen() {
                           <Pressable
                             style={[
                               styles.actionButton,
-                              styles.rejectButton,
-                              styles.pressableAction,
+                              styles.outlineButton,
+                              { flex: 1, borderColor: '#fca5a5' },
                               isBusy ? styles.buttonDisabled : null,
                             ]}
                             onPress={() => void handleReject(item)}
                             disabled={isBusy}
                           >
-                            <Text style={styles.actionButtonText}>Refuser</Text>
+                            <Text style={[styles.outlineButtonText, { color: '#ef4444' }]}>Refuser</Text>
                           </Pressable>
-                        </>
+                        </View>
                       ) : null}
 
                       {item.statut === 'EN_COURS' ? (
-                        <Pressable
-                          style={[
-                            styles.actionButton,
-                            styles.completeButton,
-                            styles.pressableAction,
-                            isBusy ? styles.buttonDisabled : null,
-                          ]}
-                          onPress={() => void handleComplete(item)}
-                          disabled={isBusy}
-                        >
-                          <Text style={styles.actionButtonText}>Terminer</Text>
-                        </Pressable>
+                        <View style={styles.actionsRow}>
+                          <Pressable
+                            style={[
+                              styles.actionButton,
+                              styles.completeButton,
+                              styles.pressableAction,
+                              { flex: 1 },
+                              isBusy ? styles.buttonDisabled : null,
+                            ]}
+                            onPress={() => void handleComplete(item)}
+                            disabled={isBusy}
+                          >
+                            <Text style={styles.actionButtonText}>Terminer</Text>
+                          </Pressable>
+                          <Pressable
+                             style={[
+                               styles.actionButton,
+                               styles.outlineButton,
+                               { flex: 1, borderColor: '#fca5a5' },
+                               isBusy ? styles.buttonDisabled : null,
+                             ]}
+                             onPress={() => void handleReject(item)}
+                             disabled={isBusy}
+                          >
+                             <Text style={[styles.outlineButtonText, { color: '#ef4444' }]}>Refuser</Text>
+                          </Pressable>
+                        </View>
                       ) : null}
                     </View>
                   </View>
@@ -730,10 +746,10 @@ const styles = StyleSheet.create({
   itemMeta: { color: colors.muted, lineHeight: 18, fontSize: 13 },
   itemPressArea: { gap: 6 },
   itemPressed: { transform: [{ scale: 0.992 }] },
-  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 6, alignItems: 'center' },
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12, alignItems: 'center', width: '100%' },
   actionButton: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11 },
   pressableAction: { shadowColor: colors.shadow, shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
-  startButton: { backgroundColor: colors.info },
+  startButton: { backgroundColor: colors.success },
   completeButton: { backgroundColor: colors.success },
   rejectButton: { backgroundColor: '#b42318' },
   actionButtonText: { color: '#ffffff', fontWeight: '700' },
