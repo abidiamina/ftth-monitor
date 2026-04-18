@@ -8,6 +8,8 @@ import {
   RadioTower,
   ScanSearch,
   Wrench,
+  Navigation,
+  Clock,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
@@ -26,35 +28,14 @@ import type {
 } from '@/types/auth.types'
 
 const statusLabels: Record<InterventionStatus, string> = {
-  EN_ATTENTE: 'A confirmer',
+  EN_ATTENTE: 'À confirmer',
   EN_COURS: 'En cours',
-  TERMINEE: 'Terminee',
-  ANNULEE: 'Annulee',
-}
-
-const statusBadgeClasses: Record<InterventionStatus, string> = {
-  EN_ATTENTE: 'border-amber-200 bg-amber-50 text-amber-700',
-  EN_COURS: 'border-sky-200 bg-sky-50 text-sky-700',
-  TERMINEE: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  ANNULEE: 'border-rose-200 bg-rose-50 text-rose-700',
-}
-
-const getErrorMessage = (error: unknown, fallback: string) => {
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'response' in error &&
-    typeof (error as { response?: unknown }).response === 'object' &&
-    (error as { response?: { data?: { message?: string } } }).response?.data?.message
-  ) {
-    return (error as { response?: { data?: { message?: string } } }).response!.data!.message!
-  }
-
-  return fallback
+  TERMINEE: 'Terminée',
+  ANNULEE: 'Annulée',
 }
 
 const formatDate = (value?: string | null) => {
-  if (!value) return 'Non planifiee'
+  if (!value) return 'En attente'
   return new Date(value).toLocaleString('fr-FR', {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -82,350 +63,275 @@ export const TechnicienDashboardPage = () => {
       setUser(userData)
       setInterventions(interventionsData)
       setNotifications(notificationsData)
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, 'Impossible de charger l espace technicien.'))
+    } catch (error) {
+      toast.error('Impossible de charger votre tableau de bord.')
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    loadDashboard()
-  }, [])
+  useEffect(() => { loadDashboard() }, [])
 
-  const missionDeck = useMemo(() => {
-    return {
-      pending: interventions.filter((item) => item.statut === 'EN_ATTENTE'),
-      active: interventions.filter((item) => item.statut === 'EN_COURS'),
-      completed: interventions.filter((item) => item.statut === 'TERMINEE'),
-      unread: notifications.filter((item) => !item.lu).length,
-    }
-  }, [interventions, notifications])
+  const missionDeck = useMemo(() => ({
+    pending: interventions.filter(i => i.statut === 'EN_ATTENTE'),
+    active: interventions.filter(i => i.statut === 'EN_COURS'),
+    completed: interventions.filter(i => i.statut === 'TERMINEE'),
+    unread: notifications.filter(n => !n.lu).length,
+  }), [interventions, notifications])
 
-  const tabs = useMemo(
-    () => [
-      { id: 'APERCU', label: 'Apercu', icon: RadioTower },
-      { id: 'TERRAIN', label: 'Terrain', icon: ScanSearch },
-      { id: 'NOTIFICATIONS', label: 'Notifications', icon: BellRing, badge: missionDeck.unread || undefined },
-      { id: 'PROFIL', label: 'Profil', icon: MapPinned },
-      { id: 'SECURITE', label: 'Securite', icon: KeyRound },
-    ],
-    [missionDeck.unread]
-  )
+  const tabs = useMemo(() => [
+    { id: 'APERCU', label: 'Dashboard', icon: RadioTower },
+    { id: 'TERRAIN', label: 'Exécution', icon: ScanSearch },
+    { id: 'NOTIFICATIONS', label: 'Inbox', icon: BellRing, badge: missionDeck.unread || undefined },
+    { id: 'PROFIL', label: 'Identité', icon: MapPinned },
+    { id: 'SECURITE', label: 'Accès', icon: KeyRound },
+  ], [missionDeck.unread])
 
-  const handleMarkNotificationAsRead = async (notificationId: number) => {
+  const handleMarkAsRead = async (id: number) => {
     try {
-      await markNotificationAsRead(notificationId)
-      setNotifications((current) =>
-        current.map((item) => (item.id === notificationId ? { ...item, lu: true } : item))
-      )
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, 'Notification impossible a marquer comme lue.'))
-    }
+      await markNotificationAsRead(id)
+      setNotifications(curr => curr.map(n => n.id === id ? { ...n, lu: true } : n))
+    } catch (error) { toast.error('Erreur notification.') }
   }
 
-  const handlePasswordChange = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const validationError = validatePasswordChangeForm({
-      motDePasseActuel,
-      nouveauMotDePasse,
-    })
-
-    if (validationError) {
-      toast.error(validationError)
-      return
-    }
-
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault()
     try {
-      const response = await changeCurrentPassword({ motDePasseActuel, nouveauMotDePasse })
-      setUser((current) => (current ? { ...current, ...response.user } : current))
-      setMotDePasseActuel('')
-      setNouveauMotDePasse('')
-      toast.success(response.message)
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, 'Mise a jour du mot de passe impossible.'))
-    }
+      await changeCurrentPassword({ motDePasseActuel, nouveauMotDePasse })
+      setMotDePasseActuel(''); setNouveauMotDePasse('')
+      toast.success('Mot de passe mis à jour.')
+    } catch (error) { toast.error('Échec du changement.') }
   }
 
-  const handleAccept = async (intervention: InterventionRecord) => {
-    setActionId(intervention.id)
+  const handleStatusUpdate = async (id: number, statut: InterventionStatus) => {
+    setActionId(id)
     try {
-      const response = await updateIntervention(intervention.id, { statut: 'EN_COURS' })
-      toast.success('Intervention acceptee et demarree.')
-      setInterventions((current) =>
-        current.map((item) => (item.id === intervention.id ? response.data : item))
-      )
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, 'Acceptation impossible.'))
-    } finally {
-      setActionId(null)
-    }
+      const response = await updateIntervention(id, { statut })
+      toast.success(`Statut mis à jour: ${statusLabels[statut]}`)
+      setInterventions(curr => curr.map(i => i.id === id ? response.data : i))
+    } catch (error) { toast.error('Action impossible.') }
+    finally { setActionId(null) }
   }
 
-  const handleRefuse = async (intervention: InterventionRecord) => {
-    setActionId(intervention.id)
+  const handleReject = async (id: number) => {
+    setActionId(id)
     try {
-      await updateIntervention(intervention.id, {
-        technicienId: null,
-        statut: 'EN_ATTENTE',
-      })
-      toast.success('Intervention refusee et renvoyee pour reaffectation.')
-      setInterventions((current) => current.filter((item) => item.id !== intervention.id))
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, 'Refus impossible.'))
-    } finally {
-      setActionId(null)
-    }
+      const response = await updateIntervention(id, { statut: 'EN_ATTENTE', technicienId: null })
+      toast.success('Intervention refusée et remise en attente.')
+      // Since it's no longer assigned to this technician, we remove it from their view
+      setInterventions(curr => curr.filter(i => i.id !== id))
+    } catch (error) { toast.error('Action impossible.') }
+    finally { setActionId(null) }
   }
 
-  const handleComplete = async (intervention: InterventionRecord) => {
-    setActionId(intervention.id)
-    try {
-      const response = await updateIntervention(intervention.id, { statut: 'TERMINEE' })
-      toast.success('Intervention marquee comme terminee.')
-      setInterventions((current) =>
-        current.map((item) => (item.id === intervention.id ? response.data : item))
-      )
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, 'Cloture impossible.'))
-    } finally {
-      setActionId(null)
-    }
-  }
+  const renderInterventionCard = (i: InterventionRecord, actions: React.ReactNode) => (
+    <div key={i.id} className='dashboard-card group animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-hidden'>
+      <div className='flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between'>
+        <div className='flex-1 min-w-0'>
+           <div className='flex items-center gap-3 mb-4'>
+              <div className='p-3 bg-slate-50 rounded-2xl border border-slate-100/50'>
+                 <Navigation className='h-5 w-5 text-sky-500' />
+              </div>
+              <div className='min-w-0'>
+                 <h4 className='text-lg font-black text-slate-950 truncate tracking-tight'>{i.titre}</h4>
+                 <p className='text-[10px] font-black uppercase tracking-widest text-slate-400'>ID: #{i.id}</p>
+              </div>
+           </div>
 
-  const renderCard = (
-    intervention: InterventionRecord,
-    actions: React.ReactNode
-  ) => (
-    <article key={intervention.id} className='rounded-[1.6rem] border border-slate-200 bg-white p-5 shadow-[0_18px_50px_rgba(148,163,184,0.12)]'>
-      <div className='flex flex-wrap items-center gap-3'>
-        <p className='text-sm font-semibold text-slate-950'>{intervention.titre}</p>
-        <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${statusBadgeClasses[intervention.statut]}`}>{statusLabels[intervention.statut]}</span>
+           <div className='grid gap-6 sm:grid-cols-2'>
+              <div className='flex items-center gap-4'>
+                 <div className='p-2.5 bg-sky-50 rounded-xl text-sky-600'>
+                    <Navigation className='h-4 w-4' />
+                 </div>
+                 <div className='min-w-0'>
+                    <p className='text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5'>Lieu</p>
+                    <p className='text-sm font-bold text-slate-900 truncate'>{i.adresse}</p>
+                 </div>
+              </div>
+              <div className='flex items-center gap-4'>
+                 <div className='p-2.5 bg-emerald-50 rounded-xl text-emerald-600'>
+                    <Clock className='h-4 w-4' />
+                 </div>
+                 <div className='min-w-0'>
+                    <p className='text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5'>Date prévue</p>
+                    <p className='text-sm font-bold text-slate-900 truncate'>{formatDate(i.datePlanifiee)}</p>
+                 </div>
+              </div>
+           </div>
+           
+           {i.description && (
+             <p className='mt-6 text-sm font-medium text-slate-500 leading-relaxed italic'>"{i.description}"</p>
+           )}
+        </div>
+
+        <div className='flex flex-wrap gap-2 lg:flex-col lg:min-w-[160px]'>
+           {actions}
+        </div>
       </div>
-      {intervention.description ? (
-        <p className='mt-3 text-sm leading-7 text-slate-800'>{intervention.description}</p>
-      ) : null}
-      <div className='mt-4 grid gap-2 text-sm text-slate-800'>
-        <p>Client: {intervention.client.prenom} {intervention.client.nom}</p>
-        <p>Adresse: {intervention.adresse}</p>
-        <p>Planifiee: {formatDate(intervention.datePlanifiee)}</p>
-      </div>
-      <div className='mt-5 flex flex-wrap gap-3'>
-        {actions}
-      </div>
-    </article>
+    </div>
   )
 
   return (
     <AppDashboardShell
       role='TECHNICIEN'
-      workspaceLabel='Suivi des interventions'
-      workspaceTitle='Deck technicien'
+      workspaceLabel='Staff Mobile'
+      workspaceTitle='Technicien Dashboard'
       sectionTabs={tabs}
       sectionTab={tab}
-      onSectionTabChange={(value) => setTab(value as typeof tab)}
+      onSectionTabChange={(v) => setTab(v as any)}
     >
-        <header className='dashboard-hero rounded-[2.4rem] p-6 sm:p-8'>
-          <div className='grid gap-6 xl:grid-cols-[1.15fr_0.85fr]'>
-            <div>
-              <div className='inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs uppercase tracking-[0.24em] text-emerald-700'>
-                <RadioTower className='h-4 w-4' />
-                Technicien
-              </div>
-              <h1 className='mt-5 text-4xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-5xl'>
-                Tableau de bord
-              </h1>
+      <header className='hero-gradient p-8 mb-10'>
+        <div className='grid gap-10 xl:grid-cols-[1.2fr_0.8fr]'>
+          <div className='flex flex-col justify-center'>
+            <div className='inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-sky-700'>
+              <RadioTower className='h-4 w-4' />
+              Opérations Terrain
             </div>
+            <h1 className='mt-8 text-5xl font-black tracking-tight text-slate-950 sm:text-7xl leading-[1.05]'>
+              Bonjour, <span className="text-sky-500 italic">{user?.prenom}.</span>
+            </h1>
+            <p className="mt-6 text-slate-500 font-medium max-w-lg leading-relaxed text-lg">
+              Prêt pour vos missions du jour ? Gérez vos interventions avec efficacité.
+            </p>
 
-            <div className='grid gap-4 sm:grid-cols-2'>
-              <article className='dashboard-stat dashboard-stat--cyan rounded-[1.8rem] p-5'>
-                <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>A confirmer</p>
-                <p className='mt-3 text-3xl font-semibold text-slate-950'>{missionDeck.pending.length}</p>
-              </article>
-              <article className='dashboard-stat dashboard-stat--mint rounded-[1.8rem] p-5'>
-                <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>Actives</p>
-                <p className='mt-3 text-3xl font-semibold text-slate-950'>{missionDeck.active.length}</p>
-              </article>
-              <article className='dashboard-stat dashboard-stat--violet rounded-[1.8rem] p-5'>
-                <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>Terminees</p>
-                <p className='mt-3 text-3xl font-semibold text-slate-950'>{missionDeck.completed.length}</p>
-              </article>
-              <article className='dashboard-stat dashboard-stat--blue rounded-[1.8rem] p-5'>
-                <p className='text-xs uppercase tracking-[0.22em] text-slate-500'>Alertes</p>
-                <p className='mt-3 text-3xl font-semibold text-slate-950'>{missionDeck.unread}</p>
-              </article>
+            <div className='mt-10 grid gap-4 sm:grid-cols-2'>
+              <div className='stat-pill border-emerald-100 bg-emerald-50/50'>
+                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600'>À confirmer</p>
+                <p className='mt-2 text-3xl font-black text-slate-950'>{missionDeck.pending.length}</p>
+              </div>
+              <div className='stat-pill border-sky-100 bg-sky-50/50'>
+                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-sky-600'>En cours</p>
+                <p className='mt-2 text-3xl font-black text-slate-950'>{missionDeck.active.length}</p>
+              </div>
             </div>
           </div>
-        </header>
 
-        <section className='mt-6 space-y-6'>
-          <div className='xl:hidden'>
-            <DashboardTabs value={tab} onChange={(value) => setTab(value as typeof tab)} tabs={tabs} />
+          <div className='grid gap-4 sm:grid-cols-2 content-center'>
+             <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40'>
+                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Total Missions</p>
+                <p className='text-5xl font-black text-slate-950'>{interventions.length}</p>
+             </article>
+             <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-slate-950 border-slate-900 shadow-xl flex flex-col justify-between h-40'>
+                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-white/40'>Messages</p>
+                <p className='text-5xl font-black text-white'>{missionDeck.unread}</p>
+             </article>
           </div>
+        </div>
+      </header>
 
-          {tab === 'APERCU' ? (
-            <article className='dashboard-panel dashboard-panel-accent rounded-[2rem] p-6 sm:p-8'>
-              <div className='flex items-center gap-3 text-emerald-700'>
-                <ClipboardCheck className='h-5 w-5' />
-                <p className='text-xs uppercase tracking-[0.24em]'>Missions</p>
-              </div>
+      <div className='mt-6 xl:hidden'>
+        <DashboardTabs value={tab} onChange={(v) => setTab(v as any)} tabs={tabs} />
+      </div>
 
-              {loading ? (
-                <div className='dashboard-card mt-6 rounded-[1.5rem] p-6 text-sm text-slate-800'>
-                  Chargement...
-                </div>
-              ) : (
-                <div className='mt-6 grid gap-5 xl:grid-cols-3'>
-                  <section className='rounded-[1.7rem] border border-amber-100 bg-[linear-gradient(180deg,#fffaf0_0%,#fff6e1_100%)] p-4'>
-                    <div className='flex items-center justify-between gap-3'>
-                      <h2 className='text-sm font-semibold text-slate-950'>A confirmer</h2>
-                      <ScanSearch className='h-5 w-5 text-amber-600' />
-                    </div>
-                    <div className='mt-4 space-y-4'>
-                      {missionDeck.pending.length === 0 ? (
-                        <div className='rounded-[1.3rem] border border-amber-200 bg-white/80 p-4 text-sm text-slate-900'>
-                          Aucune mission.
+      <div className='mt-10'>
+        {loading ? (
+          <div className="text-center py-20 animate-pulse font-black uppercase tracking-widest text-slate-400">Initialisation...</div>
+        ) : tab === 'APERCU' ? (
+           <div className='space-y-12'>
+              <section className='space-y-6'>
+                 <h3 className='text-2xl font-black text-slate-950 flex items-center gap-3'>
+                    <ScanSearch className='h-6 w-6 text-sky-500' />
+                    Missions Prioritaires
+                 </h3>
+                 <div className='grid gap-6'>
+                    {missionDeck.pending.length > 0 ? (
+                      missionDeck.pending.map(i => renderInterventionCard(i, (
+                        <>
+                           <button 
+                             onClick={() => handleStatusUpdate(i.id, 'EN_COURS')} 
+                             disabled={actionId === i.id}
+                             className='flex-1 py-4 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-colors shadow-sm disabled:opacity-50'
+                           >
+                             {actionId === i.id ? 'Traitement...' : 'Accepter Mission'}
+                           </button>
+                           <button 
+                             onClick={() => handleReject(i.id)} 
+                             disabled={actionId === i.id}
+                             className='flex-1 py-4 bg-rose-50 text-rose-600 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-100 transition-all disabled:opacity-50'
+                           >
+                             Refuser
+                           </button>
+                        </>
+                      )))
+                    ) : (
+                      <div className='dashboard-card text-center py-10 text-slate-400 font-medium'>Aucune mission en attente.</div>
+                    )}
+                 </div>
+              </section>
+
+              <section className='space-y-6'>
+                 <h3 className='text-2xl font-black text-slate-950 flex items-center gap-3'>
+                    <Wrench className='h-6 w-6 text-emerald-500' />
+                    Missions Actives
+                 </h3>
+                 <div className='grid gap-6'>
+                    {missionDeck.active.length > 0 ? (
+                      missionDeck.active.map(i => renderInterventionCard(i, (
+                        <div className='flex gap-2 w-full'>
+                           <button 
+                             onClick={() => handleStatusUpdate(i.id, 'TERMINEE')} 
+                             disabled={actionId === i.id}
+                             className='flex-[2] py-4 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-colors disabled:opacity-50'
+                           >
+                             {actionId === i.id ? '...' : 'Terminer le job'}
+                           </button>
+                           <button 
+                             onClick={() => handleReject(i.id)} 
+                             disabled={actionId === i.id}
+                             className='flex-1 py-4 bg-rose-50 text-rose-500 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-100 transition-colors disabled:opacity-50'
+                           >
+                              Refuser
+                           </button>
                         </div>
-                      ) : (
-                        missionDeck.pending.map((intervention) =>
-                          renderCard(
-                            intervention,
-                            <>
-                              <button type='button' disabled={actionId === intervention.id} onClick={() => handleAccept(intervention)} className='rounded-[1rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 transition hover:bg-emerald-100 disabled:opacity-60'>
-                                Accepter
-                              </button>
-                              <button type='button' disabled={actionId === intervention.id} onClick={() => handleRefuse(intervention)} className='rounded-[1rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 transition hover:bg-rose-100 disabled:opacity-60'>
-                                Refuser
-                              </button>
-                            </>
-                          )
-                        )
-                      )}
+                      )))
+                    ) : (
+                      <div className='dashboard-card text-center py-10 text-slate-400 font-medium'>Aucun job en cours.</div>
+                    )}
+                 </div>
+              </section>
+           </div>
+        ) : tab === 'TERRAIN' ? (
+           <TechnicianSprint3Panel interventions={interventions} onRefresh={loadDashboard} />
+        ) : tab === 'PROFIL' ? (
+           <div className='max-w-2xl mx-auto'>
+              <div className='dashboard-card p-10'>
+                 <h3 className='text-3xl font-black text-slate-950 mb-8'>Identité Tech</h3>
+                 <div className='space-y-6'>
+                    <div className='flex items-center gap-6 p-6 bg-slate-50 rounded-[2rem]'>
+                       <div className='h-20 w-20 rounded-full bg-sky-500 flex items-center justify-center text-white text-3xl font-black'>{user?.prenom?.[0] ?? '?'}</div>
+                       <div>
+                          <p className='text-sm font-black text-slate-400 uppercase tracking-widest'>Technicien Certifié</p>
+                          <h4 className='text-2xl font-black text-slate-950'>{user?.prenom} {user?.nom}</h4>
+                       </div>
                     </div>
-                  </section>
-
-                  <section className='rounded-[1.7rem] border border-sky-100 bg-[linear-gradient(180deg,#f4fbff_0%,#ebf7ff_100%)] p-4'>
-                    <div className='flex items-center justify-between gap-3'>
-                      <h2 className='text-sm font-semibold text-slate-950'>En cours</h2>
-                      <Wrench className='h-5 w-5 text-sky-600' />
+                    <div className='grid gap-4 sm:grid-cols-2'>
+                       <div className='p-5 rounded-2xl border border-slate-100 bg-white'>
+                          <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest'>Email</p>
+                          <p className='text-sm font-bold mt-1'>{user?.email}</p>
+                       </div>
+                       <div className='p-5 rounded-2xl border border-slate-100 bg-white'>
+                          <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest'>Contact</p>
+                          <p className='text-sm font-bold mt-1'>{user?.telephone || 'Non renseigné'}</p>
+                       </div>
                     </div>
-                    <div className='mt-4 space-y-4'>
-                      {missionDeck.active.length === 0 ? (
-                        <div className='rounded-[1.3rem] border border-sky-200 bg-white/80 p-4 text-sm text-slate-900'>
-                          Aucune mission.
-                        </div>
-                      ) : (
-                        missionDeck.active.map((intervention) =>
-                          renderCard(
-                            intervention,
-                            <button type='button' disabled={actionId === intervention.id} onClick={() => handleComplete(intervention)} className='rounded-[1rem] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 transition hover:bg-sky-100 disabled:opacity-60'>
-                              Terminer
-                            </button>
-                          )
-                        )
-                      )}
-                    </div>
-                  </section>
-
-                  <section className='rounded-[1.7rem] border border-emerald-100 bg-[linear-gradient(180deg,#f3fffb_0%,#eafcf5_100%)] p-4'>
-                    <div className='flex items-center justify-between gap-3'>
-                      <h2 className='text-sm font-semibold text-slate-950'>Terminees</h2>
-                      <CheckCheck className='h-5 w-5 text-emerald-600' />
-                    </div>
-                    <div className='mt-4 space-y-4'>
-                      {missionDeck.completed.length === 0 ? (
-                        <div className='rounded-[1.3rem] border border-emerald-200 bg-white/80 p-4 text-sm text-slate-900'>
-                          Aucun historique.
-                        </div>
-                      ) : (
-                        missionDeck.completed.map((intervention) =>
-                          renderCard(
-                            intervention,
-                            <div className='inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800'>
-                              <CheckCheck className='h-4 w-4' />
-                              Rapport pret
-                            </div>
-                          )
-                        )
-                      )}
-                    </div>
-                  </section>
-                </div>
-              )}
-            </article>
-          ) : null}
-
-          {tab === 'TERRAIN' ? (
-            <TechnicianSprint3Panel interventions={interventions} onRefresh={loadDashboard} />
-          ) : null}
-
-          {tab === 'PROFIL' ? (
-            <article className='dashboard-panel rounded-[2rem] p-6 sm:p-8'>
-              <div className='flex items-center gap-3 text-emerald-700'>
-                <MapPinned className='h-5 w-5' />
-                <p className='text-xs uppercase tracking-[0.24em]'>Profil</p>
+                 </div>
               </div>
-
-              {loading ? (
-                <div className='dashboard-card mt-6 rounded-[1.5rem] p-5 text-sm text-slate-800'>
-                  Chargement...
-                </div>
-              ) : user ? (
-                <div className='mt-6 grid gap-4 sm:grid-cols-2'>
-                  <div className='dashboard-card rounded-[1.5rem] p-5'>
-                    <p className='text-xs uppercase tracking-[0.22em] text-slate-700'>Nom</p>
-                    <p className='mt-3 text-lg font-semibold text-slate-950'>{user.prenom} {user.nom}</p>
-                  </div>
-                  <div className='dashboard-card rounded-[1.5rem] p-5'>
-                    <p className='text-xs uppercase tracking-[0.22em] text-slate-700'>Email</p>
-                    <p className='mt-3 text-lg font-semibold text-slate-950'>{user.email}</p>
-                  </div>
-                  <div className='dashboard-card rounded-[1.5rem] p-5'>
-                    <p className='text-xs uppercase tracking-[0.22em] text-slate-700'>Telephone</p>
-                    <p className='mt-3 text-lg font-semibold text-slate-950'>{user.telephone || 'Non renseigne'}</p>
-                  </div>
-                  <div className='dashboard-card rounded-[1.5rem] p-5'>
-                    <p className='text-xs uppercase tracking-[0.22em] text-slate-700'>Compte</p>
-                    <p className='mt-3 text-lg font-semibold text-slate-950'>{user.actif ? 'Actif' : 'Inactif'}</p>
-                  </div>
-                </div>
-              ) : null}
-
-              {user?.mustChangePassword ? (
-                <div className='mt-6 rounded-[1.4rem] border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800'>
-                  Changement de mot de passe requis.
-                </div>
-              ) : null}
-            </article>
-          ) : null}
-
-          {tab === 'SECURITE' ? (
-            <article className='dashboard-panel rounded-[2rem] p-6 sm:p-8'>
-              <div className='flex items-center gap-3 text-emerald-700'>
-                <KeyRound className='h-5 w-5' />
-                <p className='text-xs uppercase tracking-[0.24em]'>Mot de passe</p>
+           </div>
+        ) : tab === 'SECURITE' ? (
+           <div className='max-w-xl mx-auto'>
+              <div className='dashboard-card p-10'>
+                 <h3 className='text-3xl font-black text-slate-950 mb-8'>Accès & Sécurité</h3>
+                 <form className='space-y-4' onSubmit={handlePasswordChange}>
+                    <input type="password" placeholder="Mot de passe actuel" className='w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-bold' value={motDePasseActuel} onChange={e => setMotDePasseActuel(e.target.value)} />
+                    <input type="password" placeholder="Nouveau mot de passe" className='w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-bold' value={nouveauMotDePasse} onChange={e => setNouveauMotDePasse(e.target.value)} />
+                    <button type="submit" className='btn-premium w-full py-5 text-xs font-black uppercase tracking-widest mt-4'>Valider les accès</button>
+                 </form>
               </div>
-
-              <form className='mt-6 grid gap-4 sm:max-w-xl' onSubmit={handlePasswordChange}>
-                <input type='password' value={motDePasseActuel} onChange={(event) => setMotDePasseActuel(event.target.value)} placeholder='Mot de passe actuel' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
-                <input type='password' value={nouveauMotDePasse} onChange={(event) => setNouveauMotDePasse(event.target.value)} placeholder='Nouveau mot de passe' className='dashboard-input rounded-[1.3rem] px-4 py-3 text-sm' />
-
-                <button type='submit' className='rounded-[1.2rem] border-0 bg-[linear-gradient(135deg,#a3ffe0_0%,#68e6b1_56%,#f4be7e_100%)] px-4 py-3 text-sm font-medium text-slate-950 transition hover:brightness-105'>
-                  Mettre a jour
-                </button>
-              </form>
-            </article>
-          ) : null}
-
-          {tab === 'NOTIFICATIONS' ? (
-            <NotificationsPanel
-              notifications={notifications}
-              loading={loading}
-              accentClassName='bg-emerald-100 text-emerald-800'
-              onMarkAsRead={handleMarkNotificationAsRead}
-            />
-          ) : null}
-        </section>
+           </div>
+        ) : (
+           <NotificationsPanel notifications={notifications} loading={loading} onMarkAsRead={handleMarkAsRead} />
+        )}
+      </div>
     </AppDashboardShell>
   )
 }

@@ -184,12 +184,23 @@ const buildNotificationPayloadsForUpdate = (before, after, actor) => {
     before.technicien?.utilisateur?.id &&
     !after.technicienId
   ) {
+    // Notify the technician themselves (already in code, keep for consistency)
     payloads.push({
       titre: 'Intervention reaffectee',
       message: `L'intervention "${after.titre}" a ete retiree de votre file.`,
       interventionId: after.id,
       userId: before.technicien.utilisateur.id,
     });
+
+    // CRITICAL: Notify the Responsable that the technician refused
+    if (after.responsable?.utilisateur?.id) {
+       payloads.push({
+         titre: 'Intervention REFUSÉE par le technicien',
+         message: `Le technicien ${before.technicien.utilisateur.prenom} ${before.technicien.utilisateur.nom} a refusé l'intervention "${after.titre}". Elle est de retour en attente.`,
+         interventionId: after.id,
+         userId: after.responsable.utilisateur.id,
+       });
+    }
   }
 
   if (before.priorite !== after.priorite) {
@@ -237,8 +248,8 @@ const validateTechnicianUpdate = ({ existing, payload }) => {
   }
 
   if (payload.technicienId === null) {
-    if (existing.statut !== 'EN_ATTENTE') {
-      return 'Le refus n est possible que pour une intervention encore en attente.';
+    if (!['EN_ATTENTE', 'EN_COURS'].includes(existing.statut)) {
+      return 'Le refus n est possible que pour une intervention en attente ou en cours.';
     }
 
     if (payload.statut && payload.statut !== 'EN_ATTENTE') {
