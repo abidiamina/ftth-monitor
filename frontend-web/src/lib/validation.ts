@@ -106,8 +106,8 @@ export const validateUserUpdateForm = (payload: UpdateUserRequest | UpdateProfil
     return 'Le telephone est obligatoire pour un client.'
   }
 
-  if ('adresse' in payload && payload.adresse !== undefined) {
-    const addressError = validateRequiredText('L adresse', payload.adresse, 8, 255)
+  if ('role' in payload && payload.role === 'CLIENT') {
+    const addressError = validateRequiredText('L adresse', payload.adresse ?? '', 8, 255)
     if (addressError) return addressError
   }
 

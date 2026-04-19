@@ -157,17 +157,39 @@ export const ResponsableDashboardPage = () => {
 
   const filteredInterventions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
-    return interventions.filter((item) => {
-      const matchesStatus = statusFilter === 'ALL' || item.statut === statusFilter
-      const matchesPriority = priorityFilter === 'ALL' || item.priorite === priorityFilter
-      const matchesQuery =
-        !normalizedQuery ||
-        `${item.titre} ${item.description ?? ''} ${item.adresse} ${item.client?.prenom ?? ''} ${item.client?.nom ?? ''}`
-          .toLowerCase()
-          .includes(normalizedQuery)
+    
+    // Poids des priorités pour le tri
+    const priorityWeight: Record<InterventionPriority, number> = {
+      URGENTE: 4,
+      HAUTE: 3,
+      NORMALE: 2,
+      BASSE: 1,
+    }
 
-      return matchesStatus && matchesPriority && matchesQuery
-    })
+    return interventions
+      .filter((item) => {
+        const matchesStatus = statusFilter === 'ALL' || item.statut === statusFilter
+        const matchesPriority = priorityFilter === 'ALL' || item.priorite === priorityFilter
+        const matchesQuery =
+          !normalizedQuery ||
+          `${item.titre} ${item.description ?? ''} ${item.adresse} ${item.client?.prenom ?? ''} ${item.client?.nom ?? ''}`
+            .toLowerCase()
+            .includes(normalizedQuery)
+
+        return matchesStatus && matchesPriority && matchesQuery
+      })
+      .sort((a, b) => {
+        // 1. Trier par poids de priorité (descendant)
+        const weightA = priorityWeight[a.priorite] || 0
+        const weightB = priorityWeight[b.priorite] || 0
+        
+        if (weightA !== weightB) {
+          return weightB - weightA
+        }
+        
+        // 2. Si même priorité, trier par date de création (décroissant)
+        return new Date(b.dateCreation).getTime() - new Date(a.dateCreation).getTime()
+      })
   }, [interventions, priorityFilter, query, statusFilter])
 
   const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -549,11 +571,6 @@ export const ResponsableDashboardPage = () => {
                        +{technicians.length - 5}
                     </div>
                  </div>
-              </div>
-              <div className="dashboard-card bg-sky-500 !text-white !border-none shadow-2xl shadow-sky-200">
-                 <h3 className="text-lg font-black mb-2">Support Prioritaire</h3>
-                 <p className="text-white/80 text-sm font-medium">L'équipe support est disponible 24/7 pour vos déploiements.</p>
-                 <button className="mt-4 px-4 py-2 bg-white text-sky-600 rounded-xl text-xs font-black uppercase">Contacter</button>
               </div>
             </div>
           </div>
