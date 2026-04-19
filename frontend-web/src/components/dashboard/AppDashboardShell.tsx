@@ -2,9 +2,10 @@ import type { ReactNode } from 'react'
 import { Search, Bell, LogOut, LayoutDashboard, Ticket, Wrench, MapPinned, UserCog, CircleHelp, Settings, Shield, BarChart3, Users, Menu, X } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { logout } from '@/store/authSlice'
+import { listConfigs } from '@/services/configApi'
+import { useEffect, useState } from 'react'
 import type { RootState } from '@/store'
 import type { UserRole } from '@/types/auth.types'
 import type { DashboardTab } from '@/components/dashboard/DashboardTabs'
@@ -70,6 +71,16 @@ export const AppDashboardShell = ({
   const location = useLocation()
   const { user } = useSelector((state: RootState) => state.auth)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [appName, setAppName] = useState(workspaceLabel)
+
+  useEffect(() => {
+    listConfigs().then(configs => {
+      if (Array.isArray(configs)) {
+        const name = configs.find(c => c.cle === 'APP_NAME')?.valeur
+        if (name) setAppName(name)
+      }
+    }).catch(() => {})
+  }, [workspaceLabel])
 
   const handleLogout = () => {
     dispatch(logout())
@@ -117,7 +128,7 @@ export const AppDashboardShell = ({
                 <Shield className='h-6 w-6 text-white' />
               </div>
               <div className='min-w-0'>
-                <h2 className='text-lg font-bold truncate tracking-tight text-slate-950'>{workspaceLabel}</h2>
+                <h2 className='text-lg font-bold truncate tracking-tight text-slate-950'>{appName}</h2>
                 <p className='text-[10px] uppercase tracking-widest font-bold text-slate-400'>{workspaceTitle}</p>
               </div>
             </div>

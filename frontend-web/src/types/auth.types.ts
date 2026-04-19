@@ -231,3 +231,12 @@ export interface ClientApprovalRequest {
   feedbackRating: number
   feedbackComment: string
 }
+
+export interface ConfigurationRecord {
+  id: number
+  cle: string
+  valeur: string
+  libelle: string
+  description?: string | null
+  updatedAt: string
+}

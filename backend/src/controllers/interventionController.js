@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const { createNotifications } = require('../utils/notificationService');
+const { getConfigAsBoolean, getConfigAsInt } = require('../utils/configService');
 const {
   normalizeText,
   validateClientApprovalPayload,
@@ -520,6 +521,26 @@ const updateIntervention = async (req, res) => {
           message: 'Seule une intervention terminee peut etre validee.',
         });
       }
+
+      if (validee) {
+        const reqSignature = await getConfigAsBoolean('REQ_SIGNATURE', true);
+        if (reqSignature && !existing.clientSignatureAt) {
+          return res.status(400).json({
+            success: false,
+            message: 'La signature du client est obligatoire avant la validation finale par le responsable.',
+          });
+        }
+      }
+    }
+
+    if (statut === 'TERMINEE' && existing.statut !== 'TERMINEE') {
+      const reqPhoto = await getConfigAsBoolean('REQ_PHOTO', true);
+      if (reqPhoto && existing.evidences.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Au moins une photo de preuve est obligatoire pour terminer l intervention.',
+        });
+      }
     }
 
     const dateData = {};
@@ -675,6 +696,14 @@ const addInterventionEvidence = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Une preuve terrain ne peut etre ajoutee que sur une intervention en cours.',
+      });
+    }
+
+    const maxPhotos = await getConfigAsInt('MAX_PHOTOS', 5);
+    if (existing.evidences.length >= maxPhotos) {
+      return res.status(400).json({
+        success: false,
+        message: `Limite de photos atteinte (${maxPhotos}). Mise a jour impossible.`,
       });
     }
 

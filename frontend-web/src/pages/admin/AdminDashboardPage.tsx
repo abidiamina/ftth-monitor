@@ -5,6 +5,7 @@ import {
   Search,
   ShieldCheck,
   ShieldEllipsis,
+  Settings,
   Trash2,
   UserPlus,
   Users,
@@ -23,7 +24,8 @@ import {
   updateUser,
   updateUserStatus,
 } from '@/services/authApi'
-import type { CreateEmployeeRequest, CurrentUser, UpdateUserRequest, User, UserRole } from '@/types/auth.types'
+import { listConfigs, updateConfig } from '@/services/configApi'
+import type { ConfigurationRecord, CreateEmployeeRequest, CurrentUser, UpdateUserRequest, User, UserRole } from '@/types/auth.types'
 
 const roleLabels: Record<UserRole, string> = {
   ADMIN: 'Administrateur',
@@ -72,7 +74,9 @@ export const AdminDashboardPage = () => {
   const [savingUser, setSavingUser] = useState(false)
   const [roleFilter, setRoleFilter] = useState<'ALL' | UserRole>('ALL')
   const [userQuery, setUserQuery] = useState('')
-  const [tab, setTab] = useState<'APERCU' | 'UTILISATEURS' | 'CREATION' | 'ROLES'>('APERCU')
+  const [tab, setTab] = useState<'APERCU' | 'UTILISATEURS' | 'CREATION' | 'ROLES' | 'PARAMETRES'>('APERCU')
+  const [configs, setConfigs] = useState<ConfigurationRecord[]>([])
+  const [configSaving, setConfigSaving] = useState<Record<string, boolean>>({})
   const [employeeForm, setEmployeeForm] = useState<CreateEmployeeRequest>({
     nom: '', prenom: '', email: '', telephone: '', role: 'ADMIN'
   })
@@ -80,19 +84,23 @@ export const AdminDashboardPage = () => {
     nom: '', prenom: '', email: '', telephone: '', role: 'CLIENT', adresse: ''
   })
 
-  const loadUsers = async () => {
+  const loadData = async () => {
     setLoading(true)
     try {
-      const data = await listUsers()
-      setUsers(data)
+      const [usersData, configsData] = await Promise.all([
+        listUsers(),
+        listConfigs(),
+      ])
+      setUsers(usersData)
+      setConfigs(configsData)
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Impossible de charger les utilisateurs.'))
+      toast.error(getErrorMessage(error, 'Impossible de charger les données.'))
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { loadUsers() }, [])
+  useEffect(() => { loadData() }, [])
 
   const stats = useMemo(() => {
     const total = users.length
@@ -113,9 +121,10 @@ export const AdminDashboardPage = () => {
 
   const tabs = useMemo(() => [
     { id: 'APERCU', label: 'Overview', icon: ShieldCheck },
-    { id: 'UTILISATEURS', label: 'Comptes', icon: Users },
-    { id: 'CREATION', label: 'Invite', icon: UserPlus },
+    { id: 'UTILISATEURS', label: 'Annuaire', icon: Users },
+    { id: 'CREATION', label: 'Staff', icon: UserPlus },
     { id: 'ROLES', label: 'Privilèges', icon: ShieldEllipsis },
+    { id: 'PARAMETRES', label: 'Système', icon: Settings },
   ], [])
 
   const handleToggleStatus = async (user: User) => {
@@ -124,6 +133,19 @@ export const AdminDashboardPage = () => {
       toast.success('Statut mis à jour.')
       setUsers(curr => curr.map(u => u.id === user.id ? response.data : u))
     } catch (error) { toast.error('Erreur de mise à jour.') }
+  }
+
+  const handleUpdateConfig = async (cle: string, valeur: string) => {
+    setConfigSaving(c => ({ ...c, [cle]: true }))
+    try {
+      await updateConfig(cle, valeur)
+      toast.success('Réglage enregistré.')
+      setConfigs(curr => curr.map(c => c.cle === cle ? { ...c, valeur } : c))
+    } catch (error) {
+      toast.error('Erreur lors de la sauvegarde.')
+    } finally {
+      setConfigSaving(c => ({ ...c, [cle]: false }))
+    }
   }
 
   const handleDeleteUser = async (user: User) => {
@@ -135,7 +157,118 @@ export const AdminDashboardPage = () => {
     } catch (error) { toast.error('Action impossible.') }
   }
 
-  const renderUserCard = (user: User) => (
+  const handleEditStart = (user: User) => {
+    setEditingUserId(user.id)
+    setEditForm({
+      nom: user.nom,
+      prenom: user.prenom,
+      email: user.email,
+      telephone: user.telephone || '',
+      role: user.role,
+      adresse: (user as any).client?.adresse || ''
+    })
+  }
+
+  const handleUpdateUser = async () => {
+    if (!editingUserId) return
+
+    const validationError = validateUserUpdateForm(editForm)
+    if (validationError) {
+      toast.error(validationError)
+      return
+    }
+
+    setSavingUser(true)
+    try {
+      const response = await updateUser(editingUserId, editForm)
+      toast.success('Compte mis à jour.')
+      setUsers(curr => curr.map(u => u.id === editingUserId ? response.data : u))
+      setEditingUserId(null)
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Échec de la mise à jour.'))
+    } finally {
+      setSavingUser(false)
+    }
+  }
+
+  const renderUserCard = (user: User) => {
+    const isEditing = editingUserId === user.id
+
+    if (isEditing) {
+      return (
+        <div key={user.id} className='dashboard-card border-violet-200 bg-violet-50/30 animate-in fade-in zoom-in-95 duration-200'>
+          <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-end'>
+            <div className='space-y-1'>
+               <p className='text-[10px] font-black uppercase tracking-widest text-violet-600 ml-1'>Identité</p>
+               <div className='flex gap-2'>
+                 <input 
+                   placeholder="Prénom"
+                   className='w-full bg-white border border-violet-100 rounded-xl px-4 py-2.5 text-sm font-bold placeholder:font-medium'
+                   value={editForm.prenom}
+                   onChange={e => setEditForm(c => ({...c, prenom: e.target.value}))}
+                 />
+                 <input 
+                   placeholder="Nom"
+                   className='w-full bg-white border border-violet-100 rounded-xl px-4 py-2.5 text-sm font-bold placeholder:font-medium'
+                   value={editForm.nom}
+                   onChange={e => setEditForm(c => ({...c, nom: e.target.value}))}
+                 />
+               </div>
+            </div>
+            <div className='space-y-1'>
+               <p className='text-[10px] font-black uppercase tracking-widest text-violet-600 ml-1'>Email</p>
+               <input 
+                 type="email"
+                 className='w-full bg-white border border-violet-100 rounded-xl px-4 py-2.5 text-sm font-bold'
+                 value={editForm.email}
+                 onChange={e => setEditForm(c => ({...c, email: e.target.value}))}
+               />
+            </div>
+            <div className='space-y-1'>
+               <p className='text-[10px] font-black uppercase tracking-widest text-violet-600 ml-1'>Rôle</p>
+               <select 
+                 className='w-full bg-white border border-violet-100 rounded-xl px-4 py-2.5 text-sm font-bold'
+                 value={editForm.role}
+                 onChange={e => setEditForm(c => ({...c, role: e.target.value as any}))}
+               >
+                 <option value="ADMIN">Administrateur</option>
+                 <option value="RESPONSABLE">Responsable</option>
+                 <option value="TECHNICIEN">Technicien</option>
+                 <option value="CLIENT">Client</option>
+               </select>
+            </div>
+            {editForm.role === 'CLIENT' && (
+              <div className='lg:col-span-4 space-y-1 mt-2'>
+                <p className='text-[10px] font-black uppercase tracking-widest text-violet-600 ml-1'>Adresse Installation</p>
+                <input 
+                  placeholder="Adresse complète"
+                  className='w-full bg-white border border-violet-100 rounded-xl px-4 py-2.5 text-sm font-bold'
+                  value={editForm.adresse}
+                  onChange={e => setEditForm(c => ({...c, adresse: e.target.value}))}
+                />
+              </div>
+            )}
+            <div className='flex items-center gap-2'>
+               <button 
+                 disabled={savingUser}
+                 onClick={handleUpdateUser}
+                 className='flex-1 py-2.5 bg-violet-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-violet-700 transition-colors disabled:opacity-50'
+               >
+                 {savingUser ? '...' : 'Sauver'}
+               </button>
+               <button 
+                 onClick={() => setEditingUserId(null)}
+                 className='px-4 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-colors'
+               >
+                 X
+               </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    return (
     <div key={user.id} className='dashboard-card group animate-in fade-in slide-in-from-bottom-4 duration-500'>
       <div className='flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between'>
         <div className='flex items-center gap-4 min-w-0'>
@@ -162,6 +295,9 @@ export const AdminDashboardPage = () => {
              {roleLabels[user.role]}
            </div>
            <div className='flex items-center gap-1 ml-2'>
+             <button onClick={() => handleEditStart(user)} className='p-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 transition-colors'>
+               <Pencil className='h-4 w-4 text-slate-600' />
+             </button>
              <button onClick={() => handleToggleStatus(user)} className='p-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 transition-colors'>
                <KeyRound className='h-4 w-4 text-slate-600' />
              </button>
@@ -172,7 +308,24 @@ export const AdminDashboardPage = () => {
         </div>
       </div>
     </div>
-  )
+    );
+  };
+
+  const handleCreateEmployee = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    try {
+      const response = await createEmployee(employeeForm)
+      toast.success(response.message || 'Compte staff créé avec succès !')
+      setUsers(curr => [response.data, ...curr])
+      setEmployeeForm({ nom: '', prenom: '', email: '', telephone: '', role: 'ADMIN' })
+      setTab('UTILISATEURS')
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Échec de la création du compte.'))
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <AppDashboardShell
@@ -210,21 +363,36 @@ export const AdminDashboardPage = () => {
           </div>
 
           <div className='grid gap-4 sm:grid-cols-2 content-center'>
-            <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40'>
-              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Sécurité Brut</p>
-              <p className='text-4xl font-black text-slate-950'>99<span className='text-violet-500'>%</span></p>
+            <article 
+              onClick={() => { setTab('UTILISATEURS'); setRoleFilter('ALL'); }}
+              className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40 group hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer'
+            >
+              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Total Comptes</p>
+              <p className='text-4xl font-black text-slate-950 group-hover:text-violet-600 transition-colors'>{stats.total}</p>
             </article>
-            <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40'>
-              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Inactifs</p>
-              <p className='text-5xl font-black text-rose-500'>{stats.inactifs}</p>
+            <article 
+              onClick={() => setTab('CREATION')}
+              className='dashboard-kpi rounded-[2.5rem] p-8 bg-violet-600 border-violet-500 shadow-xl flex flex-col justify-between h-40 cursor-pointer hover:bg-violet-700 transition-all hover:-translate-y-1 group'
+            >
+               <div className='flex items-center justify-between'>
+                 <p className='text-[10px] font-black uppercase tracking-[0.2em] text-white/50'>Action</p>
+                 <UserPlus className='h-5 w-5 text-white/30 group-hover:rotate-12 transition-transform' />
+               </div>
+               <p className='text-xl font-black text-white leading-tight'>Nouveau<br />Membre Staff</p>
             </article>
-            <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-slate-950 border-slate-900 shadow-xl flex flex-col justify-between h-40 group hover:-translate-y-1 transition-transform'>
+            <article 
+              onClick={() => setTab('PARAMETRES')}
+              className='dashboard-kpi rounded-[2.5rem] p-8 bg-slate-950 border-slate-900 shadow-xl flex flex-col justify-between h-40 group hover:-translate-y-1 transition-transform cursor-pointer'
+            >
                <KeyRound className='h-8 w-8 text-violet-400 opacity-20 group-hover:opacity-40 transition-opacity' />
-               <p className='text-xl font-bold text-white'>Audit<br />Système</p>
+               <p className='text-xl font-bold text-white leading-tight'>Système &<br />Paramètres</p>
             </article>
-            <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-violet-600 border-violet-500 shadow-xl flex flex-col justify-between h-40 cursor-pointer hover:bg-violet-700 transition-colors'>
-               <p className='text-[10px] font-black uppercase tracking-[0.2em] text-white/50'>Reset</p>
-               <p className='text-5xl font-black text-white'>{stats.mustChange}</p>
+            <article 
+              onClick={() => { setTab('UTILISATEURS'); setRoleFilter('ALL'); }}
+              className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all group'
+            >
+               <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Inactifs</p>
+               <p className='text-5xl font-black text-rose-500 group-hover:scale-110 transition-transform origin-left'>{stats.inactifs}</p>
             </article>
           </div>
         </div>
@@ -243,11 +411,11 @@ export const AdminDashboardPage = () => {
                 <h2 className='text-2xl font-black text-slate-950 tracking-tight'>Directoire Comptes</h2>
                 <div className='flex items-center gap-2 bg-white/50 p-1.5 rounded-2xl border border-white'>
                    <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as any)} className='bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-slate-500 py-1'>
-                      <option value='ALL'>Tous les Roles</option>
-                      <option value='ADMIN'>Admins</option>
-                      <option value='RESPONSABLE'>Managers</option>
-                      <option value='TECHNICIEN'>Staff</option>
-                      <option value='CLIENT'>Clients</option>
+                      <option value='ALL'>Tous les Rôles</option>
+                      <option value='ADMIN'>Administrateur</option>
+                      <option value='RESPONSABLE'>Responsable</option>
+                      <option value='TECHNICIEN'>Technicien</option>
+                      <option value='CLIENT'>Client</option>
                    </select>
                 </div>
              </div>
@@ -258,8 +426,8 @@ export const AdminDashboardPage = () => {
         ) : tab === 'CREATION' ? (
            <div className='max-w-xl mx-auto'>
               <div className='dashboard-card p-12'>
-                 <h2 className='text-4xl font-black text-slate-950 mb-4'>Invite Staff.</h2>
-                 <p className='text-slate-500 font-medium mb-10'>Préparez les accès pour un nouvel équipier.</p>
+                 <h2 className='text-4xl font-black text-slate-950 mb-4'>Gestion Staff.</h2>
+                 <p className='text-slate-500 font-medium mb-10'>Créez un profil pour un membre de l'équipe et envoyez ses accès automatiquement par email.</p>
                  <form className='space-y-4' onSubmit={handleCreateEmployee}>
                     <div className='grid grid-cols-2 gap-4'>
                        <input placeholder="Prénom" className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" value={employeeForm.prenom} onChange={e => setEmployeeForm(c => ({...c, prenom: e.target.value}))} />
@@ -302,20 +470,70 @@ export const AdminDashboardPage = () => {
                 </div>
              ))}
           </div>
+        ) : tab === 'PARAMETRES' ? (
+          <div className='max-w-3xl mx-auto'>
+            <div className='dashboard-card p-10'>
+              <div className='flex items-center gap-4 mb-10'>
+                <div className='h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center'>
+                   <Settings className='h-6 w-6 text-white' />
+                </div>
+                <div>
+                   <h2 className='text-3xl font-black text-slate-950 tracking-tight'>Paramètres Système</h2>
+                   <p className='text-slate-500 font-medium text-sm'>Adaptez les fonctionnalités de la plateforme en temps réel.</p>
+                </div>
+              </div>
+
+              <div className='space-y-8'>
+                {configs.map((config) => {
+                  const isBoolean = config.valeur === 'true' || config.valeur === 'false'
+                  const isSaving = configSaving[config.cle]
+
+                  return (
+                    <div key={config.id} className='flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-6 rounded-3xl border border-slate-100 bg-slate-50/50 group hover:bg-white transition-all'>
+                      <div className='flex-1'>
+                        <h3 className='text-base font-extrabold text-slate-950 mb-1'>{config.libelle}</h3>
+                        <p className='text-xs font-medium text-slate-500 leading-relaxed'>{config.description}</p>
+                      </div>
+
+                      <div className='flex items-center gap-3'>
+                        {isBoolean ? (
+                          <button
+                            onClick={() => handleUpdateConfig(config.cle, config.valeur === 'true' ? 'false' : 'true')}
+                            disabled={isSaving}
+                            className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ${config.valeur === 'true' ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                          >
+                            <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${config.valeur === 'true' ? 'translate-x-6' : 'translate-x-1'}`} />
+                          </button>
+                        ) : (
+                          <div className='flex items-center gap-2'>
+                            <input
+                              type={config.cle === 'MAX_PHOTOS' ? 'number' : 'text'}
+                              defaultValue={config.valeur}
+                              onBlur={(e) => {
+                                if (e.target.value !== config.valeur) {
+                                  handleUpdateConfig(config.cle, e.target.value)
+                                }
+                              }}
+                              className='bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold w-32 focus:ring-2 focus:ring-violet-500 outline-none transition-all'
+                            />
+                          </div>
+                        )}
+                        {isSaving && <div className='h-4 w-4 border-2 border-violet-500 border-t-transparent rounded-full animate-spin' />}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
         ) : (
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
+          <div className='grid grid-cols-1 gap-8'>
              <div className='dashboard-card h-64 flex flex-col items-center justify-center text-center'>
                 <div className='h-20 w-20 rounded-full bg-violet-100 flex items-center justify-center mb-6'>
                    <Users className='h-10 w-10 text-violet-600 animate-float' />
                 </div>
                 <h3 className='text-xl font-black text-slate-950'>Total Utilisateurs</h3>
                 <p className='text-5xl font-black text-slate-950 mt-2'>{stats.total}</p>
-             </div>
-             <div className='dashboard-card h-64 bg-slate-950 !text-white !border-none flex flex-col items-center justify-center text-center relative overflow-hidden'>
-                <div className='absolute top-0 right-0 w-32 h-32 bg-violet-500/20 blur-[60px] rounded-full' />
-                <h3 className='text-xl font-black'>Système Intact</h3>
-                <p className='text-sm font-medium text-white/60 mt-2 max-w-[200px]'>Toutes les couches de sécurité sont opérationnelles.</p>
-                <button className='mt-8 px-6 py-2 bg-white text-slate-950 rounded-xl font-black text-xs uppercase'>Scan Complet</button>
              </div>
           </div>
         )}

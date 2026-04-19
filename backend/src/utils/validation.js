@@ -73,7 +73,7 @@ const validateUserProfilePayload = ({ nom, prenom, email, telephone, adresse }, 
   if (email !== undefined && !isValidEmail(email)) return 'Adresse email invalide.';
   if (normalizeText(telephone) && !isValidPhone(telephone)) return 'Numero de telephone invalide.';
 
-  if (options.requireAddress || adresse !== undefined) {
+  if (options.requireAddress) {
     const addressError = validateRequiredText('L adresse', adresse, 8, 255);
     if (addressError) return addressError;
   }
