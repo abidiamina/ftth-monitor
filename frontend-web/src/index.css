@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
 
 @tailwind base;
 @tailwind components;
@@ -153,3 +154,33 @@ button {
 .nav-item-inactive {
   @apply text-slate-500 hover:bg-slate-50 hover:text-slate-900;
 }
+
+/* Leaflet Overrides */
+.leaflet-container {
+  width: 100%;
+  height: 500px;
+  border-radius: 1.5rem;
+  z-index: 10;
+  @apply border border-white/40;
+}
+
+.leaflet-popup-content-wrapper {
+  @apply !bg-white/90 !backdrop-blur-md !rounded-2xl !border !border-white/50 !shadow-2xl;
+}
+
+.leaflet-popup-tip {
+  @apply !bg-white/90;
+}
+
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.leaflet-marker-pill {
+  @apply w-4 h-4 rounded-full border-2 border-white shadow-lg animate-pulse;
+}
+
+.marker-pending { @apply bg-amber-500 shadow-amber-200/50; }
+.marker-working { @apply bg-sky-500 shadow-sky-200/50; }
+.marker-done { @apply bg-emerald-500 shadow-emerald-200/50; }

@@ -48,7 +48,7 @@ export function ClientSprint3Panel({
     interventions.find((item) => item.statut === 'TERMINEE')?.id ?? null
   )
   const [feedbackComment, setFeedbackComment] = useState('')
-  const [feedbackRating, setFeedbackRating] = useState(5)
+  const [feedbackRating, setFeedbackRating] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const signatureRef = useRef<SignatureCanvas | null>(null)
 
@@ -94,6 +94,11 @@ export function ClientSprint3Panel({
       return
     }
 
+    if (feedbackRating === 0) {
+      toast.error('Merci de donner une note.')
+      return
+    }
+
     if (!signatureRef.current || signatureRef.current.isEmpty()) {
       toast.error('Signature requise.')
       return
@@ -102,16 +107,18 @@ export function ClientSprint3Panel({
     setSubmitting(true)
 
     try {
+      const signatureData = signatureRef.current.toDataURL('image/png')
+
       await submitInterventionClientApproval(selectedIntervention.id, {
-        signature: signatureRef.current.toDataURL('image/png'),
+        signature: signatureData,
         signatureBy: signerName,
         feedbackRating,
         feedbackComment,
       })
       await onRefresh()
-      signatureRef.current.clear()
+      signatureRef.current?.clear()
       setFeedbackComment('')
-      setFeedbackRating(5)
+      setFeedbackRating(0)
       toast.success('Validation client enregistree.')
     } catch (error) {
       toast.error(getErrorMessage(error, 'Validation client impossible.'))
@@ -255,16 +262,20 @@ export function ClientSprint3Panel({
                     </div>
                     {selectedIntervention.clientSignature && (
                        <div className='bg-white rounded-2xl border border-slate-100 p-2 w-fit shadow-sm'>
-                          <svg width="160" height="80" viewBox="0 0 160 80" className="opacity-80">
-                            <path 
-                              d={parseSignatureToPath(selectedIntervention.clientSignature)} 
-                              fill="none" 
-                              stroke="#0f172a" 
-                              strokeWidth="3" 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round" 
-                            />
-                          </svg>
+                          {selectedIntervention.clientSignature.startsWith('DRAWN_SIGNATURE:') ? (
+                            <svg width="160" height="80" viewBox="0 0 160 80" className="opacity-80">
+                              <path 
+                                d={parseSignatureToPath(selectedIntervention.clientSignature)} 
+                                fill="none" 
+                                stroke="#0f172a" 
+                                strokeWidth="3" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round" 
+                              />
+                            </svg>
+                          ) : (
+                            <img src={selectedIntervention.clientSignature} alt="Signature" className="max-w-[160px] max-h-[80px] h-auto object-contain opacity-80" />
+                          )}
                        </div>
                     )}
                   </div>
@@ -326,13 +337,15 @@ export function ClientSprint3Panel({
                       type='button'
                       disabled={Boolean(selectedIntervention.clientFeedbackAt)}
                       onClick={() => setFeedbackRating(value)}
-                      className={`rounded-full border px-4 py-3 transition ${
+                      className={`group/star transition-all duration-300 ${
                         active
-                          ? 'border-amber-300/40 bg-amber-100 text-amber-700'
-                          : 'border-slate-200 bg-white text-slate-500'
-                      } disabled:cursor-not-allowed disabled:opacity-60`}
+                          ? 'text-amber-400 scale-110'
+                          : 'text-slate-200 hover:text-amber-200'
+                      } disabled:opacity-60 disabled:cursor-not-allowed`}
                     >
-                      <Star className={`h-4 w-4 ${active ? 'fill-current' : ''}`} />
+                      <Star 
+                        className={`h-8 w-8 ${active ? 'fill-current' : 'fill-transparent'} transition-colors`} 
+                      />
                     </button>
                   )
                 })}

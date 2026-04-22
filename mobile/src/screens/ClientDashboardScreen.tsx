@@ -9,6 +9,8 @@ import {
   TextInput,
   View,
 } from 'react-native'
+import * as Location from 'expo-location'
+import { Ionicons } from '@expo/vector-icons'
 import { DashboardTabs } from '../components/DashboardTabs'
 import { RoleBadge } from '../components/RoleBadge'
 import { Screen } from '../components/Screen'
@@ -49,6 +51,8 @@ const emptyForm: CreateInterventionRequest = {
   description: '',
   adresse: '',
   priorite: 'NORMALE',
+  latitude: '',
+  longitude: '',
 }
 
 type ClientTab = 'overview' | 'interventions' | 'notifications' | 'profile'
@@ -86,6 +90,7 @@ export function ClientDashboardScreen() {
   const [feedbackComment, setFeedbackComment] = useState('')
   const [feedbackRating, setFeedbackRating] = useState(5)
   const [isDrawingSignature, setIsDrawingSignature] = useState(false)
+  const [gettingLocation, setGettingLocation] = useState(false)
 
   const handleSignatureChange = useCallback((payload: string, hasSignature: boolean) => {
     setSignaturePayload(payload)
@@ -142,6 +147,33 @@ export function ClientDashboardScreen() {
     await loadData(true)
   }
 
+  const handleGetLocation = async () => {
+    setGettingLocation(true)
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync()
+      if (status !== 'granted') {
+        Alert.alert('Permission refusee', 'L acces a la localisation est necessaire pour remplir les champs automatiquement.')
+        return
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+         accuracy: Location.Accuracy.Balanced
+      })
+      
+      setForm(prev => ({
+        ...prev,
+        latitude: location.coords.latitude.toString(),
+        longitude: location.coords.longitude.toString()
+      }))
+      
+      Alert.alert('Position recuperee', 'Les coordonnees ont ete mises a jour.')
+    } catch (error) {
+      Alert.alert('Erreur GPS', 'Impossible de recuperer votre position actuelle.')
+    } finally {
+      setGettingLocation(false)
+    }
+  }
+
   const handleCreate = async () => {
     if (!form.titre?.trim() || !form.description?.trim() || !form.adresse?.trim()) {
       Alert.alert('Champs requis', 'Merci de renseigner le titre, la description et l adresse.')
@@ -156,6 +188,8 @@ export function ClientDashboardScreen() {
         description: form.description.trim(),
         adresse: form.adresse.trim(),
         priorite: form.priorite ?? 'NORMALE',
+        latitude: form.latitude,
+        longitude: form.longitude,
       })
 
       Alert.alert('Demande enregistree', response.message)
@@ -304,6 +338,26 @@ export function ClientDashboardScreen() {
         <>
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Nouvelle demande</Text>
+            
+            <Pressable
+              style={({ pressed }) => [
+                styles.outlineButton,
+                { borderStyle: 'dashed', backgroundColor: colors.primarySoft, borderColor: colors.primary, marginBottom: 10 },
+                pressed ? styles.buttonPressed : null,
+                gettingLocation ? styles.buttonDisabled : null
+              ]}
+              onPress={() => void handleGetLocation()}
+              disabled={gettingLocation}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                {gettingLocation ? (
+                  <ActivityIndicator size='small' color={colors.primary} />
+                ) : (
+                  <Text style={[styles.outlineButtonText, { color: colors.primary }]}>📍 Utiliser ma position actuelle</Text>
+                )}
+              </View>
+            </Pressable>
+
             <TextInput
               value={form.titre}
               onChangeText={(value) => setForm((current) => ({ ...current, titre: value }))}
@@ -327,6 +381,24 @@ export function ClientDashboardScreen() {
               placeholderTextColor={colors.muted}
               style={styles.input}
             />
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TextInput
+                value={form.latitude?.toString()}
+                onChangeText={(value) => setForm((current) => ({ ...current, latitude: value }))}
+                placeholder='Latitude'
+                placeholderTextColor={colors.muted}
+                keyboardType='numeric'
+                style={[styles.input, { flex: 1 }]}
+              />
+              <TextInput
+                value={form.longitude?.toString()}
+                onChangeText={(value) => setForm((current) => ({ ...current, longitude: value }))}
+                placeholder='Longitude'
+                placeholderTextColor={colors.muted}
+                keyboardType='numeric'
+                style={[styles.input, { flex: 1 }]}
+              />
+            </View>
             <View style={styles.chipsRow}>
               {priorities.map((priority) => {
                 const isActive = (form.priorite ?? 'NORMALE') === priority
@@ -425,22 +497,24 @@ export function ClientDashboardScreen() {
               <View style={styles.card}>
                 <Text style={styles.sectionEyebrow}>Qualite</Text>
                 <Text style={styles.sectionTitle}>Note d evaluation</Text>
-                <View style={styles.chipsRow}>
+
+                <View style={styles.starsRow}>
                   {[1, 2, 3, 4, 5].map((value) => {
                     const active = value <= feedbackRating
                     return (
                       <Pressable
                         key={value}
                         style={({ pressed }) => [
-                          styles.chip,
-                          active ? styles.chipActive : null,
+                          styles.starButton,
                           pressed ? styles.buttonPressed : null,
                         ]}
                         onPress={() => setFeedbackRating(value)}
                       >
-                        <Text style={[styles.chipText, active ? styles.chipTextActive : null]}>
-                          {value}
-                        </Text>
+                        <Ionicons 
+                          name={active ? 'star' : 'star-outline'} 
+                          size={32} 
+                          color={active ? '#FFB800' : colors.muted} 
+                        />
                       </Pressable>
                     )
                   })}
@@ -466,17 +540,29 @@ export function ClientDashboardScreen() {
                   {approvalSubmitting ? (
                     <ActivityIndicator color='#ffffff' />
                   ) : (
-                    <Text style={styles.primaryButtonText}>Valider</Text>
+                    <Text style={styles.primaryButtonText}>Valider l'intervention</Text>
                   )}
                 </Pressable>
-                <View style={styles.subCard}>
-                  <Text style={styles.itemDetail}>
-                    Note: {selectedIntervention.clientFeedbackRating ?? '-'}/5
-                  </Text>
-                  <Text style={styles.itemDetail}>
-                    Commentaire: {selectedIntervention.clientFeedbackComment ?? 'Aucun'}
-                  </Text>
-                </View>
+                
+                {selectedIntervention.clientFeedbackRating !== null && (
+                  <View style={styles.subCard}>
+                    <Text style={[styles.sectionEyebrow, { marginBottom: 8 }]}>Votre évaluation enregistrée</Text>
+                    <View style={styles.displayStarsRow}>
+                      {[1, 2, 3, 4, 5].map((v) => (
+                        <Ionicons 
+                          key={v}
+                          name={v <= (selectedIntervention.clientFeedbackRating || 0) ? 'star' : 'star-outline'} 
+                          size={16} 
+                          color={v <= (selectedIntervention.clientFeedbackRating || 0) ? '#FFB800' : colors.muted} 
+                        />
+                      ))}
+                      <Text style={styles.ratingText}>({selectedIntervention.clientFeedbackRating}/5)</Text>
+                    </View>
+                    <Text style={styles.itemDetail}>
+                      {selectedIntervention.clientFeedbackComment || 'Aucun commentaire.'}
+                    </Text>
+                  </View>
+                )}
               </View>
             </>
           ) : null}
@@ -592,4 +678,8 @@ const styles = StyleSheet.create({
   inlineButtonText: { color: colors.primary, fontWeight: '700' },
   signatureActions: { marginTop: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   signatureState: { color: colors.muted, fontWeight: '600', flexShrink: 1 },
+  starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginVertical: 12 },
+  starButton: { padding: 4 },
+  displayStarsRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
+  ratingText: { fontSize: 13, fontWeight: '700', color: colors.text, marginLeft: 4 },
 })

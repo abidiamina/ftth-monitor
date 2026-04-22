@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BellRing, CheckCircle2, ClipboardList, KeyRound, MapPin, ShieldCheck, Star, TicketPlus, UserRound } from 'lucide-react'
+import { BellRing, CheckCircle2, ClipboardList, MapPin, ShieldCheck, Star, TicketPlus, UserRound, Navigation } from 'lucide-react'
 import { useDispatch } from 'react-redux'
 import { toast } from 'react-hot-toast'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
@@ -70,7 +70,8 @@ export const ClientDashboardPage = () => {
   const [tab, setTab] = useState<'APERCU' | 'DEMANDE' | 'SUIVI' | 'VALIDATION' | 'COMPTE' | 'NOTIFICATIONS'>('APERCU')
   const [profileForm, setProfileForm] = useState({ nom: '', prenom: '', telephone: '', adresse: '' })
   const [passwordForm, setPasswordForm] = useState({ motDePasseActuel: '', nouveauMotDePasse: '' })
-  const [requestForm, setRequestForm] = useState<CreateInterventionRequest>({ titre: '', description: '', adresse: '', priorite: 'NORMALE' })
+  const [requestForm, setRequestForm] = useState<CreateInterventionRequest>({ titre: '', description: '', adresse: '', priorite: 'NORMALE', latitude: '', longitude: '' })
+  const [isLocating, setIsLocating] = useState(false)
 
   const loadDashboard = useCallback(async () => {
     setLoading(true)
@@ -135,6 +136,15 @@ export const ClientDashboardPage = () => {
     } catch (error) { toast.error('Échec de la mise à jour.') }
   }
 
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      await changeCurrentPassword(passwordForm)
+      toast.success('Mot de passe changé !')
+      setPasswordForm({ motDePasseActuel: '', nouveauMotDePasse: '' })
+    } catch (error) { toast.error('Échec du changement.') }
+  }
+
   const handleRequestSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmittingRequest(true)
@@ -145,6 +155,45 @@ export const ClientDashboardPage = () => {
       setTab('SUIVI')
     } catch (error) { toast.error('Erreur lors de la demande.') }
     finally { setSubmittingRequest(false) }
+  }
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("La géolocalisation n'est pas supportée par votre navigateur.")
+      return
+    }
+
+    setIsLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords
+        setRequestForm(prev => ({
+          ...prev,
+          latitude,
+          longitude
+        }))
+        setIsLocating(false)
+        toast.success("Position récupérée avec succès !")
+      },
+      (error) => {
+        setIsLocating(false)
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            toast.error("Vous devez autoriser l'accès au GPS.")
+            break
+          case error.POSITION_UNAVAILABLE:
+            toast.error("La position GPS est indisponible.")
+            break
+          case error.TIMEOUT:
+            toast.error("Le délai d'attente a expiré.")
+            break
+          default:
+            toast.error("Une erreur inconnue est survenue.")
+            break
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    )
   }
 
   const renderInterventionCard = (i: InterventionRecord) => (
@@ -214,16 +263,20 @@ export const ClientDashboardPage = () => {
               <div className='space-y-3'>
                 <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest'>Votre Signature</p>
                 <div className='bg-white rounded-2xl border border-slate-100 p-2 w-fit shadow-sm'>
-                  <svg width="120" height="60" viewBox="0 0 160 80" className="opacity-80">
-                    <path 
-                      d={parseSignatureToPath(i.clientSignature)} 
-                      fill="none" 
-                      stroke="#0f172a" 
-                      strokeWidth="3" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                    />
-                  </svg>
+                  {i.clientSignature.startsWith('DRAWN_SIGNATURE:') ? (
+                    <svg width="120" height="60" viewBox="0 0 160 80" className="opacity-80">
+                      <path 
+                        d={parseSignatureToPath(i.clientSignature)} 
+                        fill="none" 
+                        stroke="#0f172a" 
+                        strokeWidth="3" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                      />
+                    </svg>
+                  ) : (
+                    <img src={i.clientSignature} alt="Signature" className="max-w-[120px] max-h-[60px] h-auto object-contain opacity-80" />
+                  )}
                 </div>
               </div>
               {i.clientFeedbackRating !== null && (
@@ -325,6 +378,37 @@ export const ClientDashboardPage = () => {
                        <label className='text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4'>Description détaillée</label>
                        <textarea rows={4} className='w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-bold' placeholder="Détaillez votre besoin technique..." value={requestForm.description} onChange={e => setRequestForm(c => ({...c, description: e.target.value}))} />
                     </div>
+                    
+                    <div className='bg-slate-50 rounded-2xl p-5 border border-slate-100 space-y-4'>
+                      <div className='flex items-center justify-between'>
+                        <div className='flex items-center gap-2'>
+                          <Navigation className={`h-4 w-4 ${requestForm.latitude ? 'text-emerald-500' : 'text-slate-400'}`} />
+                          <span className='text-[10px] font-black uppercase tracking-widest text-slate-500'>Localisation GPS</span>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={handleGetLocation}
+                          disabled={isLocating}
+                          className='px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50'
+                        >
+                          {isLocating ? 'Détection...' : 'Ma Position'}
+                        </button>
+                      </div>
+                      
+                      {requestForm.latitude && (
+                        <div className='grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300'>
+                          <div className='bg-white rounded-xl p-3 border border-slate-100'>
+                            <p className='text-[8px] font-black text-slate-400 uppercase mb-1'>Latitude</p>
+                            <p className='text-xs font-bold text-slate-900'>{requestForm.latitude}</p>
+                          </div>
+                          <div className='bg-white rounded-xl p-3 border border-slate-100'>
+                            <p className='text-[8px] font-black text-slate-400 uppercase mb-1'>Longitude</p>
+                            <p className='text-xs font-bold text-slate-900'>{requestForm.longitude}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     <button type="submit" disabled={submittingRequest} className='btn-premium w-full py-5 text-lg uppercase tracking-[.2em] mt-6'>Transmettre ma demande</button>
                  </form>
               </div>

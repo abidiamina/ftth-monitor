@@ -63,13 +63,8 @@ export const RegisterPage = () => {
 
   return (
     <AuthShell
-      layout='split'
-      title={<>Rejoignez <span className="text-emerald-500 italic">l'Élite.</span></>}
-      description="Découvrez une gestion simplifiée et transparente de vos raccordements fibre optique."
+      layout='single'
       sideLabel="INSCRIPTION CLIENT"
-      sideTitle="Accès Privilégié"
-      sideDescription="Suivez vos déploiements, échangez avec vos techniciens et validez vos travaux en un clic."
-      sideChips={['Installation Rapide', 'Validation QR', 'Suivi Temps Réel']}
     >
       <div className='mt-8 pb-10'>
         <div className="mb-10">
@@ -159,6 +154,20 @@ export const RegisterPage = () => {
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400">
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-4">Confirmer le Mot de Passe</label>
+            <div className="relative group">
+              <ShieldCheck className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+              <input 
+                type={showPassword ? 'text' : 'password'} 
+                placeholder="********" 
+                className="w-full bg-slate-50 border-none rounded-[1.8rem] pl-14 pr-14 py-4 text-sm font-bold placeholder:text-slate-300 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                value={form.confirmation}
+                onChange={e => setForm(c => ({...c, confirmation: e.target.value}))}
+              />
             </div>
           </div>
 
