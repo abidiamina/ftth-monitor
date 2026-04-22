@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Bell, BellRing, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, LayoutDashboard, LogOut, MapPin, MapPinned, Menu, QrCode, Search, ShieldCheck, Star, User, UsersRound, Wrench, X } from 'lucide-react'
+import { Bell, BellRing, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, LayoutDashboard, LogOut, MapPin, Menu, QrCode, Search, ShieldCheck, Star, User, UsersRound, Wrench, X } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs'
@@ -14,6 +14,8 @@ import {
 } from '@/services/interventionApi'
 import { listNotifications, markNotificationAsRead } from '@/services/notificationApi'
 import { normalizePhotoData, parseSignatureToPath } from '@/lib/interventionUtils'
+import { MapInterventionsView } from '@/components/dashboard/MapInterventionsView'
+import { DashboardMetrics } from '@/components/dashboard/DashboardMetrics'
 import type {
   ClientRecord,
   CreateInterventionRequest,
@@ -140,6 +142,7 @@ export const ResponsableDashboardPage = () => {
       { id: 'CREATION', label: 'Nouvelle', icon: ClipboardList },
       { id: 'INTERVENTIONS', label: 'Missions', icon: UsersRound },
       { id: 'NOTIFICATIONS', label: 'Inbox', icon: BellRing, badge: stats.unread || undefined },
+      { id: 'MAP', label: 'Cartographie', icon: MapPin },
     ],
     [stats.unread]
   )
@@ -207,6 +210,8 @@ export const ResponsableDashboardPage = () => {
         datePlanifiee: '',
         clientId: '',
         technicienId: '',
+        latitude: '',
+        longitude: '',
       })
       setTab('INTERVENTIONS')
     } catch (error: unknown) {
@@ -355,16 +360,20 @@ export const ResponsableDashboardPage = () => {
                       <div className='space-y-3'>
                         <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest'>Signature Client</p>
                         <div className='bg-white rounded-2xl border border-slate-100 p-2 w-fit group-hover:border-sky-100 transition-colors shadow-sm'>
-                          <svg width="160" height="80" viewBox="0 0 160 80" className="opacity-80">
-                            <path 
-                              d={parseSignatureToPath(intervention.clientSignature)} 
-                              fill="none" 
-                              stroke="#0f172a" 
-                              strokeWidth="3" 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round" 
-                            />
-                          </svg>
+                          {intervention.clientSignature.startsWith('DRAWN_SIGNATURE:') ? (
+                            <svg width="160" height="80" viewBox="0 0 160 80" className="opacity-80">
+                              <path 
+                                d={parseSignatureToPath(intervention.clientSignature)} 
+                                fill="none" 
+                                stroke="#0f172a" 
+                                strokeWidth="3" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round" 
+                              />
+                            </svg>
+                          ) : (
+                            <img src={intervention.clientSignature} alt="Signature" className="max-w-[160px] max-h-[80px] h-auto object-contain opacity-80" />
+                          )}
                           <div className='mt-2 pt-2 border-t border-slate-50 text-center'>
                              <p className='text-[9px] font-bold text-slate-400 italic'>Signé par: {intervention.clientSignatureBy || 'Client'}</p>
                           </div>
@@ -418,6 +427,29 @@ export const ResponsableDashboardPage = () => {
                   className='w-full py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30'
                 >
                   Save
+                </button>
+              </div>
+            </div>
+
+            <div className='p-4 rounded-2xl bg-white border border-slate-100/50 shadow-sm'>
+              <p className='text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3'>Priorité</p>
+              <div className='flex flex-col gap-2'>
+                <select
+                  value={priorityValue}
+                  onChange={(e) => setPriorityDrafts(c => ({...c, [intervention.id]: e.target.value as InterventionPriority}))}
+                  className='w-full bg-slate-50 rounded-xl px-3 py-2 text-xs font-bold border-none'
+                >
+                  <option value='BASSE'>Basse</option>
+                  <option value='NORMALE'>Normale</option>
+                  <option value='HAUTE'>Haute</option>
+                  <option value='URGENTE'>Urgente</option>
+                </select>
+                <button
+                  onClick={() => handlePriority(intervention)}
+                  disabled={!priorityChanged}
+                  className='w-full py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30'
+                >
+                  Update
                 </button>
               </div>
             </div>
@@ -542,6 +574,24 @@ export const ResponsableDashboardPage = () => {
                     <option value="URGENTE">Urgente</option>
                   </select>
                 </div>
+                <div className='grid grid-cols-2 gap-4'>
+                  <input 
+                    type="number" 
+                    step="any"
+                    placeholder="Latitude (ex: 36.80)" 
+                    className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" 
+                    value={form.latitude} 
+                    onChange={e => setForm(c => ({...c, latitude: e.target.value}))} 
+                  />
+                  <input 
+                    type="number" 
+                    step="any"
+                    placeholder="Longitude (ex: 10.18)" 
+                    className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" 
+                    value={form.longitude} 
+                    onChange={e => setForm(c => ({...c, longitude: e.target.value}))} 
+                  />
+                </div>
                 <button type='submit' className='btn-premium w-full mt-6 py-5 text-lg uppercase tracking-[.3em]'>Lancer la mission</button>
               </form>
             </div>
@@ -549,30 +599,26 @@ export const ResponsableDashboardPage = () => {
         ) : tab === 'NOTIFICATIONS' ? (
            <NotificationsPanel notifications={notifications} loading={loading} onMarkAsRead={handleMarkNotificationAsRead} />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="dashboard-card overflow-hidden !p-0">
-               <div className="bg-slate-950 p-6 text-white">
-                  <h3 className="text-xl font-black">Performance Réseau</h3>
-               </div>
-               <div className="p-8 h-80 flex items-center justify-center bg-slate-50">
-                  <MapPinned className="h-20 w-20 text-slate-200 animate-float" />
-               </div>
-            </div>
-            <div className="space-y-6">
-              <div className="dashboard-card">
-                 <h3 className="text-lg font-black mb-4">Techniciens Actifs</h3>
-                 <div className="flex -space-x-3">
-                    {technicians.slice(0, 5).map((t, idx) => (
-                       <div key={idx} className="h-12 w-12 rounded-full border-4 border-white bg-slate-950 flex items-center justify-center text-white text-xs font-black">
-                          {t.utilisateur?.prenom?.[0] ?? '?'}
-                       </div>
-                    ))}
-                    <div className="h-12 w-12 rounded-full border-4 border-white bg-slate-100 flex items-center justify-center text-slate-400 text-xs font-black">
-                       +{technicians.length - 5}
-                    </div>
-                 </div>
-              </div>
-            </div>
+          <div className='max-w-7xl mx-auto'>
+             <div className='flex items-center justify-between mb-10'>
+                <div>
+                   <h2 className='text-4xl font-black text-slate-950 tracking-tight'>Pilotage <span className="text-sky-600 italic">Opérationnel.</span></h2>
+                   <p className='text-slate-500 font-medium mt-1'>Analyse en temps réel de la performance de vos missions.</p>
+                </div>
+             </div>
+             
+             <DashboardMetrics interventions={interventions} />
+          </div>
+        )}
+        {tab === 'MAP' && (
+          <div className='max-w-7xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-700'>
+             <div className='flex items-center justify-between mb-8'>
+                <div>
+                   <h2 className='text-3xl font-black text-slate-900 tracking-tight'>Cartographie live</h2>
+                   <p className='text-slate-500 mt-1'>Visualisez vos interventions et vos techniciens sur le terrain.</p>
+                </div>
+             </div>
+             <MapInterventionsView interventions={filteredInterventions} />
           </div>
         )}
       </div>

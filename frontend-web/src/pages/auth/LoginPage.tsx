@@ -55,13 +55,8 @@ export const LoginPage = () => {
 
   return (
     <AuthShell 
-      layout='split' 
-      title={<>L'expertise <span className="text-emerald-500 italic">Connectée.</span></>}
-      description="Gérez vos interventions FTTH avec une précision chirurgicale et une fluidité absolue."
+      layout='single' 
       sideLabel="FTTH MONITOR PRO"
-      sideTitle="Performance Réseau"
-      sideDescription="Une visibilité totale sur vos déploiements en temps réel."
-      sideChips={['Fibre Optique', 'Haute Disponibilité', 'Support 24/7']}
     >
       <div className='mt-10'>
         <div className="mb-8">
@@ -131,3 +126,4 @@ export const LoginPage = () => {
     </AuthShell>
   )
 }
+
