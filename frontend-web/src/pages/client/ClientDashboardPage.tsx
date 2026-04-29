@@ -482,11 +482,11 @@ export const ClientDashboardPage = () => {
                  <h3 className='text-xl font-black mb-6'>Identité</h3>
                  <form className='space-y-4' onSubmit={handleProfileSubmit}>
                     <div className='grid grid-cols-2 gap-4'>
-                       <input className='w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold' value={profileForm.prenom} onChange={e => setProfileForm(c => ({...c, prenom: e.target.value}))} />
-                       <input className='w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold' value={profileForm.nom} onChange={e => setProfileForm(c => ({...c, nom: e.target.value}))} />
+                       <input className='w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold' placeholder="Prénom" value={profileForm.prenom} onChange={e => setProfileForm(c => ({...c, prenom: e.target.value}))} />
+                       <input className='w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold' placeholder="Nom" value={profileForm.nom} onChange={e => setProfileForm(c => ({...c, nom: e.target.value}))} />
                     </div>
-                    <input className='w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold' value={profileForm.telephone} onChange={e => setProfileForm(c => ({...c, telephone: e.target.value}))} />
-                    <textarea rows={3} className='w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold' value={profileForm.adresse} onChange={e => setProfileForm(c => ({...c, adresse: e.target.value}))} />
+                    <input className='w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold' placeholder="Téléphone (ex: 06...)" value={profileForm.telephone} onChange={e => setProfileForm(c => ({...c, telephone: e.target.value}))} />
+                    <textarea rows={3} className='w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold' placeholder="Adresse complète" value={profileForm.adresse} onChange={e => setProfileForm(c => ({...c, adresse: e.target.value}))} />
                     <button type="submit" className='btn-premium w-full py-4 text-xs font-black uppercase tracking-widest'>Mettre à jour</button>
                  </form>
               </div>
