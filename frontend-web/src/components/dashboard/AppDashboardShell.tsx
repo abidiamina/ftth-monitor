@@ -213,9 +213,14 @@ export const AppDashboardShell = ({
             </div>
 
             <div className='flex items-center gap-4'>
-              <button className='relative p-2.5 rounded-2xl bg-white border border-white shadow-sm hover:scale-105 active:scale-95 transition-all'>
+              <button 
+                onClick={() => onSectionTabChange?.('NOTIFICATIONS')}
+                className='relative p-2.5 rounded-2xl bg-white border border-white shadow-sm hover:scale-105 active:scale-95 transition-all'
+              >
                 <Bell className='h-4.5 w-4.5 text-slate-600' />
-                <span className='absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white' />
+                {sectionTabs?.find(t => t.id === 'NOTIFICATIONS')?.badge && (
+                  <span className='absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white' />
+                )}
               </button>
 
               <div className='h-10 w-[1px] bg-slate-200 mx-1 hidden sm:block' />
