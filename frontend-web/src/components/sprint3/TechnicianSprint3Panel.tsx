@@ -168,6 +168,10 @@ export function TechnicianSprint3Panel({
 
     const startScanner = async () => {
       try {
+        if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+          throw new Error('La camera nécessite une connexion sécurisée (HTTPS). Utilisez la saisie manuelle.');
+        }
+
         const qrModule = await import('html5-qrcode')
         if (isCancelled) {
           return
@@ -210,7 +214,7 @@ export function TechnicianSprint3Panel({
         setScannerMessage('Camera active.')
       } catch (error) {
         setScannerOpen(false)
-        setScannerMessage('Camera indisponible.')
+        setScannerMessage(getErrorMessage(error, 'Camera indisponible.'))
         toast.error(getErrorMessage(error, 'Impossible d ouvrir la camera.'))
       }
     }
@@ -472,21 +476,24 @@ export function TechnicianSprint3Panel({
                       className='mt-4 overflow-hidden rounded-[1.2rem] border border-slate-200 bg-slate-50 p-3'
                     />
                   ) : null}
-                  <div className='mt-4 flex flex-col gap-3'>
-                    <input
-                      value={manualQrValue}
-                      onChange={(event) => setManualQrValue(event.target.value)}
-                      placeholder='Code QR'
-                      className='dashboard-input rounded-[1rem] px-4 py-3 text-sm'
-                    />
-                    <button
-                      type='button'
-                      onClick={() => void handleManualQrValidation()}
-                      disabled={busyAction === 'qr'}
-                      className='rounded-[1rem] border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-200 disabled:opacity-60'
-                    >
-                      Valider le code
-                    </button>
+                  <div className='mt-4 flex flex-col gap-3 p-4 bg-slate-50/50 rounded-2xl border border-slate-100'>
+                    <p className='text-[10px] font-black uppercase tracking-widest text-slate-400'>Saisie manuelle (Secours)</p>
+                    <div className="flex gap-2">
+                      <input
+                        value={manualQrValue}
+                        onChange={(event) => setManualQrValue(event.target.value)}
+                        placeholder='Entrez le code de l’équipement'
+                        className='flex-1 bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-sky-300 outline-none transition-all'
+                      />
+                      <button
+                        type='button'
+                        onClick={() => void handleManualQrValidation()}
+                        disabled={busyAction === 'qr'}
+                        className='bg-slate-900 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-50'
+                      >
+                        Valider
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -498,31 +505,44 @@ export function TechnicianSprint3Panel({
                 </div>
                 <h4 className='mt-4 text-lg font-semibold text-slate-950'>Documents terrain</h4>
                 <p className='mt-2 text-sm text-slate-600'>Ajout pendant une mission en cours.</p>
-                <div className='mt-4 grid gap-4 lg:grid-cols-[1fr_0.9fr_auto]'>
-                  <textarea
-                    value={evidenceNote}
-                    onChange={(event) => setEvidenceNote(event.target.value)}
-                    rows={3}
-                    placeholder='Commentaire utile'
-                    className='dashboard-input rounded-[1rem] px-4 py-3 text-sm'
-                  />
-                  <label className='dashboard-input flex cursor-pointer items-center rounded-[1rem] px-4 py-3 text-sm text-slate-500'>
-                    <input
-                      type='file'
-                      accept='image/*'
-                      className='hidden'
-                      onChange={(event) => setEvidenceFile(event.target.files?.[0] ?? null)}
+                <div className='mt-6 flex flex-col gap-5'>
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Compte-rendu d'intervention</p>
+                    <textarea
+                      value={evidenceNote}
+                      onChange={(event) => setEvidenceNote(event.target.value)}
+                      rows={6}
+                      placeholder="Décrivez ici ce que vous avez réalisé sur le terrain..."
+                      className="w-full bg-white rounded-[1.5rem] px-5 py-4 text-sm font-bold border-2 border-slate-100 focus:border-emerald-200 outline-none transition-all resize-none shadow-sm"
                     />
-                    {evidenceFile?.name || 'Choisir une photo'}
-                  </label>
-                  <button
-                    type='button'
-                    onClick={() => void handleEvidenceSubmit()}
-                    disabled={busyAction === 'evidence'}
-                    className='rounded-[1rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60'
-                  >
-                    Ajouter
-                  </button>
+                  </div>
+
+                  <div className='grid gap-4 sm:grid-cols-[1fr_auto]'>
+                    <label className='flex cursor-pointer items-center justify-between rounded-[1.2rem] border-2 border-dashed border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-500 hover:border-emerald-300 hover:bg-emerald-50/30 transition-all group'>
+                      <div className="flex items-center gap-3">
+                        <Camera className="h-5 w-5 text-slate-400 group-hover:text-emerald-500 transition-colors" />
+                        <span className="truncate max-w-[150px] sm:max-w-[300px]">
+                          {evidenceFile?.name || 'Preuve photo...'}
+                        </span>
+                      </div>
+                      <input
+                        type='file'
+                        accept='image/*'
+                        className='hidden'
+                        onChange={(event) => setEvidenceFile(event.target.files?.[0] ?? null)}
+                      />
+                      <div className="px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-black uppercase">Parcourir</div>
+                    </label>
+
+                    <button
+                      type='button'
+                      onClick={() => void handleEvidenceSubmit()}
+                      disabled={busyAction === 'evidence'}
+                      className='rounded-[1.2rem] bg-emerald-500 px-8 py-4 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition-all disabled:opacity-50 active:scale-95'
+                    >
+                      Envoyer la preuve
+                    </button>
+                  </div>
                 </div>
                 <div className='mt-5 space-y-3'>
                   {selectedIntervention.evidences.length === 0 ? (

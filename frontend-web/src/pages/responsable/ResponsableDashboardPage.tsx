@@ -803,7 +803,7 @@ export const ResponsableDashboardPage = () => {
               <h2 className='text-3xl font-black text-slate-950 mb-8'>Nouvelle Mission</h2>
               <form className='space-y-4' onSubmit={handleCreate}>
                 <input placeholder="Titre" className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" value={form.titre} onChange={e => setForm(c => ({...c, titre: e.target.value}))} />
-                <textarea placeholder="Description" rows={3} className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" value={form.description} onChange={e => setForm(c => ({...c, description: e.target.value}))} />
+                <textarea placeholder="Description détaillée de la mission..." rows={6} className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold resize-none" value={form.description} onChange={e => setForm(c => ({...c, description: e.target.value}))} />
                 <textarea placeholder="Adresse" rows={2} className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" value={form.adresse} onChange={e => setForm(c => ({...c, adresse: e.target.value}))} />
                 <div className='grid grid-cols-2 gap-4'>
                   <select value={form.clientId} onChange={e => setForm(c => ({...c, clientId: e.target.value}))} className='bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold'>
@@ -833,6 +833,15 @@ export const ResponsableDashboardPage = () => {
                     className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" 
                     value={form.longitude} 
                     onChange={e => setForm(c => ({...c, longitude: e.target.value}))} 
+                  />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Planification</p>
+                  <input 
+                    type="datetime-local" 
+                    className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" 
+                    value={form.datePlanifiee} 
+                    onChange={e => setForm(c => ({...c, datePlanifiee: e.target.value}))} 
                   />
                 </div>
                 <button type='submit' className='btn-premium w-full mt-6 py-5 text-lg uppercase tracking-[.3em]'>Lancer la mission</button>
