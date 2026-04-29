@@ -13,7 +13,7 @@ export const ForgotPasswordPage = () => {
     e.preventDefault()
     setLoading(true)
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
       await axios.post(`${apiUrl}/auth/forgot-password`, { email })
       setSuccess(true)
       toast.success('Lien envoyé !')
