@@ -5,7 +5,7 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 
 router
   .route('/')
-  .get(protect, authorize('ADMIN'), configController.getConfigs);
+  .get(protect, configController.getConfigs);
 
 router
   .route('/:cle')

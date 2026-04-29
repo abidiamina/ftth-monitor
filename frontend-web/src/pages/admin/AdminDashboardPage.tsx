@@ -11,6 +11,7 @@ import {
   Users,
   Activity,
   UserCog,
+  BellRing,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
@@ -27,7 +28,9 @@ import {
   updateUser,
   updateUserStatus,
 } from '@/services/authApi'
+import { listNotifications, markNotificationAsRead } from '@/services/notificationApi'
 import { listConfigs, updateConfig } from '@/services/configApi'
+import { NotificationsPanel } from '@/components/dashboard/NotificationsPanel'
 import type { ConfigurationRecord, CreateEmployeeRequest, CurrentUser, UpdateUserRequest, User, UserRole } from '@/types/auth.types'
 
 const roleLabels: Record<UserRole, string> = {
@@ -78,8 +81,9 @@ export const AdminDashboardPage = () => {
   const [savingUser, setSavingUser] = useState(false)
   const [roleFilter, setRoleFilter] = useState<'ALL' | UserRole>('ALL')
   const [userQuery, setUserQuery] = useState('')
-  const [tab, setTab] = useState<'APERCU' | 'UTILISATEURS' | 'CREATION' | 'ROLES' | 'PARAMETRES' | 'AUDIT'>('APERCU')
+  const [tab, setTab] = useState<'APERCU' | 'UTILISATEURS' | 'CREATION' | 'ROLES' | 'PARAMETRES' | 'AUDIT' | 'NOTIFICATIONS'>('APERCU')
   const [configs, setConfigs] = useState<ConfigurationRecord[]>([])
+  const [notifications, setNotifications] = useState<NotificationRecord[]>([])
   const [configSaving, setConfigSaving] = useState<Record<string, boolean>>({})
   const [employeeForm, setEmployeeForm] = useState<CreateEmployeeRequest>({
     nom: '', prenom: '', email: '', telephone: '', role: 'ADMIN'
@@ -91,12 +95,14 @@ export const AdminDashboardPage = () => {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [usersData, configsData] = await Promise.all([
+      const [usersData, configsData, notificationsData] = await Promise.all([
         listUsers(),
         listConfigs(),
+        listNotifications(),
       ])
       setUsers(usersData)
       setConfigs(configsData)
+      setNotifications(notificationsData)
     } catch (error) {
       toast.error(getErrorMessage(error, 'Impossible de charger les données.'))
     } finally {
@@ -111,8 +117,9 @@ export const AdminDashboardPage = () => {
     const actifs = users.filter(u => u.actif).length
     const inactifs = total - actifs
     const mustChange = users.filter(u => u.mustChangePassword).length
-    return { total, actifs, inactifs, mustChange }
-  }, [users])
+    const unread = notifications.filter(n => !n.lu).length
+    return { total, actifs, inactifs, mustChange, unread }
+  }, [users, notifications])
 
   const visibleUsers = useMemo(() => {
     const q = userQuery.trim().toLowerCase()
@@ -130,8 +137,16 @@ export const AdminDashboardPage = () => {
     { id: 'ROLES', label: 'Privilèges', icon: ShieldEllipsis },
     { id: 'PARAMETRES', label: 'Système', icon: Settings },
     { id: 'AUDIT', label: 'Audit', icon: Activity },
+    { id: 'NOTIFICATIONS', label: 'Inbox', icon: BellRing, badge: stats.unread || undefined },
     { id: 'PROFIL', label: 'Profil', icon: UserCog },
-  ], [])
+  ], [stats.unread])
+
+  const handleMarkAsRead = async (id: number) => {
+    try {
+      await markNotificationAsRead(id)
+      setNotifications(curr => curr.map(n => n.id === id ? { ...n, lu: true } : n))
+    } catch (error) { toast.error('Erreur notification.') }
+  }
 
   const handleToggleStatus = async (user: User) => {
     try {
@@ -541,6 +556,8 @@ export const AdminDashboardPage = () => {
               </div>
             </div>
           </div>
+        ) : tab === 'NOTIFICATIONS' ? (
+          <NotificationsPanel notifications={notifications} loading={loading} onMarkAsRead={handleMarkAsRead} />
         ) : (
           <div className='grid grid-cols-1 gap-8'>
              <div className='dashboard-card h-64 flex flex-col items-center justify-center text-center'>
