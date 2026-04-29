@@ -202,7 +202,7 @@ const updateMe = async (req, res) => {
     const { nom, prenom, telephone, adresse } = req.body;
     const validationError = validateUserProfilePayload(
       { nom, prenom, telephone, adresse },
-      { requireAddress: true }
+      { requireAddress: false }
     );
 
     if (validationError) {
