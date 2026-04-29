@@ -9,6 +9,9 @@ const interventionRoutes = require('./routes/interventionRoutes');
 const clientRoutes = require('./routes/clientRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const configRoutes       = require('./routes/configRoutes');
+const auditRoutes        = require('./routes/auditRoutes');
+const alertRoutes        = require('./routes/alertRoutes');
+const statsRoutes        = require('./routes/statsRoutes');
 
 const app = express();
 
@@ -26,6 +29,9 @@ app.use('/api/interventions', interventionRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/configs',       configRoutes);
+app.use('/api/audit',         auditRoutes);
+app.use('/api/alerts',        alertRoutes);
+app.use('/api/stats',         statsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

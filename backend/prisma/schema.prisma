@@ -18,6 +18,8 @@ model Utilisateur {
   role               Role
   actif              Boolean      @default(true)
   mustChangePassword Boolean      @default(false)
+  resetToken         String?
+  resetTokenExpires  DateTime?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   client             Client?
@@ -161,4 +163,17 @@ model Configuration {
   libelle     String
   description String?
   updatedAt   DateTime @updatedAt
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  action    String
+  entite    String
+  entiteId  Int?
+  details   String?
+  userId    Int
+  userEmail String
+  userRole  String
+  ip        String?
+  createdAt DateTime @default(now())
 }

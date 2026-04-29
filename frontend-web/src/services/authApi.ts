@@ -191,3 +191,6 @@ export const listTechnicians = async (): Promise<TechnicianRecord[]> => {
   const { data } = await api.get<TechniciansApiResponse>('/users/techniciens')
   return data.data
 }
+
+export const updateMe = updateCurrentUser;
+export const changePassword = changeCurrentPassword;

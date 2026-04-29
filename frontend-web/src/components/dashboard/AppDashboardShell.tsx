@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Search, Bell, LogOut, LayoutDashboard, Ticket, Wrench, MapPinned, UserCog, CircleHelp, Settings, Shield, BarChart3, Users, Menu, X } from 'lucide-react'
+import { Search, Bell, LogOut, LayoutDashboard, Ticket, Wrench, MapPinned, UserCog, CircleHelp, Settings, Shield, BarChart3, Users, Menu, X, Activity } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -24,36 +24,41 @@ type NavItem = {
   label: string
   icon: React.ComponentType<{ className?: string }>
   badge?: string
+  path?: string
 }
 
 const roleNav: Record<UserRole, NavItem[]> = {
   ADMIN: [
-    { label: 'Dashboard', icon: LayoutDashboard },
-    { label: 'Utilisateurs', icon: Users },
-    { label: 'Roles', icon: Shield, badge: '3' },
-    { label: 'Statistiques', icon: BarChart3 },
-    { label: 'Parametres', icon: Settings },
+    { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
+    { label: 'Utilisateurs', icon: Users, path: '/admin/dashboard' },
+    { label: 'Roles', icon: Shield, path: '/admin/dashboard' },
+    { label: 'Statistiques', icon: BarChart3, path: '/admin/dashboard' },
+    { label: 'Parametres', icon: Settings, path: '/admin/dashboard' },
+    { label: 'Audit', icon: Activity, path: '/admin/audit' },
+    { label: 'Mon Profil', icon: UserCog, path: '/profile' },
   ],
   RESPONSABLE: [
-    { label: 'Dashboard', icon: LayoutDashboard },
-    { label: 'Interventions', icon: Ticket, badge: 'Live' },
-    { label: 'Techniciens', icon: Wrench, badge: '15' },
-    { label: 'Carte', icon: MapPinned },
-    { label: 'Notifications', icon: Bell, badge: '5' },
+    { label: 'Dashboard', icon: LayoutDashboard, path: '/responsable' },
+    { label: 'Interventions', icon: Ticket, badge: 'Live', path: '/responsable' },
+    { label: 'Techniciens', icon: Wrench, badge: '15', path: '/responsable' },
+    { label: 'Carte', icon: MapPinned, path: '/responsable' },
+    { label: 'Notifications', icon: Bell, badge: '5', path: '/responsable' },
+    { label: 'Mon Profil', icon: UserCog, path: '/profile' },
   ],
   TECHNICIEN: [
-    { label: 'Dashboard', icon: LayoutDashboard },
-    { label: 'Interventions', icon: Ticket, badge: 'Mes taches' },
-    { label: 'Carte', icon: MapPinned },
-    { label: 'Statut', icon: CircleHelp },
-    { label: 'Notifications', icon: Bell, badge: '2' },
+    { label: 'Dashboard', icon: LayoutDashboard, path: '/technicien' },
+    { label: 'Interventions', icon: Ticket, badge: 'Mes taches', path: '/technicien' },
+    { label: 'Carte', icon: MapPinned, path: '/technicien' },
+    { label: 'Statut', icon: CircleHelp, path: '/technicien' },
+    { label: 'Notifications', icon: Bell, badge: '2', path: '/technicien' },
+    { label: 'Mon Profil', icon: UserCog, path: '/profile' },
   ],
   CLIENT: [
-    { label: 'Dashboard', icon: LayoutDashboard },
-    { label: 'Demandes', icon: Ticket },
-    { label: 'Suivi', icon: Bell, badge: 'Live' },
-    { label: 'Profil', icon: UserCog },
-    { label: 'Aide', icon: CircleHelp },
+    { label: 'Dashboard', icon: LayoutDashboard, path: '/client' },
+    { label: 'Demandes', icon: Ticket, path: '/client' },
+    { label: 'Suivi', icon: Bell, badge: 'Live', path: '/client' },
+    { label: 'Profil', icon: UserCog, path: '/profile' },
+    { label: 'Aide', icon: CircleHelp, path: '/client' },
   ],
 }
 
@@ -99,6 +104,7 @@ export const AppDashboardShell = ({
         label: item.label,
         icon: item.icon,
         badge: item.badge,
+        path: item.path,
       }))
 
   return (
@@ -145,8 +151,10 @@ export const AppDashboardShell = ({
                     onClick={() => {
                       if (sectionTabs?.length && onSectionTabChange) {
                         onSectionTabChange(item.id)
-                        setIsMobileMenuOpen(false)
+                      } else if (item.path) {
+                        navigate(item.path)
                       }
+                      setIsMobileMenuOpen(false)
                     }}
                     className={`nav-item w-full ${active ? 'nav-item-active' : 'nav-item-inactive'}`}
                   >
@@ -169,9 +177,18 @@ export const AppDashboardShell = ({
               </div>
               <p className='text-[9px] uppercase tracking-widest font-bold text-slate-400 mb-2'>Session Active</p>
               <p className='text-sm font-bold text-slate-900 truncate'>{user ? `${user.prenom} ${user.nom}` : 'Equipe FTTH'}</p>
-              <div className="mt-3 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">{role}</span>
+              <div className="mt-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">{role}</span>
+                </div>
+                <button 
+                  onClick={() => navigate('/profile')}
+                  className="p-3 rounded-2xl bg-white border border-slate-200 text-slate-400 hover:text-slate-950 hover:border-slate-950 hover:shadow-lg transition-all"
+                  title="Modifier mon profil"
+                >
+                  <UserCog className="h-6 w-6" />
+                </button>
               </div>
             </div>
           </div>

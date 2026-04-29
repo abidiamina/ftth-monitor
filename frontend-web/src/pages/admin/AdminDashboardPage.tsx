@@ -9,12 +9,15 @@ import {
   Trash2,
   UserPlus,
   Users,
+  Activity,
+  UserCog,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs'
 import { Button } from '@/components/ui/button'
 import { validateEmployeeForm, validateUserUpdateForm } from '@/lib/validation'
+import { useNavigate } from 'react-router-dom'
 import {
   createEmployee,
   deleteUser,
@@ -67,6 +70,7 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 }
 
 export const AdminDashboardPage = () => {
+  const navigate = useNavigate()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -74,7 +78,7 @@ export const AdminDashboardPage = () => {
   const [savingUser, setSavingUser] = useState(false)
   const [roleFilter, setRoleFilter] = useState<'ALL' | UserRole>('ALL')
   const [userQuery, setUserQuery] = useState('')
-  const [tab, setTab] = useState<'APERCU' | 'UTILISATEURS' | 'CREATION' | 'ROLES' | 'PARAMETRES'>('APERCU')
+  const [tab, setTab] = useState<'APERCU' | 'UTILISATEURS' | 'CREATION' | 'ROLES' | 'PARAMETRES' | 'AUDIT'>('APERCU')
   const [configs, setConfigs] = useState<ConfigurationRecord[]>([])
   const [configSaving, setConfigSaving] = useState<Record<string, boolean>>({})
   const [employeeForm, setEmployeeForm] = useState<CreateEmployeeRequest>({
@@ -125,6 +129,8 @@ export const AdminDashboardPage = () => {
     { id: 'CREATION', label: 'Staff', icon: UserPlus },
     { id: 'ROLES', label: 'Privilèges', icon: ShieldEllipsis },
     { id: 'PARAMETRES', label: 'Système', icon: Settings },
+    { id: 'AUDIT', label: 'Audit', icon: Activity },
+    { id: 'PROFIL', label: 'Profil', icon: UserCog },
   ], [])
 
   const handleToggleStatus = async (user: User) => {
@@ -334,7 +340,10 @@ export const AdminDashboardPage = () => {
       workspaceTitle='Security & Identity'
       sectionTabs={tabs}
       sectionTab={tab}
-      onSectionTabChange={(v) => setTab(v as any)}
+      onSectionTabChange={(v) => {
+        if (v === 'PROFIL') return navigate('/profile')
+        setTab(v as any)
+      }}
     >
       <header className='hero-gradient p-8 mb-10'>
         <div className='grid gap-10 xl:grid-cols-[1.2fr_0.8fr]'>
@@ -384,8 +393,14 @@ export const AdminDashboardPage = () => {
               onClick={() => setTab('PARAMETRES')}
               className='dashboard-kpi rounded-[2.5rem] p-8 bg-slate-950 border-slate-900 shadow-xl flex flex-col justify-between h-40 group hover:-translate-y-1 transition-transform cursor-pointer'
             >
-               <KeyRound className='h-8 w-8 text-violet-400 opacity-20 group-hover:opacity-40 transition-opacity' />
                <p className='text-xl font-bold text-white leading-tight'>Système &<br />Paramètres</p>
+            </article>
+            <article 
+              onClick={() => navigate('/admin/audit')}
+              className='dashboard-kpi rounded-[2.5rem] p-8 bg-emerald-600 border-emerald-500 shadow-xl flex flex-col justify-between h-40 group hover:-translate-y-1 transition-transform cursor-pointer'
+            >
+               <Activity className='h-8 w-8 text-white opacity-20 group-hover:opacity-40 transition-opacity' />
+               <p className='text-xl font-bold text-white leading-tight'>Audit &<br />Traçabilité</p>
             </article>
             <article 
               onClick={() => { setTab('UTILISATEURS'); setRoleFilter('ALL'); }}

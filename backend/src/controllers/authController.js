@@ -1,6 +1,9 @@
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const prisma = require('../config/prisma');
+const { sendPasswordResetEmail } = require('../utils/emailService');
 const { generateToken } = require('../utils/jwtUtils');
+const { logAction } = require('../utils/auditService');
 const {
   normalizeText,
   validateLoginPayload,
@@ -87,6 +90,17 @@ const register = async (req, res) => {
 
     const token = generateToken({ id: user.id, role: user.role });
 
+    await logAction({
+      action: 'REGISTER',
+      entite: 'UTILISATEUR',
+      entiteId: user.id,
+      details: 'Inscription nouvel utilisateur',
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      ip: req.ip,
+    });
+
     res.status(201).json({ success: true, token, user: sanitizeUser(user) });
   } catch (err) {
     console.error(err);
@@ -125,6 +139,17 @@ const login = async (req, res) => {
     }
 
     const token = generateToken({ id: user.id, role: user.role });
+
+    await logAction({
+      action: 'LOGIN',
+      entite: 'UTILISATEUR',
+      entiteId: user.id,
+      details: 'Connexion reussie',
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      ip: req.ip,
+    });
 
     res.json({
       success: true,
@@ -316,6 +341,17 @@ const changePassword = async (req, res) => {
       },
     });
 
+    await logAction({
+      action: 'CHANGE_PASSWORD',
+      entite: 'UTILISATEUR',
+      entiteId: user.id,
+      details: 'Changement de mot de passe par l utilisateur',
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      ip: req.ip,
+    });
+
     res.json({
       success: true,
       message: 'Mot de passe mis a jour avec succes.',
@@ -370,4 +406,128 @@ const updatePushToken = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getMe, updateMe, changePassword, updatePushToken };
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const normalizedEmail = normalizeText(email).toLowerCase();
+
+    const user = await prisma.utilisateur.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (!user) {
+      // Don't reveal if user exists or not for security
+      return res.json({
+        success: true,
+        message: 'Si un compte existe pour cet email, un lien de reinitialisation a ete envoye.',
+      });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 3600000); // 1 hour
+
+    await prisma.utilisateur.update({
+      where: { id: user.id },
+      data: {
+        resetToken: token,
+        resetTokenExpires: expires,
+      },
+    });
+
+    await sendPasswordResetEmail({
+      to: user.email,
+      prenom: user.prenom,
+      token,
+    });
+
+    await logAction({
+      action: 'REQUEST_PASSWORD_RESET',
+      entite: 'UTILISATEUR',
+      entiteId: user.id,
+      details: 'Demande de reinitialisation de mot de passe',
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      ip: req.ip,
+    });
+
+    res.json({
+      success: true,
+      message: 'Si un compte existe pour cet email, un lien de reinitialisation a ete envoye.',
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur lors de la demande.' });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const { token, nouveauMotDePasse } = req.body;
+
+    if (!token || !nouveauMotDePasse) {
+      return res.status(400).json({ success: false, message: 'Token et nouveau mot de passe requis.' });
+    }
+
+    const user = await prisma.utilisateur.findFirst({
+      where: {
+        resetToken: token,
+        resetTokenExpires: { gte: new Date() },
+      },
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Lien invalide ou expire.' });
+    }
+
+    const hashedPassword = await bcrypt.hash(normalizeText(nouveauMotDePasse), 10);
+
+    await prisma.utilisateur.update({
+      where: { id: user.id },
+      data: {
+        motDePasse: hashedPassword,
+        resetToken: null,
+        resetTokenExpires: null,
+        mustChangePassword: false,
+      },
+    });
+
+    await logAction({
+      action: 'RESET_PASSWORD',
+      entite: 'UTILISATEUR',
+      entiteId: user.id,
+      details: 'Reinitialisation de mot de passe reussie',
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      ip: req.ip,
+    });
+
+    res.json({ success: true, message: 'Votre mot de passe a ete reinitialise avec succes.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur lors de la reinitialisation.' });
+  }
+};
+
+const updatePushToken = async (req, res) => {
+  try {
+    const { pushToken } = req.body;
+
+    if (!pushToken) {
+      return res.status(400).json({ success: false, message: 'Push token requis.' });
+    }
+
+    await prisma.utilisateur.update({
+      where: { id: req.user.id },
+      data: { pushToken },
+    });
+
+    res.json({ success: true, message: 'Push token mis a jour.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur lors de la mise a jour du token.' });
+  }
+};
+
+module.exports = { register, login, getMe, updateMe, changePassword, updatePushToken, forgotPassword, resetPassword };

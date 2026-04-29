@@ -110,6 +110,12 @@ export const LoginPage = () => {
             </Link>
           </div>
 
+          <div className='flex justify-center'>
+            <Link to='/forgot-password' title='Mot de passe oublié' className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 transition-colors'>
+              Mot de passe oublié ?
+            </Link>
+          </div>
+
           <button
             type='submit'
             className='btn-premium w-full py-5 flex items-center justify-center gap-3 text-lg'

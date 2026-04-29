@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const { createNotifications } = require('../utils/notificationService');
 const { getConfigAsBoolean, getConfigAsInt } = require('../utils/configService');
+const { logAction } = require('../utils/auditService');
 const {
   normalizeText,
   validateClientApprovalPayload,
@@ -433,6 +434,17 @@ const createIntervention = async (req, res) => {
 
     await createNotifications(buildNotificationPayloadsForCreation(intervention));
 
+    await logAction({
+      action: 'CREATE_INTERVENTION',
+      entite: 'INTERVENTION',
+      entiteId: intervention.id,
+      details: `Creation de l'intervention: ${intervention.titre}`,
+      userId: req.user.id,
+      userEmail: req.user.email || 'N/A',
+      userRole: req.user.role,
+      ip: req.ip,
+    });
+
     res.status(201).json({
       success: true,
       data: intervention,
@@ -589,6 +601,17 @@ const updateIntervention = async (req, res) => {
     await createNotifications(
       buildNotificationPayloadsForUpdate(existing, intervention, req.user)
     );
+
+    await logAction({
+      action: 'UPDATE_INTERVENTION',
+      entite: 'INTERVENTION',
+      entiteId: intervention.id,
+      details: `Mise a jour de l'intervention: ${intervention.titre}. Statut: ${intervention.statut}`,
+      userId: req.user.id,
+      userEmail: req.user.email || 'N/A',
+      userRole: req.user.role,
+      ip: req.ip,
+    });
 
     res.json({
       success: true,
