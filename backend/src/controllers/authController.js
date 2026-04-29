@@ -419,7 +419,7 @@ const forgotPassword = async (req, res) => {
       // Don't reveal if user exists or not for security
       return res.json({
         success: true,
-        message: 'Si un compte existe pour cet email, un lien de reinitialisation a ete envoye.',
+        message: 'Le lien de réinitialisation a été envoyé.',
       });
     }
 
@@ -453,7 +453,7 @@ const forgotPassword = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Si un compte existe pour cet email, un lien de reinitialisation a ete envoye.',
+      message: 'Le lien de réinitialisation a été envoyé.',
     });
   } catch (err) {
     console.error(err);
@@ -507,26 +507,6 @@ const resetPassword = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Erreur lors de la reinitialisation.' });
-  }
-};
-
-const updatePushToken = async (req, res) => {
-  try {
-    const { pushToken } = req.body;
-
-    if (!pushToken) {
-      return res.status(400).json({ success: false, message: 'Push token requis.' });
-    }
-
-    await prisma.utilisateur.update({
-      where: { id: req.user.id },
-      data: { pushToken },
-    });
-
-    res.json({ success: true, message: 'Push token mis a jour.' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: 'Erreur lors de la mise a jour du token.' });
   }
 };
 

@@ -62,7 +62,7 @@ export const ProfilePage = () => {
     setLoading(true)
     try {
       await changePassword({
-        ancienMotDePasse: passwordForm.ancienMotDePasse,
+        motDePasseActuel: passwordForm.ancienMotDePasse,
         nouveauMotDePasse: passwordForm.nouveauMotDePasse,
       })
       toast.success('Mot de passe mis à jour !')

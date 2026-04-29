@@ -83,7 +83,7 @@ export const ForgotPasswordPage = () => {
                 </div>
               </div>
               <p className='text-slate-600 font-medium leading-relaxed'>
-                Si un compte existe pour <span className="font-bold text-slate-900">{email}</span>, vous recevrez un email sous peu.
+                Le lien de réinitialisation a été envoyé à <span className="font-bold text-slate-900">{email}</span>.
               </p>
               <div className='pt-4'>
                  <p className='text-xs text-slate-400 italic mb-6'>
