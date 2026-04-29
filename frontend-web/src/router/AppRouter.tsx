@@ -4,7 +4,11 @@ import type { RootState } from '@/store'
 import type { UserRole } from '@/types/auth.types'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { RegisterPage } from '@/pages/auth/RegisterPage'
+import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
+import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
+import { ProfilePage } from '@/pages/auth/ProfilePage'
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage'
+import { AdminAuditPage } from '@/pages/admin/AdminAuditPage'
 import { ClientDashboardPage } from '@/pages/client/ClientDashboardPage'
 import { ResponsableDashboardPage } from '@/pages/responsable/ResponsableDashboardPage'
 import { UnauthorizedPage } from '@/pages/system/UnauthorizedPage'
@@ -35,18 +39,28 @@ const RoleRedirect = () => {
 }
 
 export const AppRouter = () => (
-  <BrowserRouter>
+  <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
     <Routes>
       <Route path='/login' element={<LoginPage />} />
       <Route path='/register' element={<RegisterPage />} />
+      <Route path='/forgot-password' element={<ForgotPasswordPage />} />
+      <Route path='/reset-password' element={<ResetPasswordPage />} />
       <Route path='/unauthorized' element={<UnauthorizedPage />} />
       <Route path='/' element={<RoleRedirect />} />
 
       <Route
-        path='/admin/*'
+        path='/admin/dashboard'
         element={
           <ProtectedRoute allowedRoles={['ADMIN']}>
             <AdminDashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/admin/audit'
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <AdminAuditPage />
           </ProtectedRoute>
         }
       />
@@ -71,6 +85,14 @@ export const AppRouter = () => (
         element={
           <ProtectedRoute allowedRoles={['CLIENT']}>
             <ClientDashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/profile'
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN', 'RESPONSABLE', 'TECHNICIEN', 'CLIENT']}>
+            <ProfilePage />
           </ProtectedRoute>
         }
       />

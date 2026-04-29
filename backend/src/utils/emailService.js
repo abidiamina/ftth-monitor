@@ -71,4 +71,33 @@ const sendEmployeeResetPasswordEmail = async (payload) => {
   });
 };
 
-module.exports = { sendEmployeeWelcomeEmail, sendEmployeeResetPasswordEmail };
+const sendPasswordResetEmail = async ({ to, prenom, token }) => {
+  const mailerConfig = getMailerConfig();
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@ftth-monitor.local';
+  const appUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const subject = 'Réinitialisation de votre mot de passe FTTH Monitor';
+
+  const resetUrl = `${appUrl}/reset-password?token=${token}`;
+
+  const text = [
+    `Bonjour ${prenom},`,
+    '',
+    'Vous avez demande la reinitialisation de votre mot de passe.',
+    `Cliquez sur le lien suivant pour choisir un nouveau mot de passe: ${resetUrl}`,
+    '',
+    'Ce lien expirera dans 1 heure.',
+    'Si vous n avez pas demande cette action, ignorez cet email.',
+  ].join('\n');
+
+  if (!mailerConfig) {
+    console.log('[email:forgot-password:fallback]', { to, subject, text });
+    return { delivered: false, fallback: true };
+  }
+
+  const transporter = nodemailer.createTransport(mailerConfig);
+  await transporter.sendMail({ from, to, subject, text });
+
+  return { delivered: true, fallback: false };
+};
+
+module.exports = { sendEmployeeWelcomeEmail, sendEmployeeResetPasswordEmail, sendPasswordResetEmail };

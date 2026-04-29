@@ -1,0 +1,107 @@
+const prisma = require('../config/prisma');
+
+// GET /api/stats/dashboard
+const getDashboardStats = async (req, res) => {
+  try {
+    const totalInterventions = await prisma.intervention.count();
+    const completedInterventions = await prisma.intervention.count({ where: { statut: 'TERMINEE' } });
+    const pendingInterventions = await prisma.intervention.count({ where: { statut: 'EN_ATTENTE' } });
+    const ongoingInterventions = await prisma.intervention.count({ where: { statut: 'EN_COURS' } });
+
+    // Success Rate (US-33)
+    const successRate = totalInterventions > 0 ? (completedInterventions / totalInterventions) * 100 : 0;
+
+    // Client Satisfaction (US-33)
+    const evaluations = await prisma.intervention.findMany({
+      where: { clientFeedbackRating: { not: null } },
+      select: { clientFeedbackRating: true },
+    });
+    const avgSatisfaction = evaluations.length > 0 
+      ? evaluations.reduce((acc, curr) => acc + curr.clientFeedbackRating, 0) / evaluations.length 
+      : 0;
+
+    // Interventions by month (for charts)
+    // Simplified: just get last 6 months
+    const statsByMonth = [];
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const month = date.toLocaleString('default', { month: 'short' });
+      const year = date.getFullYear();
+      
+      const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+      const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+      const count = await prisma.intervention.count({
+        where: {
+          dateCreation: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+        },
+      });
+
+      statsByMonth.push({ month: `${month} ${year}`, count });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        summary: {
+          total: totalInterventions,
+          completed: completedInterventions,
+          pending: pendingInterventions,
+          ongoing: ongoingInterventions,
+          successRate: Math.round(successRate),
+          avgSatisfaction: parseFloat(avgSatisfaction.toFixed(1)),
+        },
+        charts: {
+          interventionsByMonth: statsByMonth,
+        }
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur lors de la recuperation des statistiques.' });
+  }
+};
+
+// GET /api/stats/report
+// For US-29: Generate data for a report
+const getReportData = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const filters = {};
+    if (startDate || endDate) {
+      filters.dateCreation = {};
+      if (startDate) filters.dateCreation.gte = new Date(startDate);
+      if (endDate) filters.dateCreation.lte = new Date(endDate);
+    }
+
+    const interventions = await prisma.intervention.findMany({
+      where: filters,
+      include: {
+        client: true,
+        technicien: { include: { utilisateur: true } },
+        responsable: { include: { utilisateur: true } },
+      },
+      orderBy: { dateCreation: 'desc' },
+    });
+
+    res.json({
+      success: true,
+      data: {
+        generatedAt: new Date(),
+        period: { start: startDate, end: endDate },
+        total: interventions.length,
+        interventions,
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur lors de la generation du rapport.' });
+  }
+};
+
+module.exports = { getDashboardStats, getReportData };

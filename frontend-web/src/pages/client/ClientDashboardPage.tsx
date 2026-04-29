@@ -39,6 +39,13 @@ const priorityLabels: Record<InterventionPriority, string> = {
   URGENTE: 'Urgente',
 }
 
+const priorityColors: Record<InterventionPriority, string> = {
+  BASSE: 'bg-slate-100 text-slate-600 border-slate-200',
+  NORMALE: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+  HAUTE: 'bg-amber-50 text-amber-700 border-amber-100',
+  URGENTE: 'bg-rose-50 text-rose-700 border-rose-100',
+}
+
 const formatDate = (value?: string | null) => {
   if (!value) return 'En attente'
   return new Date(value).toLocaleString('fr-FR', {
@@ -111,9 +118,13 @@ export const ClientDashboardPage = () => {
     return { total, ouvertes, enCours, aValider, unread }
   }, [interventions, notifications])
 
+  const sortedInterventions = useMemo(() => {
+    return [...interventions].sort((a, b) => new Date(b.dateCreation).getTime() - new Date(a.dateCreation).getTime())
+  }, [interventions])
+
   const tabs = useMemo(() => [
     { id: 'APERCU', label: 'Espace Client', icon: ShieldCheck },
-    { id: 'DEMANDE', label: 'Nouveau Ticket', icon: TicketPlus },
+    { id: 'DEMANDE', label: 'Nouvelle Intervention', icon: TicketPlus },
     { id: 'SUIVI', label: 'Activités', icon: BellRing },
     { id: 'VALIDATION', label: 'Validation', icon: CheckCircle2, badge: stats.aValider || undefined },
     { id: 'COMPTE', label: 'Profil', icon: UserRound },
@@ -129,31 +140,57 @@ export const ClientDashboardPage = () => {
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const error = validateUserUpdateForm(profileForm)
+    if (error) {
+      toast.error(error)
+      return
+    }
+
     try {
       const response = await updateCurrentUser(profileForm)
       toast.success('Profil mis à jour !')
       dispatch(setUser(response.user))
-    } catch (error) { toast.error('Échec de la mise à jour.') }
+    } catch (error) { toast.error(getErrorMessage(error, 'Échec de la mise à jour.')) }
   }
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const error = validatePasswordChangeForm(passwordForm)
+    if (error) {
+      toast.error(error)
+      return
+    }
+
     try {
       await changeCurrentPassword(passwordForm)
       toast.success('Mot de passe changé !')
       setPasswordForm({ motDePasseActuel: '', nouveauMotDePasse: '' })
-    } catch (error) { toast.error('Échec du changement.') }
+    } catch (error) { toast.error(getErrorMessage(error, 'Échec du changement.')) }
   }
 
   const handleRequestSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const error = validateInterventionForm(requestForm)
+    if (error) {
+      toast.error(error)
+      return
+    }
+
     setSubmittingRequest(true)
     try {
       await createIntervention(requestForm)
-      toast.success('Votre demande a été transmise avec succès.')
+      toast.success('Votre intervention a été transmise avec succès.')
+      setRequestForm({
+        titre: '',
+        description: '',
+        adresse: user?.client?.adresse ?? '',
+        priorite: 'NORMALE',
+        latitude: '',
+        longitude: ''
+      })
       loadDashboard()
       setTab('SUIVI')
-    } catch (error) { toast.error('Erreur lors de la demande.') }
+    } catch (error) { toast.error(getErrorMessage(error, "Erreur lors de la création de l'intervention.")) }
     finally { setSubmittingRequest(false) }
   }
 
@@ -196,9 +233,14 @@ export const ClientDashboardPage = () => {
     )
   }
 
-  const renderInterventionCard = (i: InterventionRecord) => (
-    <div key={i.id} className='dashboard-card group animate-in fade-in slide-in-from-bottom-4 duration-500'>
-      <details className='w-full'>
+  const renderInterventionCard = (i: InterventionRecord) => {
+    const isUrgent = i.priorite === 'URGENTE'
+    return (
+      <div key={i.id} className={`dashboard-card group animate-in fade-in slide-in-from-bottom-4 duration-500 ${isUrgent ? '!border-2 !border-rose-500 !bg-rose-50 shadow-[0_0_15px_rgba(244,63,94,0.3)] relative overflow-hidden' : ''}`}>
+        {isUrgent && (
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-rose-500 animate-pulse" />
+        )}
+        <details className='w-full'>
         <summary className='list-none cursor-pointer'>
           <div className='flex flex-col gap-5 md:flex-row md:items-center md:justify-between'>
             <div className='flex-1 min-w-0'>
@@ -211,7 +253,7 @@ export const ClientDashboardPage = () => {
                   </div>
                   <div className='min-w-0'>
                     <h4 className='font-bold text-slate-900 truncate'>{i.titre}</h4>
-                    <p className='text-[10px] font-black uppercase tracking-widest text-slate-400'>Ticket #{i.id}</p>
+                    <p className='text-[10px] font-black uppercase tracking-widest text-slate-400'>Intervention #{i.id}</p>
                   </div>
                </div>
 
@@ -227,7 +269,7 @@ export const ClientDashboardPage = () => {
                      }`}>
                        {statusLabels[i.statut]}
                      </span>
-                     <span className='px-2 py-0.5 rounded-full bg-slate-50 border border-slate-100 text-[10px] font-bold text-slate-400 uppercase'>
+                     <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase transition-colors ${priorityColors[i.priorite]}`}>
                        {priorityLabels[i.priorite]}
                      </span>
                   </div>
@@ -294,7 +336,8 @@ export const ClientDashboardPage = () => {
         </div>
       </details>
     </div>
-  )
+    )
+  }
 
   return (
     <AppDashboardShell
@@ -322,7 +365,7 @@ export const ClientDashboardPage = () => {
 
           <div className='grid gap-4 sm:grid-cols-2'>
             <div className='stat-pill border-emerald-100 bg-emerald-50/50 min-w-[200px]'>
-              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600'>Tickets Ouverts</p>
+              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600'>Interventions Ouvertes</p>
               <p className='mt-2 text-3xl font-black text-slate-950'>{stats.ouvertes}</p>
             </div>
             <div className='stat-pill border-sky-100 bg-sky-50/50 min-w-[200px]'>
@@ -344,10 +387,10 @@ export const ClientDashboardPage = () => {
            <div className='grid gap-8 lg:grid-cols-[1.2fr_0.8fr]'>
               <div className='space-y-6'>
                  <h2 className='text-2xl font-black text-slate-950 tracking-tight'>Dernières Activités</h2>
-                 {interventions.length > 0 ? (
-                    interventions.slice(0, 3).map(i => renderInterventionCard(i))
+                 {sortedInterventions.length > 0 ? (
+                    sortedInterventions.slice(0, 3).map(i => renderInterventionCard(i))
                  ) : (
-                    <div className='dashboard-card text-center py-10 text-slate-400 font-medium'>Aucun ticket récent.</div>
+                    <div className='dashboard-card text-center py-10 text-slate-400 font-medium'>Aucune intervention récente.</div>
                  )}
               </div>
               <div className='space-y-6'>
@@ -360,7 +403,7 @@ export const ClientDashboardPage = () => {
                  <div className='dashboard-card'>
                     <h3 className='text-lg font-black mb-4'>Besoin d'aide ?</h3>
                     <div className='space-y-3'>
-                       <button onClick={() => setTab('DEMANDE')} className='w-full py-3 bg-slate-50 text-slate-900 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-colors'>Créer un ticket</button>
+                       <button onClick={() => setTab('DEMANDE')} className='w-full py-3 bg-slate-50 text-slate-900 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-colors'>Créer une intervention</button>
                     </div>
                  </div>
               </div>
@@ -368,7 +411,7 @@ export const ClientDashboardPage = () => {
         ) : tab === 'DEMANDE' ? (
            <div className='max-w-2xl mx-auto'>
               <div className='dashboard-card p-10'>
-                 <h3 className='text-3xl font-black text-slate-950 mb-8'>Nouvelle Demande</h3>
+                 <h3 className='text-3xl font-black text-slate-950 mb-8'>Nouvelle Intervention</h3>
                  <form className='space-y-5' onSubmit={handleRequestSubmit}>
                     <div className='space-y-2'>
                        <label className='text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4'>Sujet</label>
@@ -377,6 +420,19 @@ export const ClientDashboardPage = () => {
                     <div className='space-y-2'>
                        <label className='text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4'>Description détaillée</label>
                        <textarea rows={4} className='w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-bold' placeholder="Détaillez votre besoin technique..." value={requestForm.description} onChange={e => setRequestForm(c => ({...c, description: e.target.value}))} />
+                    </div>
+                    <div className='space-y-2'>
+                       <label className='text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4'>Niveau d'urgence</label>
+                       <select 
+                          className='w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-bold cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all appearance-none'
+                          value={requestForm.priorite} 
+                          onChange={e => setRequestForm(c => ({...c, priorite: e.target.value as InterventionPriority}))}
+                       >
+                         <option value="BASSE">Basse (Non urgent)</option>
+                         <option value="NORMALE">Normale (Standard)</option>
+                         <option value="HAUTE">Haute (Impact important)</option>
+                         <option value="URGENTE">Urgente (Critique, panne totale)</option>
+                       </select>
                     </div>
                     
                     <div className='bg-slate-50 rounded-2xl p-5 border border-slate-100 space-y-4'>
@@ -409,14 +465,14 @@ export const ClientDashboardPage = () => {
                       )}
                     </div>
 
-                    <button type="submit" disabled={submittingRequest} className='btn-premium w-full py-5 text-lg uppercase tracking-[.2em] mt-6'>Transmettre ma demande</button>
+                    <button type="submit" disabled={submittingRequest} className='btn-premium w-full py-5 text-lg uppercase tracking-[.2em] mt-6'>Transmettre mon intervention</button>
                  </form>
               </div>
            </div>
         ) : tab === 'SUIVI' ? (
-           <div className='grid gap-4'>
-              <h2 className='text-2xl font-black text-slate-950 tracking-tight mb-4'>Historique des tickets</h2>
-              {interventions.map(i => renderInterventionCard(i))}
+            <div className='grid gap-4'>
+              <h2 className='text-2xl font-black text-slate-950 tracking-tight mb-4'>Historique des interventions</h2>
+              {sortedInterventions.map(i => renderInterventionCard(i))}
            </div>
         ) : tab === 'VALIDATION' ? (
            <ClientSprint3Panel interventions={interventions} signerName={user ? `${user.prenom} ${user.nom}` : 'Client'} onRefresh={loadDashboard} />

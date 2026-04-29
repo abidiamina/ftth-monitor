@@ -8,12 +8,16 @@ import { AppRouter } from '@/router/AppRouter'
 import { Toaster } from 'react-hot-toast'
 import './index.css'
 
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Provider store={store}>
-      <AuthBootstrap />
-      <AppRouter />
-      <Toaster position='top-right' />
-    </Provider>
+    <ErrorBoundary>
+      <Provider store={store}>
+        <AuthBootstrap />
+        <AppRouter />
+        <Toaster position='top-right' />
+      </Provider>
+    </ErrorBoundary>
   </StrictMode>
 )
