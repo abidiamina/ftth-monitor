@@ -1,7 +1,21 @@
 const prisma = require('../config/prisma');
 const { createNotifications } = require('../utils/notificationService');
+const { emitToAll, emitToUser } = require('../utils/socketService');
+
+const emitToInterventionParticipants = (intervention, action, id) => {
+  const participants = new Set();
+  if (intervention.clientId) participants.add(intervention.client?.utilisateurId);
+  if (intervention.technicienId) participants.add(intervention.technicien?.utilisateurId);
+  if (intervention.responsableId) participants.add(intervention.responsable?.utilisateur?.id);
+
+  // Also include ADMINS if needed, but for now just the trio
+  participants.forEach(userId => {
+    if (userId) emitToUser(userId, 'intervention_updated', { action, id });
+  });
+};
 const { getConfigAsBoolean, getConfigAsInt } = require('../utils/configService');
 const { logAction } = require('../utils/auditService');
+const { analyzeSentiment } = require('../utils/aiService');
 const {
   normalizeText,
   validateClientApprovalPayload,
@@ -11,7 +25,13 @@ const {
 } = require('../utils/validation');
 
 const interventionInclude = {
-  client: true,
+  client: {
+    include: {
+      utilisateur: {
+        select: { id: true, nom: true, prenom: true, email: true, telephone: true },
+      },
+    },
+  },
   technicien: {
     include: { utilisateur: { select: { id: true, nom: true, prenom: true, telephone: true } } },
   },
@@ -21,6 +41,29 @@ const interventionInclude = {
   evidences: {
     orderBy: { createdAt: 'desc' },
   },
+  refus: {
+    include: {
+      technicien: {
+        include: { utilisateur: { select: { nom: true, prenom: true } } },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  },
+};
+
+const flattenIntervention = (intervention) => {
+  if (!intervention || !intervention.client || !intervention.client.utilisateur) return intervention;
+  return {
+    ...intervention,
+    client: {
+      ...intervention.client,
+      nom: intervention.client.utilisateur.nom,
+      prenom: intervention.client.utilisateur.prenom,
+      email: intervention.client.utilisateur.email,
+      telephone: intervention.client.utilisateur.telephone,
+      utilisateur: undefined,
+    },
+  };
 };
 
 const getTechnicienByUserId = (userId) =>
@@ -186,7 +229,6 @@ const buildNotificationPayloadsForUpdate = (before, after, actor) => {
     before.technicien?.utilisateur?.id &&
     !after.technicienId
   ) {
-    // Notify the technician themselves (already in code, keep for consistency)
     payloads.push({
       titre: 'Intervention reaffectee',
       message: `L'intervention "${after.titre}" a ete retiree de votre file.`,
@@ -194,7 +236,6 @@ const buildNotificationPayloadsForUpdate = (before, after, actor) => {
       userId: before.technicien.utilisateur.id,
     });
 
-    // CRITICAL: Notify the Responsable that the technician refused
     if (after.responsable?.utilisateur?.id) {
        payloads.push({
          titre: 'Intervention REFUSÉE par le technicien',
@@ -307,7 +348,7 @@ const getInterventions = async (req, res) => {
       orderBy: { dateCreation: 'desc' },
     });
 
-    res.json({ success: true, data: interventions });
+    res.json({ success: true, data: interventions.map(flattenIntervention) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Erreur serveur.' });
@@ -346,7 +387,7 @@ const getIntervention = async (req, res) => {
       }
     }
 
-    res.json({ success: true, data: intervention });
+    res.json({ success: true, data: flattenIntervention(intervention) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Erreur serveur.' });
@@ -433,6 +474,7 @@ const createIntervention = async (req, res) => {
     });
 
     await createNotifications(buildNotificationPayloadsForCreation(intervention));
+    emitToInterventionParticipants(intervention, 'CREATE', intervention.id);
 
     await logAction({
       action: 'CREATE_INTERVENTION',
@@ -447,7 +489,7 @@ const createIntervention = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      data: intervention,
+      data: flattenIntervention(intervention),
       message: 'Intervention creee avec succes.',
     });
   } catch (err) {
@@ -575,32 +617,46 @@ const updateIntervention = async (req, res) => {
       dateData.dateValidation = null;
     }
 
-    const intervention = await prisma.intervention.update({
-      where: { id: interventionId },
-      data: {
-        ...(titre !== undefined && { titre: normalizeText(titre) }),
-        ...(description !== undefined && { description: normalizeText(description) }),
-        ...(adresse !== undefined && { adresse: normalizeText(adresse) }),
-        ...(latitude !== undefined && { latitude: parseOptionalFloat(latitude) }),
-        ...(longitude !== undefined && { longitude: parseOptionalFloat(longitude) }),
-        ...(priorite && { priorite }),
-        ...(statut && { statut }),
-        ...(datePlanifiee !== undefined && {
-          datePlanifiee: datePlanifiee ? new Date(datePlanifiee) : null,
-        }),
-        ...(technicienId === null
-          ? { technicienId: null }
-          : technicienId !== undefined
-            ? { technicienId: parseOptionalInt(technicienId) }
-            : {}),
-        ...dateData,
-      },
-      include: interventionInclude,
+    const intervention = await prisma.$transaction(async (tx) => {
+      if (technicienId === null && existing.technicienId) {
+        const motif = normalizeText(req.body.motifRefus) || 'Refus sans motif précisé';
+        await tx.refusIntervention.create({
+          data: {
+            interventionId: existing.id,
+            technicienId: existing.technicienId,
+            motif,
+          },
+        });
+      }
+
+      return tx.intervention.update({
+        where: { id: interventionId },
+        data: {
+          ...(titre !== undefined && { titre: normalizeText(titre) }),
+          ...(description !== undefined && { description: normalizeText(description) }),
+          ...(adresse !== undefined && { adresse: normalizeText(adresse) }),
+          ...(latitude !== undefined && { latitude: parseOptionalFloat(latitude) }),
+          ...(longitude !== undefined && { longitude: parseOptionalFloat(longitude) }),
+          ...(priorite && { priorite }),
+          ...(statut && { statut }),
+          ...(datePlanifiee !== undefined && {
+            datePlanifiee: datePlanifiee ? new Date(datePlanifiee) : null,
+          }),
+          ...(technicienId === null
+            ? { technicienId: null }
+            : technicienId !== undefined
+              ? { technicienId: parseOptionalInt(technicienId) }
+              : {}),
+          ...dateData,
+        },
+        include: interventionInclude,
+      });
     });
 
     await createNotifications(
       buildNotificationPayloadsForUpdate(existing, intervention, req.user)
     );
+    emitToInterventionParticipants(intervention, 'UPDATE', intervention.id);
 
     await logAction({
       action: 'UPDATE_INTERVENTION',
@@ -615,7 +671,7 @@ const updateIntervention = async (req, res) => {
 
     res.json({
       success: true,
-      data: intervention,
+      data: flattenIntervention(intervention),
       message: 'Intervention mise a jour avec succes.',
     });
   } catch (err) {
@@ -624,7 +680,6 @@ const updateIntervention = async (req, res) => {
   }
 };
 
-// PATCH /api/interventions/:id/field-check
 const updateInterventionFieldCheck = async (req, res) => {
   try {
     const interventionId = parseInt(req.params.id, 10);
@@ -681,7 +736,7 @@ const updateInterventionFieldCheck = async (req, res) => {
 
     res.json({
       success: true,
-      data: intervention,
+      data: flattenIntervention(intervention),
       message: 'Controle terrain enregistre.',
     });
   } catch (err) {
@@ -690,7 +745,6 @@ const updateInterventionFieldCheck = async (req, res) => {
   }
 };
 
-// POST /api/interventions/:id/evidences
 const addInterventionEvidence = async (req, res) => {
   try {
     const interventionId = parseInt(req.params.id, 10);
@@ -752,7 +806,7 @@ const addInterventionEvidence = async (req, res) => {
     res.status(201).json({
       success: true,
       data: evidence,
-      intervention,
+      intervention: flattenIntervention(intervention),
       message: 'Preuve enregistree.',
     });
   } catch (err) {
@@ -761,7 +815,6 @@ const addInterventionEvidence = async (req, res) => {
   }
 };
 
-// PATCH /api/interventions/:id/client-approval
 const submitInterventionClientApproval = async (req, res) => {
   try {
     const interventionId = parseInt(req.params.id, 10);
@@ -810,6 +863,8 @@ const submitInterventionClientApproval = async (req, res) => {
       });
     }
 
+    const sentiment = await analyzeSentiment(feedbackComment, Number(feedbackRating));
+
     const intervention = await prisma.intervention.update({
       where: { id: interventionId },
       data: {
@@ -818,6 +873,7 @@ const submitInterventionClientApproval = async (req, res) => {
         clientSignatureAt: new Date(),
         clientFeedbackRating: Number(feedbackRating),
         clientFeedbackComment: normalizeText(feedbackComment),
+        clientFeedbackSentiment: sentiment,
         clientFeedbackAt: new Date(),
       },
       include: interventionInclude,
@@ -827,7 +883,7 @@ const submitInterventionClientApproval = async (req, res) => {
 
     res.json({
       success: true,
-      data: intervention,
+      data: flattenIntervention(intervention),
       message: 'Validation client enregistree.',
     });
   } catch (err) {
@@ -836,7 +892,6 @@ const submitInterventionClientApproval = async (req, res) => {
   }
 };
 
-// DELETE /api/interventions/:id
 const deleteIntervention = async (req, res) => {
   try {
     const { id } = req.params;
@@ -862,12 +917,13 @@ const deleteIntervention = async (req, res) => {
 };
 
 module.exports = {
+  createIntervention,
   getInterventions,
   getIntervention,
-  createIntervention,
   updateIntervention,
+  deleteIntervention,
   updateInterventionFieldCheck,
   addInterventionEvidence,
   submitInterventionClientApproval,
-  deleteIntervention,
+  flattenIntervention,
 };

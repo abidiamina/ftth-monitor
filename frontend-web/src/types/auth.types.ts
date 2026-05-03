@@ -110,6 +110,11 @@ export interface UpdateUserRequest {
 
 export interface TechnicianRecord {
   id: number
+  latitude?: number | null
+  longitude?: number | null
+  disponible?: boolean
+  specialite?: string | null
+  zone?: string | null
   utilisateur: {
     id: number
     nom: string
@@ -160,12 +165,14 @@ export interface InterventionRecord {
   clientSignatureBy?: string | null
   clientFeedbackRating?: number | null
   clientFeedbackComment?: string | null
+  clientFeedbackSentiment?: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | null
   clientFeedbackAt?: string | null
   updatedAt?: string
   clientId: number
   technicienId?: number | null
   responsableId: number
   evidences: InterventionEvidenceRecord[]
+  refus?: RefusInterventionRecord[]
   client: ClientRecord
   technicien?: TechnicianRecord | null
   responsable?: {
@@ -185,6 +192,20 @@ export interface InterventionEvidenceRecord {
   photoName: string
   photoData?: string | null
   createdAt: string
+}
+
+export interface RefusInterventionRecord {
+  id: number
+  interventionId: number
+  technicienId: number
+  motif: string
+  createdAt: string
+  technicien?: {
+    utilisateur: {
+      nom: string
+      prenom: string
+    }
+  }
 }
 
 export interface CreateInterventionRequest {

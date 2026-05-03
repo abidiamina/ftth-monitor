@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { logout } from '@/store/authSlice'
 import { listConfigs } from '@/services/configApi'
 import { useEffect, useState } from 'react'
+import { joinUserRoom } from '@/services/socketService'
 import type { RootState } from '@/store'
 import type { UserRole } from '@/types/auth.types'
 import type { DashboardTab } from '@/components/dashboard/DashboardTabs'
@@ -77,6 +78,12 @@ export const AppDashboardShell = ({
   const { user } = useSelector((state: RootState) => state.auth)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [appName, setAppName] = useState(workspaceLabel)
+
+  useEffect(() => {
+    if (user?.id) {
+      joinUserRoom(user.id)
+    }
+  }, [user?.id])
 
   useEffect(() => {
     listConfigs().then(configs => {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Shield, Search, Filter, Calendar, User, Activity, ArrowLeft, RefreshCw, Eye } from 'lucide-react'
+import { Shield, Search, Filter, Calendar, User, Activity, ArrowLeft, RefreshCw, Eye, ShieldCheck, Users, UserPlus, ShieldEllipsis, Settings, BellRing, UserCog } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import axios from 'axios'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
@@ -61,6 +61,22 @@ export const AdminAuditPage = () => {
       role='ADMIN'
       workspaceLabel='Système'
       workspaceTitle='Audit Trail'
+      sectionTabs={[
+        { id: 'APERCU', label: 'Overview', icon: ShieldCheck },
+        { id: 'UTILISATEURS', label: 'Annuaire', icon: Users },
+        { id: 'CREATION', label: 'Ajouter membre', icon: UserPlus },
+        { id: 'ROLES', label: 'Privilèges', icon: ShieldEllipsis },
+        { id: 'PARAMETRES', label: 'Système', icon: Settings },
+        { id: 'AUDIT', label: 'Audit', icon: Activity },
+        { id: 'NOTIFICATIONS', label: 'Inbox', icon: BellRing },
+        { id: 'PROFIL', label: 'Profil', icon: UserCog },
+      ]}
+      sectionTab='AUDIT'
+      onSectionTabChange={(v) => {
+        if (v === 'PROFIL') return navigate('/profile')
+        if (v === 'AUDIT') return // already here
+        navigate('/admin/dashboard') // For other tabs, go back to main dashboard
+      }}
     >
       <div className='max-w-7xl mx-auto py-8 px-4'>
         <div className='flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10'>

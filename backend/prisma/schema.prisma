@@ -18,27 +18,28 @@ model Utilisateur {
   role               Role
   actif              Boolean      @default(true)
   mustChangePassword Boolean      @default(false)
-  resetToken         String?
-  resetTokenExpires  DateTime?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
+  resetToken         String?
+  resetTokenExpires  DateTime?
   client             Client?
   responsable        Responsable?
   technicien         Technicien?
 }
 
 model Technicien {
-  id            Int            @id @default(autoincrement())
-  utilisateurId Int            @unique
+  id            Int                    @id @default(autoincrement())
+  utilisateurId Int                    @unique
   specialite    String?
   zone          String?
-  disponible    Boolean        @default(true)
+  disponible    Boolean                @default(true)
   latitude      Float?
   longitude     Float?
   interventions Intervention[]
   rapports      Rapport[]
   evidences     InterventionEvidence[]
-  utilisateur   Utilisateur    @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  refus         RefusIntervention[]
+  utilisateur   Utilisateur            @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
 }
 
 model Responsable {
@@ -50,53 +51,61 @@ model Responsable {
 
 model Client {
   id            Int            @id @default(autoincrement())
-  utilisateurId Int?           @unique
-  nom           String
-  prenom        String
-  email         String?
-  telephone     String
+  utilisateurId Int            @unique
   adresse       String
   createdAt     DateTime       @default(now())
-  utilisateur   Utilisateur?   @relation(fields: [utilisateurId], references: [id])
+  utilisateur   Utilisateur    @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
   interventions Intervention[]
 }
 
 model Intervention {
-  id            Int                @id @default(autoincrement())
-  titre         String
-  description   String
-  adresse       String
-  latitude      Float?
-  longitude     Float?
-  statut        StatutIntervention @default(EN_ATTENTE)
-  priorite      Priorite           @default(NORMALE)
-  dateCreation  DateTime           @default(now())
-  datePlanifiee DateTime?
-  dateDebut     DateTime?
-  dateFin       DateTime?
-  validee       Boolean            @default(false)
-  dateValidation DateTime?
-  gpsConfirmedAt DateTime?
-  gpsLatitude    Float?
-  gpsLongitude   Float?
-  qrCodeValue    String?
-  qrVerifiedAt   DateTime?
-  clientSignature String?
-  clientSignatureAt DateTime?
-  clientSignatureBy String?
-  clientFeedbackRating Int?
+  id                    Int                    @id @default(autoincrement())
+  titre                 String
+  description           String
+  adresse               String
+  latitude              Float?
+  longitude             Float?
+  statut                StatutIntervention     @default(EN_ATTENTE)
+  priorite              Priorite               @default(NORMALE)
+  dateCreation          DateTime               @default(now())
+  datePlanifiee         DateTime?
+  dateDebut             DateTime?
+  dateFin               DateTime?
+  validee               Boolean                @default(false)
+  dateValidation        DateTime?
+  gpsConfirmedAt        DateTime?
+  gpsLatitude           Float?
+  gpsLongitude          Float?
+  qrCodeValue           String?
+  qrVerifiedAt          DateTime?
+  clientSignature       String?
+  clientSignatureAt     DateTime?
+  clientSignatureBy     String?
+  clientFeedbackRating  Int?
   clientFeedbackComment String?
-  clientFeedbackAt DateTime?
-  updatedAt     DateTime           @updatedAt
-  clientId      Int
-  technicienId  Int?
-  responsableId Int
-  client        Client             @relation(fields: [clientId], references: [id])
-  responsable   Responsable        @relation("InterventionResponsable", fields: [responsableId], references: [id])
-  technicien    Technicien?        @relation(fields: [technicienId], references: [id])
-  notifications Notification[]
-  rapport       Rapport?
-  evidences     InterventionEvidence[]
+  clientFeedbackSentiment String?
+  clientFeedbackAt      DateTime?
+  updatedAt             DateTime               @updatedAt
+  clientId              Int
+  technicienId          Int?
+  responsableId         Int
+  client                Client                 @relation(fields: [clientId], references: [id])
+  responsable           Responsable            @relation("InterventionResponsable", fields: [responsableId], references: [id])
+  technicien            Technicien?            @relation(fields: [technicienId], references: [id])
+  notifications         Notification[]
+  rapport               Rapport?
+  evidences             InterventionEvidence[]
+  refus                 RefusIntervention[]
+}
+
+model RefusIntervention {
+  id             Int          @id @default(autoincrement())
+  interventionId Int
+  technicienId   Int
+  motif          String
+  createdAt      DateTime     @default(now())
+  intervention   Intervention @relation(fields: [interventionId], references: [id], onDelete: Cascade)
+  technicien     Technicien   @relation(fields: [technicienId], references: [id], onDelete: Cascade)
 }
 
 model Rapport {
@@ -135,27 +144,6 @@ model InterventionEvidence {
   technicien     Technicien?  @relation(fields: [technicienId], references: [id])
 }
 
-enum Role {
-  ADMIN
-  CLIENT
-  RESPONSABLE
-  TECHNICIEN
-}
-
-enum StatutIntervention {
-  EN_ATTENTE
-  EN_COURS
-  TERMINEE
-  ANNULEE
-}
-
-enum Priorite {
-  BASSE
-  NORMALE
-  HAUTE
-  URGENTE
-}
-
 model Configuration {
   id          Int      @id @default(autoincrement())
   cle         String   @unique
@@ -176,4 +164,25 @@ model AuditLog {
   userRole  String
   ip        String?
   createdAt DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  CLIENT
+  RESPONSABLE
+  TECHNICIEN
+}
+
+enum StatutIntervention {
+  EN_ATTENTE
+  EN_COURS
+  TERMINEE
+  ANNULEE
+}
+
+enum Priorite {
+  BASSE
+  NORMALE
+  HAUTE
+  URGENTE
 }

@@ -16,6 +16,7 @@ import { changeCurrentPassword, getCurrentUser, updateCurrentUser } from '@/serv
 import { createIntervention, listInterventions } from '@/services/interventionApi'
 import { normalizePhotoData, parseSignatureToPath } from '@/lib/interventionUtils'
 import { setUser } from '@/store/authSlice'
+import { getSocket } from '@/services/socketService'
 import type {
   CreateInterventionRequest,
   CurrentUser,
@@ -107,7 +108,18 @@ export const ClientDashboardPage = () => {
     }
   }, [dispatch])
 
-  useEffect(() => { loadDashboard() }, [loadDashboard])
+  useEffect(() => { 
+    loadDashboard() 
+    
+    const socket = getSocket()
+    socket.on('intervention_updated', () => {
+      loadDashboard()
+    })
+
+    return () => {
+      socket.off('intervention_updated')
+    }
+  }, [loadDashboard])
 
   const stats = useMemo(() => {
     const total = interventions.length

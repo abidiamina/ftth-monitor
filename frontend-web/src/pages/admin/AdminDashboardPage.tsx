@@ -132,8 +132,8 @@ export const AdminDashboardPage = () => {
 
   const tabs = useMemo(() => [
     { id: 'APERCU', label: 'Overview', icon: ShieldCheck },
-    { id: 'UTILISATEURS', label: 'Annuaire', icon: Users },
-    { id: 'CREATION', label: 'Staff', icon: UserPlus },
+    { id: 'UTILISATEURS', label: 'Comptes', icon: Users },
+    { id: 'CREATION', label: 'Ajouter membre', icon: UserPlus },
     { id: 'ROLES', label: 'Privilèges', icon: ShieldEllipsis },
     { id: 'PARAMETRES', label: 'Système', icon: Settings },
     { id: 'AUDIT', label: 'Audit', icon: Activity },
@@ -357,6 +357,7 @@ export const AdminDashboardPage = () => {
       sectionTab={tab}
       onSectionTabChange={(v) => {
         if (v === 'PROFIL') return navigate('/profile')
+        if (v === 'AUDIT') return navigate('/admin/audit')
         setTab(v as any)
       }}
     >
@@ -402,7 +403,7 @@ export const AdminDashboardPage = () => {
                  <p className='text-[10px] font-black uppercase tracking-[0.2em] text-white/50'>Action</p>
                  <UserPlus className='h-5 w-5 text-white/30 group-hover:rotate-12 transition-transform' />
                </div>
-               <p className='text-xl font-black text-white leading-tight'>Nouveau<br />Membre Staff</p>
+               <p className='text-xl font-black text-white leading-tight'>Ajouter<br />un Membre</p>
             </article>
             <article 
               onClick={() => setTab('PARAMETRES')}
@@ -438,7 +439,7 @@ export const AdminDashboardPage = () => {
         ) : tab === 'UTILISATEURS' ? (
           <div className='grid gap-8'>
              <div className='flex flex-wrap items-center justify-between gap-4'>
-                <h2 className='text-2xl font-black text-slate-950 tracking-tight'>Directoire Comptes</h2>
+                <h2 className='text-2xl font-black text-slate-950 tracking-tight'>Gestion des Comptes</h2>
                 <div className='flex items-center gap-2 bg-white/50 p-1.5 rounded-2xl border border-white'>
                    <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as any)} className='bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-slate-500 py-1'>
                       <option value='ALL'>Tous les Rôles</option>

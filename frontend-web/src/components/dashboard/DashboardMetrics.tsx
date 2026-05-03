@@ -130,7 +130,7 @@ export function DashboardMetrics({ interventions }: DashboardMetricsProps) {
             <p className='text-[10px] font-bold text-slate-400 uppercase tracking-widest'>Missions par jour</p>
           </div>
           <div className='h-[300px] w-full'>
-            <ResponsiveContainer width='100%' height='100%'>
+            <ResponsiveContainer width='100%' height='100%' minWidth={0}>
               <BarChart data={dailyData}>
                 <CartesianGrid strokeDasharray='3 3' vertical={false} stroke='#f1f5f9' />
                 <XAxis 
@@ -167,7 +167,7 @@ export function DashboardMetrics({ interventions }: DashboardMetricsProps) {
             <p className='text-[10px] font-bold text-slate-400 uppercase tracking-widest'>Répartition statut</p>
           </div>
           <div className='h-[300px] w-full'>
-            <ResponsiveContainer width='100%' height='100%'>
+            <ResponsiveContainer width='100%' height='100%' minWidth={0}>
               <PieChart>
                 <Pie
                   data={statusData}
