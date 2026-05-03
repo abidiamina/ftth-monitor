@@ -20,9 +20,8 @@ export const TechnicianAlertsWidget = ({ interventions, technicians }: Technicia
 
     interventions.forEach(i => {
       if (i.statut !== 'TERMINEE' && i.statut !== 'ANNULEE' && i.datePlanifiee) {
-        const planDate = new Date(i.datePlanifiee)
-        planDate.setHours(0, 0, 0, 0)
-        if (planDate.getTime() < startOfToday) {
+        const planTime = new Date(i.datePlanifiee).getTime()
+        if (planTime < now) {
           delays++
         }
       }

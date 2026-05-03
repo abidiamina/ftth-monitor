@@ -47,7 +47,13 @@ app.use((err, req, res, next) => {
   });
 });
 
+const http = require('http');
+const { initSocket } = require('./utils/socketService');
+
+const server = http.createServer(app);
+initSocket(server);
+
 const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`✅ Backend démarré sur http://localhost:${PORT}`);
 });

@@ -214,8 +214,9 @@ export function TechnicianSprint3Panel({
         setScannerMessage('Camera active.')
       } catch (error) {
         setScannerOpen(false)
-        setScannerMessage(getErrorMessage(error, 'Camera indisponible.'))
-        toast.error(getErrorMessage(error, 'Impossible d ouvrir la camera.'))
+        const msg = getErrorMessage(error, 'Camera indisponible.')
+        setScannerMessage(`${msg} (Mode manuel activé)`)
+        toast.error(msg)
       }
     }
 
@@ -450,49 +451,61 @@ export function TechnicianSprint3Panel({
                   </button>
                 </div>
 
-                <div className='rounded-[1.6rem] border border-sky-100 bg-[linear-gradient(180deg,#ffffff_0%,#f3fbff_100%)] p-5'>
+                <div className='rounded-[1.6rem] border border-sky-100 bg-[linear-gradient(180deg,#ffffff_0%,#f3fbff_100%)] p-6 shadow-sm'>
                   <div className='flex items-center gap-3 text-sky-700'>
                     <QrCode className='h-5 w-5' />
-                    <p className='text-xs uppercase tracking-[0.18em]'>Controle acces</p>
+                    <p className='text-xs uppercase tracking-[0.18em] font-black'>Controle acces</p>
                   </div>
-                  <h4 className='mt-4 text-lg font-semibold text-slate-950'>Scan QR</h4>
-                  <p className='mt-2 text-sm text-slate-600'>{scannerMessage}</p>
-                  <p className='mt-1 text-sm text-slate-500'>
-                    Dernier code: {selectedIntervention.qrCodeValue ?? 'aucun'}
-                  </p>
-                  <div className='mt-4 flex flex-wrap gap-3'>
+                  
+                  <div className="mt-6 space-y-4">
+                    <div>
+                      <h4 className='text-lg font-black text-slate-950'>Scan QR</h4>
+                      <p className='text-xs font-bold text-slate-500 mt-1'>{scannerMessage}</p>
+                    </div>
+
                     <button
                       type='button'
                       onClick={() => setScannerOpen((current) => !current)}
-                      className='rounded-[1rem] border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-medium text-sky-700 transition hover:bg-sky-100'
+                      className='w-full flex items-center justify-center gap-3 rounded-xl border-2 border-sky-200 bg-sky-50 px-4 py-4 text-sm font-black uppercase tracking-widest text-sky-700 transition hover:bg-sky-100 active:scale-95'
                     >
-                      <Camera className='mr-2 inline h-4 w-4' />
+                      <Camera className='h-5 w-5' />
                       {scannerOpen ? 'Fermer la camera' : 'Ouvrir la camera'}
                     </button>
-                  </div>
-                  {scannerOpen ? (
-                    <div
-                      id={scannerHostId}
-                      className='mt-4 overflow-hidden rounded-[1.2rem] border border-slate-200 bg-slate-50 p-3'
-                    />
-                  ) : null}
-                  <div className='mt-4 flex flex-col gap-3 p-4 bg-slate-50/50 rounded-2xl border border-slate-100'>
-                    <p className='text-[10px] font-black uppercase tracking-widest text-slate-400'>Saisie manuelle (Secours)</p>
-                    <div className="flex gap-2">
-                      <input
-                        value={manualQrValue}
-                        onChange={(event) => setManualQrValue(event.target.value)}
-                        placeholder='Entrez le code de l’équipement'
-                        className='flex-1 bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-sky-300 outline-none transition-all'
+
+                    {scannerOpen && (
+                      <div
+                        id={scannerHostId}
+                        className='overflow-hidden rounded-2xl border-2 border-slate-200 bg-slate-950 p-2 shadow-inner'
                       />
-                      <button
-                        type='button'
-                        onClick={() => void handleManualQrValidation()}
-                        disabled={busyAction === 'qr'}
-                        className='bg-slate-900 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-50'
-                      >
-                        Valider
-                      </button>
+                    )}
+
+                    <div className='pt-6 border-t border-sky-100/50 space-y-3'>
+                      <div className="flex items-center justify-between">
+                        <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Alternative Manuelle</p>
+                        <button 
+                          type="button"
+                          onClick={() => setManualQrValue('DEMO-EQUIP-FTTH-2026')}
+                          className="text-[9px] font-black uppercase text-sky-600 hover:text-sky-700 transition-colors"
+                        >
+                          Simuler un code
+                        </button>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <input
+                          value={manualQrValue}
+                          onChange={(event) => setManualQrValue(event.target.value)}
+                          placeholder='Code équipement...'
+                          className='w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-sky-300 outline-none transition-all'
+                        />
+                        <button
+                          type='button'
+                          onClick={() => void handleManualQrValidation()}
+                          disabled={busyAction === 'qr'}
+                          className='w-full bg-slate-950 text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-50'
+                        >
+                          Valider le code
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

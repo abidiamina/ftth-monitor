@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { flattenIntervention } = require('./interventionController');
 
 // GET /api/stats/dashboard
 const getDashboardStats = async (req, res) => {
@@ -95,7 +96,7 @@ const getReportData = async (req, res) => {
         generatedAt: new Date(),
         period: { start: startDate, end: endDate },
         total: interventions.length,
-        interventions,
+        interventions: interventions.map(flattenIntervention),
       }
     });
   } catch (err) {
@@ -104,4 +105,64 @@ const getReportData = async (req, res) => {
   }
 };
 
-module.exports = { getDashboardStats, getReportData };
+// GET /api/stats/technicians
+const getTechnicianPerformance = async (req, res) => {
+  try {
+    const technicians = await prisma.technicien.findMany({
+      include: {
+        utilisateur: {
+          select: { nom: true, prenom: true }
+        },
+        interventions: {
+          where: { statut: 'TERMINEE' },
+          select: {
+            clientFeedbackRating: true,
+            clientFeedbackSentiment: true
+          }
+        }
+      }
+    });
+
+    const performance = technicians.map(tech => {
+      const totalTerminees = tech.interventions.length;
+      
+      const ratings = tech.interventions
+        .filter(i => i.clientFeedbackRating !== null)
+        .map(i => i.clientFeedbackRating);
+      
+      const avgRating = ratings.length > 0 
+        ? ratings.reduce((a, b) => a + b, 0) / ratings.length 
+        : 0;
+
+      const sentiments = tech.interventions.reduce((acc, curr) => {
+        const s = curr.clientFeedbackSentiment || 'UNKNOWN';
+        acc[s] = (acc[s] || 0) + 1;
+        return acc;
+      }, { POSITIVE: 0, NEUTRAL: 0, NEGATIVE: 0 });
+
+      // Taux de satisfaction basé sur le sentiment positif
+      const satisfactionRate = totalTerminees > 0 
+        ? (sentiments.POSITIVE / totalTerminees) * 100 
+        : 0;
+
+      return {
+        id: tech.id,
+        nom: `${tech.utilisateur.prenom} ${tech.utilisateur.nom}`,
+        totalTerminees,
+        avgRating: parseFloat(avgRating.toFixed(1)),
+        satisfactionRate: Math.round(satisfactionRate),
+        sentiments
+      };
+    });
+
+    res.json({
+      success: true,
+      data: performance.sort((a, b) => b.satisfactionRate - a.satisfactionRate)
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur lors du calcul de la performance.' });
+  }
+};
+
+module.exports = { getDashboardStats, getReportData, getTechnicianPerformance };

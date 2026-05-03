@@ -61,7 +61,7 @@ export const RegisterPage = () => {
     }
   }
 
-  return (
+   return (
     <AuthShell
       layout='single'
       sideLabel="INSCRIPTION CLIENT"

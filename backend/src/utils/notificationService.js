@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const { sendPushNotifications } = require('./pushNotificationService');
+const { emitToUser } = require('./socketService');
 
 const buildNotificationPayload = ({ titre, message, interventionId, userId }) => ({
   titre,
@@ -29,6 +30,9 @@ const createNotification = async (payload) => {
       },
     },
   ]);
+
+  // Real-time socket notification
+  emitToUser(payload.userId, 'notification_received', notification);
 
   return notification;
 };
@@ -62,6 +66,15 @@ const createNotifications = async (payloads = []) => {
       },
     }))
   );
+
+  // Real-time socket notifications
+  payloads.forEach((payload) => {
+    emitToUser(payload.userId, 'notification_received', {
+      ...payload,
+      createdAt: new Date().toISOString(),
+      lu: false,
+    });
+  });
 };
 
 module.exports = {

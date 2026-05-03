@@ -192,5 +192,10 @@ export const listTechnicians = async (): Promise<TechnicianRecord[]> => {
   return data.data
 }
 
+export const updateTechnicianLocation = async (latitude: number, longitude: number): Promise<{ message: string }> => {
+  const { data } = await api.patch<ApiMessageResponse>('/users/location', { latitude, longitude })
+  return { message: data.message }
+}
+
 export const updateMe = updateCurrentUser;
 export const changePassword = changeCurrentPassword;

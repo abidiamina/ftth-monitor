@@ -17,9 +17,10 @@ import { DashboardTabs } from '@/components/dashboard/DashboardTabs'
 import { NotificationsPanel } from '@/components/dashboard/NotificationsPanel'
 import { TechnicianSprint3Panel } from '@/components/sprint3/TechnicianSprint3Panel'
 import { validatePasswordChangeForm } from '@/lib/validation'
-import { changeCurrentPassword, getCurrentUser } from '@/services/authApi'
+import { changeCurrentPassword, getCurrentUser, updateTechnicianLocation } from '@/services/authApi'
 import { listInterventions, updateIntervention } from '@/services/interventionApi'
 import { listNotifications, markNotificationAsRead } from '@/services/notificationApi'
+import { getSocket } from '@/services/socketService'
 import type {
   CurrentUser,
   InterventionRecord,
@@ -70,7 +71,18 @@ export const TechnicienDashboardPage = () => {
     }
   }
 
-  useEffect(() => { loadDashboard() }, [])
+  useEffect(() => { 
+    loadDashboard() 
+    
+    const socket = getSocket()
+    socket.on('intervention_updated', () => {
+      loadDashboard()
+    })
+
+    return () => {
+      socket.off('intervention_updated')
+    }
+  }, [])
 
   const missionDeck = useMemo(() => ({
     pending: interventions.filter(i => i.statut === 'EN_ATTENTE'),
@@ -122,6 +134,33 @@ export const TechnicienDashboardPage = () => {
       setInterventions(curr => curr.filter(i => i.id !== id))
     } catch (error) { toast.error('Action impossible.') }
     finally { setActionId(null) }
+  }
+
+  const [updatingLocation, setUpdatingLocation] = useState(false)
+  const handleUpdateLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("La géolocalisation n'est pas supportée par votre navigateur.")
+      return
+    }
+
+    setUpdatingLocation(true)
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          await updateTechnicianLocation(position.coords.latitude, position.coords.longitude)
+          toast.success('Position GPS mise à jour avec succès.')
+        } catch (error) {
+          toast.error('Erreur lors de la mise à jour de la position.')
+        } finally {
+          setUpdatingLocation(false)
+        }
+      },
+      (error) => {
+        setUpdatingLocation(false)
+        toast.error('Impossible de récupérer votre position.')
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    )
   }
 
   const renderInterventionCard = (i: InterventionRecord, actions: React.ReactNode) => (
@@ -203,6 +242,18 @@ export const TechnicienDashboardPage = () => {
                 <p className='text-[10px] font-black uppercase tracking-[0.2em] text-sky-600'>En cours</p>
                 <p className='mt-2 text-3xl font-black text-slate-950'>{missionDeck.active.length}</p>
               </div>
+            </div>
+
+            {/* GPS Location Button */}
+            <div className='mt-6'>
+              <button
+                onClick={handleUpdateLocation}
+                disabled={updatingLocation}
+                className='inline-flex items-center gap-3 rounded-full border border-emerald-200 bg-emerald-50 px-6 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-emerald-700 hover:bg-emerald-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed'
+              >
+                <MapPinned className={`h-4 w-4 ${updatingLocation ? 'animate-pulse' : ''}`} />
+                {updatingLocation ? 'Localisation en cours...' : 'Mettre à jour ma position GPS'}
+              </button>
             </div>
           </div>
 

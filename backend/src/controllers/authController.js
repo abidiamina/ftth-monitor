@@ -66,10 +66,6 @@ const register = async (req, res) => {
         role: 'CLIENT',
         client: {
           create: {
-            nom: nom.trim(),
-            prenom: prenom.trim(),
-            email: normalizedEmail,
-            telephone: telephone.trim(),
             adresse: adresse.trim(),
           },
         },
@@ -248,9 +244,6 @@ const updateMe = async (req, res) => {
         await tx.client.update({
           where: { id: currentUser.client.id },
           data: {
-            nom: nom.trim(),
-            prenom: prenom.trim(),
-            telephone: telephone?.trim() || '',
             adresse: adresse.trim(),
           },
         });

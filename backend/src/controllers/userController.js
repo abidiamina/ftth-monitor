@@ -387,10 +387,6 @@ const updateUser = async (req, res) => {
         await tx.client.updateMany({
           where: { utilisateurId: userId },
           data: {
-            nom: normalizedNom,
-            prenom: normalizedPrenom,
-            email: normalizedEmail,
-            telephone: normalizedTelephone,
             adresse: normalizedAdresse,
           },
         });
@@ -418,10 +414,6 @@ const updateUser = async (req, res) => {
         await tx.client.create({
           data: {
             utilisateurId: userId,
-            nom: normalizedNom,
-            prenom: normalizedPrenom,
-            email: normalizedEmail,
-            telephone: normalizedTelephone,
             adresse: normalizedAdresse,
           },
         });
@@ -526,9 +518,8 @@ const deleteUser = async (req, res) => {
 
     await prisma.$transaction(async (tx) => {
       if (existingUser.role === 'CLIENT') {
-        await tx.client.updateMany({
+        await tx.client.deleteMany({
           where: { utilisateurId: userId },
-          data: { utilisateurId: null },
         });
       }
 
@@ -597,6 +588,35 @@ const resetEmployeePassword = async (req, res) => {
   }
 };
 
+const updateTechnicianLocation = async (req, res) => {
+  try {
+    const { latitude, longitude } = req.body;
+    const userId = req.user.id;
+
+    if (latitude === undefined || longitude === undefined) {
+      return res.status(400).json({ success: false, message: 'Coordonnees manquantes.' });
+    }
+
+    const technicien = await prisma.technicien.findUnique({
+      where: { utilisateurId: userId },
+    });
+
+    if (!technicien) {
+      return res.status(404).json({ success: false, message: 'Technicien introuvable.' });
+    }
+
+    await prisma.technicien.update({
+      where: { id: technicien.id },
+      data: { latitude, longitude },
+    });
+
+    res.json({ success: true, message: 'Position mise a jour.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur lors de la mise a jour de la position.' });
+  }
+};
+
 module.exports = {
   createEmployee,
   deleteUser,
@@ -606,4 +626,5 @@ module.exports = {
   resetEmployeePassword,
   updateUser,
   updateUserStatus,
+  updateTechnicianLocation,
 };

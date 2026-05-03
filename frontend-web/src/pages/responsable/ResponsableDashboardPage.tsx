@@ -16,9 +16,11 @@ import {
   updateIntervention,
 } from '@/services/interventionApi'
 import { listNotifications, markNotificationAsRead } from '@/services/notificationApi'
+import { getSocket } from '@/services/socketService'
 import { normalizePhotoData, parseSignatureToPath } from '@/lib/interventionUtils'
 import { MapInterventionsView } from '@/components/dashboard/MapInterventionsView'
 import { DashboardMetrics } from '@/components/dashboard/DashboardMetrics'
+import { TechnicianPerformanceRanking } from '@/components/dashboard/TechnicianPerformanceRanking'
 import { WeatherWidget } from '@/components/dashboard/WeatherWidget'
 import { TechnicianAlertsWidget } from '@/components/dashboard/TechnicianAlertsWidget'
 import type {
@@ -61,6 +63,17 @@ const formatValidationDate = (value?: string | null) => {
   })
 }
 
+// Calcul de distance (formule Haversine)
+const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
 const getErrorMessage = (error: unknown, fallback: string) => {
   if (
     typeof error === 'object' &&
@@ -79,11 +92,7 @@ const isInterventionDelayed = (intervention: InterventionRecord) => {
   if (intervention.statut === 'TERMINEE' || intervention.statut === 'ANNULEE' || !intervention.datePlanifiee) {
     return false
   }
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const planDate = new Date(intervention.datePlanifiee)
-  planDate.setHours(0, 0, 0, 0)
-  return planDate.getTime() < today.getTime()
+  return new Date(intervention.datePlanifiee).getTime() < new Date().getTime()
 }
 
 export const ResponsableDashboardPage = () => {
@@ -110,6 +119,7 @@ export const ResponsableDashboardPage = () => {
     technicienId: '',
   })
   const [assignmentDrafts, setAssignmentDrafts] = useState<Record<number, string>>({})
+  const [plannedDateDrafts, setPlannedDateDrafts] = useState<Record<number, string>>({})
   const [priorityDrafts, setPriorityDrafts] = useState<Record<number, InterventionPriority>>({})
 
   const loadDashboard = async () => {
@@ -131,6 +141,11 @@ export const ResponsableDashboardPage = () => {
           interventionsData.map((item) => [item.id, item.technicienId ? String(item.technicienId) : ''])
         )
       )
+      setPlannedDateDrafts(
+        Object.fromEntries(
+          interventionsData.map((item) => [item.id, item.datePlanifiee ? item.datePlanifiee.slice(0, 16) : ''])
+        )
+      )
       setPriorityDrafts(
         Object.fromEntries(interventionsData.map((item) => [item.id, item.priorite]))
       )
@@ -143,6 +158,18 @@ export const ResponsableDashboardPage = () => {
 
   useEffect(() => {
     loadDashboard()
+    
+    // Initialisation Socket.io
+    const socket = getSocket()
+    
+    socket.on('intervention_updated', (data) => {
+      console.log('🔄 Mise à jour temps réel reçue:', data)
+      loadDashboard()
+    })
+
+    return () => {
+      socket.off('intervention_updated')
+    }
   }, [])
 
   const stats = useMemo(() => {
@@ -247,9 +274,20 @@ export const ResponsableDashboardPage = () => {
 
   const handleAssign = async (intervention: InterventionRecord) => {
     try {
+      const newTechnicienId = assignmentDrafts[intervention.id] || null
+      let motifRefus = undefined
+
+      if (intervention.technicienId && !newTechnicienId) {
+        const motif = window.prompt('Motif du retrait du technicien :', 'Changement de planning / Indisponibilité')
+        if (motif === null) return // Annuler l'opération
+        motifRefus = motif
+      }
+
       const response = await updateIntervention(intervention.id, {
-        technicienId: assignmentDrafts[intervention.id] || null,
-      })
+        technicienId: newTechnicienId,
+        datePlanifiee: plannedDateDrafts[intervention.id] || null,
+        motifRefus,
+      } as any)
       toast.success('Affectation enregistrée.')
       setInterventions((current) =>
         current.map((item) => (item.id === intervention.id ? response.data : item))
@@ -414,7 +452,9 @@ export const ResponsableDashboardPage = () => {
   const renderInterventionCard = (intervention: InterventionRecord) => {
     const assignmentInitial = intervention.technicienId ? String(intervention.technicienId) : ''
     const assignmentValue = assignmentDrafts[intervention.id] ?? ''
-    const assignmentChanged = assignmentValue !== assignmentInitial
+    const plannedDateInitial = intervention.datePlanifiee ? intervention.datePlanifiee.slice(0, 16) : ''
+    const plannedDateValue = plannedDateDrafts[intervention.id] ?? ''
+    const assignmentChanged = assignmentValue !== assignmentInitial || plannedDateValue !== plannedDateInitial
     const priorityValue = priorityDrafts[intervention.id] ?? intervention.priorite
     const priorityChanged = priorityValue !== intervention.priorite
 
@@ -524,6 +564,32 @@ export const ResponsableDashboardPage = () => {
                     </div>
                   </div>
                 )}
+                
+                {intervention.refus && intervention.refus.length > 0 && (
+                  <div className='pt-6 border-t border-slate-100'>
+                    <p className='text-[10px] font-black text-rose-500 uppercase tracking-widest mb-4 flex items-center gap-2'>
+                      <LogOut className="h-3 w-3" /> Historique des Refus ({intervention.refus.length})
+                    </p>
+                    <div className='space-y-3'>
+                      {intervention.refus.map((r) => (
+                        <div key={r.id} className="bg-rose-50/50 p-3 rounded-2xl border border-rose-100 flex items-start gap-3">
+                          <div className="p-2 bg-white rounded-lg text-rose-500 border border-rose-100">
+                             <User className="h-3.5 w-3.5" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-900">
+                              {r.technicien?.utilisateur.prenom} {r.technicien?.utilisateur.nom}
+                              <span className="ml-2 font-normal text-slate-400">• {formatDate(r.createdAt)}</span>
+                            </p>
+                            <p className="text-xs text-rose-700 mt-1 font-medium leading-relaxed">
+                              " {r.motif} "
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {intervention.statut === 'TERMINEE' && (
                   <div className='grid gap-6 pt-6 border-t border-slate-100'>
@@ -554,7 +620,18 @@ export const ResponsableDashboardPage = () => {
                     
                     {(intervention.clientFeedbackRating !== null || intervention.clientFeedbackComment) && (
                       <div className='space-y-3'>
-                        <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest'>Évaluation & Note</p>
+                        <div className='flex items-center justify-between'>
+                          <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest'>Évaluation & Note</p>
+                          {intervention.clientFeedbackSentiment && (
+                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-tighter ${
+                              intervention.clientFeedbackSentiment === 'POSITIVE' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                              intervention.clientFeedbackSentiment === 'NEGATIVE' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                              'bg-slate-50 text-slate-600 border border-slate-100'
+                            }`}>
+                              Sentiment {intervention.clientFeedbackSentiment === 'POSITIVE' ? 'Positif' : intervention.clientFeedbackSentiment === 'NEGATIVE' ? 'Négatif' : 'Neutre'}
+                            </span>
+                          )}
+                        </div>
                         <div className='bg-white rounded-2xl border border-slate-100 p-5 shadow-sm'>
                           {intervention.clientFeedbackRating !== null && (
                             <div className='flex items-center gap-1 mb-3'>
@@ -582,24 +659,65 @@ export const ResponsableDashboardPage = () => {
 
           <div className='flex flex-col gap-3 min-w-[240px]'>
             <div className='p-4 rounded-2xl bg-white border border-slate-100/50 shadow-sm'>
-              <p className='text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3'>Assignation Technicien</p>
-              <div className='flex flex-col gap-2'>
-                <select
-                  value={assignmentValue}
-                  onChange={(e) => setAssignmentDrafts(c => ({...c, [intervention.id]: e.target.value}))}
-                  className='w-full bg-slate-50 rounded-xl px-3 py-2 text-xs font-bold border-none'
-                >
-                  <option value=''>Non assigné</option>
-                  {technicians.map(t => <option key={t.id} value={t.id}>{t.utilisateur.prenom}</option>)}
-                </select>
-                <button
-                  onClick={() => handleAssign(intervention)}
-                  disabled={!assignmentChanged}
-                  className='w-full py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30'
-                >
-                  Save
-                </button>
-              </div>
+              <p className='text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1'>Assignation Technicien</p>
+              {(() => {
+                // Sort technicians by proximity if intervention has coordinates
+                const hasCoords = intervention.latitude && intervention.longitude
+                const sortedTechnicians = hasCoords
+                  ? [...technicians]
+                      .map(t => ({
+                        ...t,
+                        distanceKm: t.latitude && t.longitude
+                          ? getDistanceKm(intervention.latitude!, intervention.longitude!, t.latitude, t.longitude)
+                          : null,
+                      }))
+                      .sort((a, b) => {
+                        if (a.distanceKm === null) return 1
+                        if (b.distanceKm === null) return -1
+                        return a.distanceKm - b.distanceKm
+                      })
+                  : technicians.map(t => ({ ...t, distanceKm: null }))
+                const nearest = sortedTechnicians.find(t => t.distanceKm !== null)
+                return (
+                  <div className='flex flex-col gap-2'>
+                    {nearest && hasCoords && (
+                      <button
+                        onClick={() => setAssignmentDrafts(c => ({...c, [intervention.id]: String(nearest.id)}))}
+                        className='w-full py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-colors'
+                      >
+                        📍 Suggérer le + proche ({nearest.utilisateur.prenom}, {nearest.distanceKm!.toFixed(1)} km)
+                      </button>
+                    )}
+                    <select
+                      value={assignmentValue}
+                      onChange={(e) => setAssignmentDrafts(c => ({...c, [intervention.id]: e.target.value}))}
+                      className='w-full bg-slate-50 rounded-xl px-3 py-2 text-xs font-bold border-none'
+                    >
+                      <option value=''>Non assigné</option>
+                      {sortedTechnicians.map((t, idx) => (
+                        <option key={t.id} value={t.id}>
+                          {idx === 0 && hasCoords && t.distanceKm !== null ? '📍 ' : ''}
+                          {t.utilisateur.prenom} {t.utilisateur.nom}
+                          {t.distanceKm !== null ? ` (${t.distanceKm.toFixed(1)} km)` : ' (pos. inconnue)'}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="datetime-local"
+                      value={plannedDateValue}
+                      onChange={(e) => setPlannedDateDrafts(c => ({...c, [intervention.id]: e.target.value}))}
+                      className='w-full bg-slate-50 rounded-xl px-3 py-2 text-xs font-bold border-none'
+                    />
+                    <button
+                      onClick={() => handleAssign(intervention)}
+                      disabled={!assignmentChanged}
+                      className='w-full py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30'
+                    >
+                      Save
+                    </button>
+                  </div>
+                )
+              })()}
             </div>
 
             <div className='p-4 rounded-2xl bg-white border border-slate-100/50 shadow-sm'>
@@ -850,16 +968,19 @@ export const ResponsableDashboardPage = () => {
           </div>
         ) : tab === 'NOTIFICATIONS' ? (
            <NotificationsPanel notifications={notifications} loading={loading} onMarkAsRead={handleMarkNotificationAsRead} />
-        ) : tab === 'SUPERVISION' ? (
-           <div className='max-w-7xl mx-auto'>
-              <div className='flex items-center justify-between mb-10'>
-                 <div>
-                    <h2 className='text-4xl font-black text-slate-950 tracking-tight'>Pilotage <span className="text-sky-600 italic">Opérationnel.</span></h2>
-                    <p className='text-slate-500 font-medium mt-1'>Analyse en temps réel de la performance de vos missions.</p>
-                 </div>
-              </div>
-              <DashboardMetrics interventions={interventions} />
-           </div>
+         ) : tab === 'SUPERVISION' ? (
+            <div className='max-w-7xl mx-auto'>
+               <div className='flex items-center justify-between mb-10'>
+                  <div>
+                     <h2 className='text-4xl font-black text-slate-950 tracking-tight'>Pilotage <span className="text-sky-600 italic">Opérationnel.</span></h2>
+                     <p className='text-slate-500 font-medium mt-1'>Analyse en temps réel de la performance de vos missions.</p>
+                  </div>
+               </div>
+               <div className='grid gap-8 lg:grid-cols-[1fr_350px]'>
+                  <DashboardMetrics interventions={interventions} />
+                  <TechnicianPerformanceRanking />
+               </div>
+            </div>
         ) : tab === 'RAPPORTS' ? (
           <div className='max-w-2xl mx-auto py-10'>
             <div className='dashboard-card p-10 text-center border-2 border-dashed border-slate-200 bg-slate-50/30'>
