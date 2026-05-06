@@ -174,12 +174,17 @@ export const ResponsableDashboardPage = () => {
 
   const stats = useMemo(() => {
     const total = interventions.length
+    const completed = interventions.filter(i => i.statut === 'TERMINEE').length
     const enCours = interventions.filter((item) => item.statut === 'EN_COURS').length
     const urgentes = interventions.filter((item) => item.priorite === 'URGENTE').length
     const sansTechnicien = interventions.filter((item) => !item.technicienId).length
     const unread = notifications.filter((item) => !item.lu).length
 
-    return { total, enCours, urgentes, sansTechnicien, unread }
+    const performance = total > 0 ? Math.round((completed / total) * 100) : 0
+    const ratings = interventions.filter(i => i.clientFeedbackRating !== null).map(i => i.clientFeedbackRating!)
+    const qualite = ratings.length > 0 ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : '0.0'
+
+    return { total, enCours, urgentes, sansTechnicien, unread, performance, qualite }
   }, [interventions, notifications])
 
   const tabs = useMemo(
@@ -322,12 +327,21 @@ export const ResponsableDashboardPage = () => {
       toast.error(getErrorMessage(error, 'Mise à jour impossible.'))
     }
   }
-
   const generatePDFReport = () => {
     try {
-      const doc = new jsPDF()
-      
+      if (!selectedReportDate) {
+        toast.error('Veuillez sélectionner une date pour le rapport.')
+        return
+      }
+
       const targetDateObj = new Date(selectedReportDate)
+      const today = new Date()
+      
+      if (targetDateObj > today) {
+        toast.error('Impossible de générer un rapport pour une date future.')
+        return
+      }
+
       const targetDateStr = targetDateObj.toLocaleDateString('fr-FR')
 
       // Données du jour sélectionné
@@ -337,12 +351,20 @@ export const ResponsableDashboardPage = () => {
       )
 
       const totalJour = interventionsDuJour.length
+      
+      if (totalJour === 0) {
+        toast.error(`Aucune activité enregistrée pour le ${targetDateStr}.`)
+        return
+      }
+
       const clotureesJour = interventionsDuJour.filter(i => i.statut === 'TERMINEE').length
       const enCoursJour = interventionsDuJour.filter(i => i.statut === 'EN_COURS').length
       const attenteJour = interventionsDuJour.filter(i => i.statut === 'EN_ATTENTE').length
       const urgentesJour = interventionsDuJour.filter(i => i.priorite === 'URGENTE').length
       
-      const tauxResolution = totalJour > 0 ? Math.round((clotureesJour / totalJour) * 100) : 0
+      const tauxResolution = Math.round((clotureesJour / totalJour) * 100)
+
+      const doc = new jsPDF()
 
       // En-tête Principal
       doc.setFontSize(24)
@@ -462,14 +484,14 @@ export const ResponsableDashboardPage = () => {
     const isDelayed = isInterventionDelayed(intervention)
 
     return (
-      <div key={intervention.id} className={`dashboard-card group animate-in fade-in slide-in-from-bottom-4 duration-500 ${isUrgent ? '!border-2 !border-rose-500 !bg-rose-50 shadow-[0_0_15px_rgba(244,63,94,0.3)] relative overflow-hidden' : ''}`}>
+      <div key={intervention.id} className={`dashboard-card group animate-in fade-in slide-in-from-bottom-4 duration-500 ${isUrgent ? '!border-2 !border-rose-500 !bg-rose-50 dark:!bg-rose-950/20 shadow-[0_0_15px_rgba(244,63,94,0.3)] relative overflow-hidden' : 'dark:bg-slate-900 dark:border-slate-800'}`}>
         {isUrgent && (
           <div className="absolute top-0 left-0 w-1.5 h-full bg-rose-500 animate-pulse" />
         )}
         <div className='flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between'>
           <div className='flex-1 min-w-0'>
             <div className='flex flex-wrap items-center gap-2 mb-4'>
-              <h3 className='text-xl font-extrabold text-slate-950 truncate tracking-tight'>{intervention.titre}</h3>
+              <h3 className='text-xl font-extrabold text-slate-950 dark:text-white truncate tracking-tight'>{intervention.titre}</h3>
               <span className={`badge-status ${
                 intervention.statut === 'EN_ATTENTE' ? 'badge-pending' : 
                 intervention.statut === 'EN_COURS' ? 'badge-working' : 
@@ -477,11 +499,11 @@ export const ResponsableDashboardPage = () => {
               }`}>
                 {statusLabels[intervention.statut]}
               </span>
-              <span className='px-3 py-1 rounded-full bg-slate-100/50 border border-slate-200/50 text-[10px] font-black text-slate-500 uppercase tracking-widest'>
+              <span className='px-3 py-1 rounded-full bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest'>
                 {priorityLabels[intervention.priorite]}
               </span>
               {isDelayed && (
-                <span className='px-3 py-1 rounded-full bg-rose-100/80 border border-rose-200/50 text-[10px] font-black text-rose-600 uppercase tracking-widest shadow-sm animate-pulse flex items-center gap-1'>
+                <span className='px-3 py-1 rounded-full bg-rose-100/80 dark:bg-rose-900/40 border border-rose-200/50 dark:border-rose-800/50 text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest shadow-sm animate-pulse flex items-center gap-1'>
                   En Retard
                 </span>
               )}
@@ -492,11 +514,11 @@ export const ResponsableDashboardPage = () => {
               )}
               <div className="w-full sm:w-auto sm:ml-auto flex items-center gap-2">
                 {intervention.datePlanifiee && (
-                  <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm ${isDelayed ? 'bg-rose-50 border-rose-200 text-rose-600' : 'bg-white/50 border-slate-100 text-slate-500'}`}>
+                  <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm ${isDelayed ? 'bg-rose-50 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400' : 'bg-white/50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400'}`}>
                     Prévue le : {formatDate(intervention.datePlanifiee)}
                   </span>
                 )}
-                <span className='text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white/50 px-3 py-1 rounded-full border border-slate-100 shadow-sm'>
+                <span className='text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest bg-white/50 dark:bg-slate-800/50 px-3 py-1 rounded-full border border-slate-100 dark:border-slate-800 shadow-sm'>
                   Ajoutée le : {formatDate(intervention.dateCreation)}
                 </span>
               </div>
@@ -504,34 +526,34 @@ export const ResponsableDashboardPage = () => {
 
             <div className='grid gap-6 sm:grid-cols-2'>
               <div className='flex items-center gap-4'>
-                <div className='p-3 bg-slate-50 rounded-2xl border border-slate-100/50 text-emerald-500'>
+                <div className='p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100/50 dark:border-slate-700/50 text-emerald-500'>
                   <MapPin className='h-4.5 w-4.5' />
                 </div>
                 <div className='min-w-0'>
-                  <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5'>Localisation</p>
-                  <p className='text-sm font-bold text-slate-900 truncate'>{intervention.adresse}</p>
+                  <p className='text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5'>Localisation</p>
+                  <p className='text-sm font-bold text-slate-900 dark:text-slate-100 truncate'>{intervention.adresse}</p>
                 </div>
               </div>
               <div className='flex items-center gap-4'>
-                <div className='p-3 bg-slate-50 rounded-2xl border border-slate-100/50 text-sky-500'>
+                <div className='p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100/50 dark:border-slate-700/50 text-sky-500'>
                   <UsersRound className='h-4.5 w-4.5' />
                 </div>
                 <div className='min-w-0'>
-                  <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5'>Client</p>
-                  <p className='text-sm font-bold text-slate-900 truncate'>{intervention.client.prenom} {intervention.client.nom}</p>
+                  <p className='text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5'>Client</p>
+                  <p className='text-sm font-bold text-slate-900 dark:text-slate-100 truncate'>{intervention.client.prenom} {intervention.client.nom}</p>
                 </div>
               </div>
             </div>
 
-            <details className='mt-6 rounded-3xl border border-slate-200/50 bg-slate-50/30 p-5 group/details'>
-              <summary className='cursor-pointer text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-900 transition-colors'>
+            <details className='mt-6 rounded-3xl border border-slate-200/50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20 p-5 group/details'>
+              <summary className='cursor-pointer text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors'>
                 Rapport Terrain détaillé
               </summary>
               <div className='mt-5 space-y-6'>
                 {intervention.description && (
-                  <div className="bg-white p-4 rounded-2xl border border-slate-100">
-                    <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2'>Description</p>
-                    <p className='text-slate-700 text-sm leading-relaxed'>{intervention.description}</p>
+                  <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
+                    <p className='text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2'>Description</p>
+                    <p className='text-slate-700 dark:text-slate-300 text-sm leading-relaxed'>{intervention.description}</p>
                   </div>
                 )}
                 <div className='grid gap-3 sm:grid-cols-2'>
@@ -577,9 +599,9 @@ export const ResponsableDashboardPage = () => {
                              <User className="h-3.5 w-3.5" />
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-slate-900">
+                            <p className="text-xs font-bold text-slate-900 dark:text-slate-100">
                               {r.technicien?.utilisateur.prenom} {r.technicien?.utilisateur.nom}
-                              <span className="ml-2 font-normal text-slate-400">• {formatDate(r.createdAt)}</span>
+                              <span className="ml-2 font-normal text-slate-400 dark:text-slate-500">• {formatDate(r.createdAt)}</span>
                             </p>
                             <p className="text-xs text-rose-700 mt-1 font-medium leading-relaxed">
                               " {r.motif} "
@@ -621,7 +643,7 @@ export const ResponsableDashboardPage = () => {
                     {(intervention.clientFeedbackRating !== null || intervention.clientFeedbackComment) && (
                       <div className='space-y-3'>
                         <div className='flex items-center justify-between'>
-                          <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest'>Évaluation & Note</p>
+                          <p className='text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest'>Évaluation & Note</p>
                           {intervention.clientFeedbackSentiment && (
                             <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-tighter ${
                               intervention.clientFeedbackSentiment === 'POSITIVE' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
@@ -632,19 +654,19 @@ export const ResponsableDashboardPage = () => {
                             </span>
                           )}
                         </div>
-                        <div className='bg-white rounded-2xl border border-slate-100 p-5 shadow-sm'>
+                        <div className='bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-5 shadow-sm'>
                           {intervention.clientFeedbackRating !== null && (
                             <div className='flex items-center gap-1 mb-3'>
                               {[...Array(5)].map((_, i) => (
                                 <Star 
                                   key={i} 
-                                  className={`h-4 w-4 ${i < (intervention.clientFeedbackRating || 0) ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} 
+                                  className={`h-4 w-4 ${i < (intervention.clientFeedbackRating || 0) ? 'text-amber-400 fill-amber-400' : 'text-slate-200 dark:text-slate-700'}`} 
                                 />
                               ))}
                             </div>
                           )}
                           {intervention.clientFeedbackComment && (
-                            <p className='text-sm font-medium text-slate-700 leading-relaxed italic border-l-2 border-slate-100 pl-4'>
+                            <p className='text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed italic border-l-2 border-slate-100 dark:border-slate-700 pl-4'>
                               "{intervention.clientFeedbackComment}"
                             </p>
                           )}
@@ -658,10 +680,9 @@ export const ResponsableDashboardPage = () => {
           </div>
 
           <div className='flex flex-col gap-3 min-w-[240px]'>
-            <div className='p-4 rounded-2xl bg-white border border-slate-100/50 shadow-sm'>
+            <div className='p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100/50 dark:border-slate-700 shadow-sm'>
               <p className='text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1'>Assignation Technicien</p>
               {(() => {
-                // Sort technicians by proximity if intervention has coordinates
                 const hasCoords = intervention.latitude && intervention.longitude
                 const sortedTechnicians = hasCoords
                   ? [...technicians]
@@ -691,7 +712,7 @@ export const ResponsableDashboardPage = () => {
                     <select
                       value={assignmentValue}
                       onChange={(e) => setAssignmentDrafts(c => ({...c, [intervention.id]: e.target.value}))}
-                      className='w-full bg-slate-50 rounded-xl px-3 py-2 text-xs font-bold border-none'
+                      className='w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2 text-xs font-bold border-none dark:text-white'
                     >
                       <option value=''>Non assigné</option>
                       {sortedTechnicians.map((t, idx) => (
@@ -706,12 +727,12 @@ export const ResponsableDashboardPage = () => {
                       type="datetime-local"
                       value={plannedDateValue}
                       onChange={(e) => setPlannedDateDrafts(c => ({...c, [intervention.id]: e.target.value}))}
-                      className='w-full bg-slate-50 rounded-xl px-3 py-2 text-xs font-bold border-none'
+                      className='w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2 text-xs font-bold border-none dark:text-white'
                     />
                     <button
                       onClick={() => handleAssign(intervention)}
                       disabled={!assignmentChanged}
-                      className='w-full py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30'
+                      className='w-full py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-950 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30'
                     >
                       Save
                     </button>
@@ -720,13 +741,13 @@ export const ResponsableDashboardPage = () => {
               })()}
             </div>
 
-            <div className='p-4 rounded-2xl bg-white border border-slate-100/50 shadow-sm'>
+            <div className='p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100/50 dark:border-slate-700 shadow-sm'>
               <p className='text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3'>Priorité</p>
               <div className='flex flex-col gap-2'>
                 <select
                   value={priorityValue}
                   onChange={(e) => setPriorityDrafts(c => ({...c, [intervention.id]: e.target.value as InterventionPriority}))}
-                  className='w-full bg-slate-50 rounded-xl px-3 py-2 text-xs font-bold border-none'
+                  className='w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2 text-xs font-bold border-none dark:text-white'
                 >
                   <option value='BASSE'>Basse</option>
                   <option value='NORMALE'>Normale</option>
@@ -736,7 +757,7 @@ export const ResponsableDashboardPage = () => {
                 <button
                   onClick={() => handlePriority(intervention)}
                   disabled={!priorityChanged}
-                  className='w-full py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30'
+                  className='w-full py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-950 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30'
                 >
                   Update
                 </button>
@@ -747,14 +768,14 @@ export const ResponsableDashboardPage = () => {
               <button
                 disabled={intervention.statut !== 'EN_ATTENTE'}
                 onClick={() => handleUpdateStatus(intervention, 'EN_COURS')}
-                className='py-2.5 bg-sky-50 text-sky-600 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 border border-sky-100'
+                className='py-2.5 bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 border border-sky-100 dark:border-sky-800'
               >
                 Start
               </button>
               <button
                 disabled={intervention.statut !== 'EN_COURS'}
                 onClick={() => handleUpdateStatus(intervention, 'TERMINEE')}
-                className='py-2.5 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 border border-emerald-100'
+                className='py-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 border border-emerald-100 dark:border-emerald-800'
               >
                 Finish
               </button>
@@ -784,21 +805,21 @@ export const ResponsableDashboardPage = () => {
               <ShieldCheck className='h-4 w-4' />
               Pilotage Responsable
             </div>
-            <h1 className='mt-8 text-5xl font-black tracking-tight text-slate-950 sm:text-7xl leading-[1.05]'>
+            <h1 className='mt-8 text-5xl font-black tracking-tight text-slate-950 dark:text-white sm:text-7xl leading-[1.05]'>
               Opérations <span className="text-sky-500 italic">Live.</span>
             </h1>
-            <p className="mt-6 text-slate-500 font-medium max-w-lg leading-relaxed text-lg">
+            <p className="mt-6 text-slate-500 dark:text-slate-400 font-medium max-w-lg leading-relaxed text-lg">
               Surveillance proactive du réseau et gestion agile des interventions terrain.
             </p>
 
             <div className='mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
-              <div className='stat-pill bg-white/40'>
+              <div className='stat-pill bg-white/40 dark:bg-slate-800/40'>
                 <p className='text-[10px] font-black uppercase tracking-[0.2em] text-sky-600'>Activité</p>
-                <p className='mt-2 text-3xl font-black text-slate-950'>{stats.enCours} <span className="text-lg font-bold text-slate-400">en cours</span></p>
+                <p className='mt-2 text-3xl font-black text-slate-950 dark:text-white'>{stats.enCours} <span className="text-lg font-bold text-slate-400">en cours</span></p>
               </div>
-              <div className='stat-pill bg-white/40'>
+              <div className='stat-pill bg-white/40 dark:bg-slate-800/40'>
                 <p className='text-[10px] font-black uppercase tracking-[0.2em] text-rose-500'>Alerte</p>
-                <p className='mt-2 text-3xl font-black text-slate-950'>{stats.urgentes} <span className="text-lg font-bold text-slate-400">urgents</span></p>
+                <p className='mt-2 text-3xl font-black text-slate-950 dark:text-white'>{stats.urgentes} <span className="text-lg font-bold text-slate-400">urgents</span></p>
               </div>
               <TechnicianAlertsWidget interventions={interventions} technicians={technicians} />
               <WeatherWidget />
@@ -806,15 +827,15 @@ export const ResponsableDashboardPage = () => {
           </div>
 
           <div className='grid gap-4 sm:grid-cols-2'>
-            <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40'>
+            <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 dark:bg-slate-800/40 border-white dark:border-slate-800 shadow-sm flex flex-col justify-between h-40'>
               <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Total Missions</p>
-              <p className='text-5xl font-black text-slate-950'>{stats.total}</p>
+              <p className='text-5xl font-black text-slate-950 dark:text-white'>{stats.total}</p>
             </article>
             <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40'>
               <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Sans Technicien</p>
               <p className='text-5xl font-black text-amber-500'>{stats.sansTechnicien}</p>
             </article>
-            <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40'>
+            <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 dark:bg-slate-800/40 border-white dark:border-slate-800 shadow-sm flex flex-col justify-between h-40'>
               <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Statut Réseau</p>
               <p className='text-3xl font-black text-emerald-500 uppercase tracking-tighter'>Optimal</p>
             </article>
@@ -846,9 +867,9 @@ export const ResponsableDashboardPage = () => {
                 <>
                   <div className='flex flex-col gap-4 mb-2'>
                     <div className='flex flex-wrap items-center justify-between gap-4'>
-                      <h2 className='text-2xl font-black text-slate-950 tracking-tight'>Flux de travail</h2>
-                      <div className='flex items-center gap-3 bg-white/50 p-2 rounded-2xl border border-white'>
-                        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className='bg-transparent border-none text-xs font-black uppercase tracking-widest text-slate-500'>
+                      <h2 className='text-2xl font-black text-slate-950 dark:text-white tracking-tight'>Flux de travail</h2>
+                      <div className='flex items-center gap-3 bg-white/50 dark:bg-slate-800/50 p-2 rounded-2xl border border-white dark:border-slate-700'>
+                        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className='bg-transparent border-none text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-300'>
                           <option value='ALL'>Tous Statuts</option>
                           <option value='EN_ATTENTE'>En attente</option>
                           <option value='EN_COURS'>En cours</option>
@@ -860,25 +881,25 @@ export const ResponsableDashboardPage = () => {
                     <div className='flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide'>
                       <button 
                         onClick={() => setCategoryFilter('ALL')}
-                        className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all ${categoryFilter === 'ALL' ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-100'}`}
+                        className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all ${categoryFilter === 'ALL' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-700'}`}
                       >
                         Tout voir
                       </button>
                       <button 
                         onClick={() => setCategoryFilter('URGENTES')}
-                        className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all ${categoryFilter === 'URGENTES' ? 'bg-rose-600 text-white shadow-md' : 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100'}`}
+                        className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all ${categoryFilter === 'URGENTES' ? 'bg-rose-600 text-white shadow-md' : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40 border border-rose-100 dark:border-rose-900/50'}`}
                       >
                         🚨 Urgences ({urgentes.length})
                       </button>
                       <button 
                         onClick={() => setCategoryFilter('RETARD')}
-                        className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all ${categoryFilter === 'RETARD' ? 'bg-amber-500 text-white shadow-md' : 'bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-100'}`}
+                        className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all ${categoryFilter === 'RETARD' ? 'bg-amber-500 text-white shadow-md' : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-100 dark:border-amber-900/50'}`}
                       >
                         ⚠️ En Retard ({enRetard.length})
                       </button>
                       <button 
                         onClick={() => setCategoryFilter('RECENTES')}
-                        className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all ${categoryFilter === 'RECENTES' ? 'bg-sky-600 text-white shadow-md' : 'bg-sky-50 text-sky-600 hover:bg-sky-100 border border-sky-100'}`}
+                        className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all ${categoryFilter === 'RECENTES' ? 'bg-sky-600 text-white shadow-md' : 'bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-900/40 border border-sky-100 dark:border-sky-900/50'}`}
                       >
                         📅 Récentes ({autres.length})
                       </button>
@@ -888,21 +909,21 @@ export const ResponsableDashboardPage = () => {
                   <div className="space-y-6">
                     {(categoryFilter === 'ALL' || categoryFilter === 'URGENTES') && urgentes.length > 0 && (
                       <div className="space-y-4">
-                        {categoryFilter === 'ALL' && <h3 className="text-sm font-black uppercase tracking-widest text-rose-600 flex items-center gap-2 border-b border-rose-100 pb-2">🚨 Urgences à traiter ({urgentes.length})</h3>}
+                        {categoryFilter === 'ALL' && <h3 className="text-sm font-black uppercase tracking-widest text-rose-600 flex items-center gap-2 border-b border-rose-100 dark:border-rose-900 pb-2">🚨 Urgences à traiter ({urgentes.length})</h3>}
                         {urgentes.map(i => renderInterventionCard(i))}
                       </div>
                     )}
                     
                     {(categoryFilter === 'ALL' || categoryFilter === 'RETARD') && enRetard.length > 0 && (
                       <div className="space-y-4">
-                        {categoryFilter === 'ALL' && <h3 className="text-sm font-black uppercase tracking-widest text-amber-600 flex items-center gap-2 border-b border-amber-100 pb-2">⚠️ Missions en retard ({enRetard.length})</h3>}
+                        {categoryFilter === 'ALL' && <h3 className="text-sm font-black uppercase tracking-widest text-amber-600 flex items-center gap-2 border-b border-amber-100 dark:border-amber-900 pb-2">⚠️ Missions en retard ({enRetard.length})</h3>}
                         {enRetard.map(i => renderInterventionCard(i))}
                       </div>
                     )}
 
                     {(categoryFilter === 'ALL' || categoryFilter === 'RECENTES') && autres.length > 0 && (
                       <div className="space-y-4">
-                        {categoryFilter === 'ALL' && <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 border-b border-slate-200 pb-2">📅 Récemment ajoutées ({autres.length})</h3>}
+                        {categoryFilter === 'ALL' && <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">📅 Récemment ajoutées ({autres.length})</h3>}
                         {autres.map(i => renderInterventionCard(i))}
                       </div>
                     )}
@@ -917,18 +938,18 @@ export const ResponsableDashboardPage = () => {
           </div>
         ) : tab === 'CREATION' ? (
           <div className='max-w-2xl mx-auto'>
-            <div className='dashboard-card p-10'>
-              <h2 className='text-3xl font-black text-slate-950 mb-8'>Nouvelle Mission</h2>
+            <div className='dashboard-card p-10 bg-white dark:bg-slate-800'>
+              <h2 className='text-3xl font-black text-slate-950 dark:text-white mb-8'>Nouvelle Mission</h2>
               <form className='space-y-4' onSubmit={handleCreate}>
-                <input placeholder="Titre" className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" value={form.titre} onChange={e => setForm(c => ({...c, titre: e.target.value}))} />
-                <textarea placeholder="Description détaillée de la mission..." rows={6} className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold resize-none" value={form.description} onChange={e => setForm(c => ({...c, description: e.target.value}))} />
-                <textarea placeholder="Adresse" rows={2} className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" value={form.adresse} onChange={e => setForm(c => ({...c, adresse: e.target.value}))} />
+                <input placeholder="Titre" className="w-full bg-slate-50 dark:bg-slate-900 rounded-2xl px-5 py-4 border-none text-sm font-bold dark:text-white" value={form.titre} onChange={e => setForm(c => ({...c, titre: e.target.value}))} />
+                <textarea placeholder="Description détaillée de la mission..." rows={6} className="w-full bg-slate-50 dark:bg-slate-900 rounded-2xl px-5 py-4 border-none text-sm font-bold resize-none dark:text-white" value={form.description} onChange={e => setForm(c => ({...c, description: e.target.value}))} />
+                <textarea placeholder="Adresse" rows={2} className="w-full bg-slate-50 dark:bg-slate-900 rounded-2xl px-5 py-4 border-none text-sm font-bold dark:text-white" value={form.adresse} onChange={e => setForm(c => ({...c, adresse: e.target.value}))} />
                 <div className='grid grid-cols-2 gap-4'>
-                  <select value={form.clientId} onChange={e => setForm(c => ({...c, clientId: e.target.value}))} className='bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold'>
+                  <select value={form.clientId} onChange={e => setForm(c => ({...c, clientId: e.target.value}))} className='bg-slate-50 dark:bg-slate-900 rounded-2xl px-5 py-4 border-none text-sm font-bold dark:text-white'>
                     <option value="">Client</option>
                     {clients.map(c => <option key={c.id} value={c.id}>{c.prenom} {c.nom}</option>)}
                   </select>
-                  <select value={form.priorite} onChange={e => setForm(c => ({...c, priorite: e.target.value as any}))} className='bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold'>
+                  <select value={form.priorite} onChange={e => setForm(c => ({...c, priorite: e.target.value as any}))} className='bg-slate-50 dark:bg-slate-900 rounded-2xl px-5 py-4 border-none text-sm font-bold dark:text-white'>
                     <option value="BASSE">Basse</option>
                     <option value="NORMALE">Normale</option>
                     <option value="HAUTE">Haute</option>
@@ -940,7 +961,7 @@ export const ResponsableDashboardPage = () => {
                     type="number" 
                     step="any"
                     placeholder="Latitude (ex: 36.80)" 
-                    className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" 
+                    className="w-full bg-slate-50 dark:bg-slate-900 rounded-2xl px-5 py-4 border-none text-sm font-bold dark:text-white" 
                     value={form.latitude} 
                     onChange={e => setForm(c => ({...c, latitude: e.target.value}))} 
                   />
@@ -948,7 +969,7 @@ export const ResponsableDashboardPage = () => {
                     type="number" 
                     step="any"
                     placeholder="Longitude (ex: 10.18)" 
-                    className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" 
+                    className="w-full bg-slate-50 dark:bg-slate-900 rounded-2xl px-5 py-4 border-none text-sm font-bold dark:text-white" 
                     value={form.longitude} 
                     onChange={e => setForm(c => ({...c, longitude: e.target.value}))} 
                   />
@@ -957,7 +978,7 @@ export const ResponsableDashboardPage = () => {
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Planification</p>
                   <input 
                     type="datetime-local" 
-                    className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" 
+                    className="w-full bg-slate-50 dark:bg-slate-900 rounded-2xl px-5 py-4 border-none text-sm font-bold dark:text-white" 
                     value={form.datePlanifiee} 
                     onChange={e => setForm(c => ({...c, datePlanifiee: e.target.value}))} 
                   />
@@ -972,8 +993,8 @@ export const ResponsableDashboardPage = () => {
             <div className='max-w-7xl mx-auto'>
                <div className='flex items-center justify-between mb-10'>
                   <div>
-                     <h2 className='text-4xl font-black text-slate-950 tracking-tight'>Pilotage <span className="text-sky-600 italic">Opérationnel.</span></h2>
-                     <p className='text-slate-500 font-medium mt-1'>Analyse en temps réel de la performance de vos missions.</p>
+                     <h2 className='text-4xl font-black text-slate-950 dark:text-white tracking-tight'>Pilotage <span className="text-sky-600 italic">Opérationnel.</span></h2>
+                     <p className='text-slate-500 dark:text-slate-400 font-medium mt-1'>Analyse en temps réel de la performance de vos missions.</p>
                   </div>
                </div>
                <div className='grid gap-8 lg:grid-cols-[1fr_350px]'>
@@ -983,12 +1004,12 @@ export const ResponsableDashboardPage = () => {
             </div>
         ) : tab === 'RAPPORTS' ? (
           <div className='max-w-2xl mx-auto py-10'>
-            <div className='dashboard-card p-10 text-center border-2 border-dashed border-slate-200 bg-slate-50/30'>
-              <div className='h-24 w-24 bg-white rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-sm border border-slate-100 text-slate-400'>
+            <div className='dashboard-card p-10 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/40'>
+              <div className='h-24 w-24 bg-white dark:bg-slate-900 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-sm border border-slate-100 dark:border-slate-800 text-slate-400'>
                 <ClipboardList className='h-12 w-12' />
               </div>
-              <h2 className='text-3xl font-black text-slate-950 mb-4'>Génération de Rapports</h2>
-              <p className='text-slate-500 font-medium mb-10'>Exportez les données d'interventions au format PDF pour vos archives et analyses mensuelles.</p>
+              <h2 className='text-3xl font-black text-slate-950 dark:text-white mb-4'>Génération de Rapports</h2>
+              <p className='text-slate-500 dark:text-slate-400 font-medium mb-10'>Exportez les données d'interventions au format PDF pour vos archives et analyses mensuelles.</p>
               
               <div className='space-y-4'>
                 <div className='flex flex-col items-center gap-2 mb-6'>
@@ -996,14 +1017,15 @@ export const ResponsableDashboardPage = () => {
                   <input 
                     type='date' 
                     value={selectedReportDate}
+                    max={new Date().toISOString().split('T')[0]}
                     onChange={(e) => setSelectedReportDate(e.target.value)}
-                    className='bg-white border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold focus:ring-2 focus:ring-slate-900 transition-all outline-none'
+                    className='bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-6 py-4 text-sm font-bold focus:ring-2 focus:ring-slate-900 dark:focus:ring-white transition-all outline-none dark:text-white'
                   />
                 </div>
 
                 <button 
                   onClick={generatePDFReport}
-                  className='w-full py-5 bg-slate-900 text-white rounded-[1.8rem] text-sm font-black uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all flex items-center justify-center gap-3'
+                  className='w-full py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-950 rounded-[1.8rem] text-sm font-black uppercase tracking-widest shadow-xl shadow-slate-200 dark:shadow-black/50 hover:bg-slate-800 dark:hover:bg-slate-100 transition-all flex items-center justify-center gap-3'
                 >
                   <ClipboardList className='h-5 w-5' />
                   Générer le Rapport
@@ -1019,7 +1041,10 @@ export const ResponsableDashboardPage = () => {
                    <p className='text-slate-500 font-medium mt-1'>Résumé de l'activité NOC en temps réel.</p>
                 </div>
              </div>
-             <DashboardMetrics interventions={interventions} />
+             <div className='grid gap-8 lg:grid-cols-[1fr_350px]'>
+                <DashboardMetrics interventions={interventions} />
+                <TechnicianPerformanceRanking />
+             </div>
           </div>
         )}
         {tab === 'MAP' && (

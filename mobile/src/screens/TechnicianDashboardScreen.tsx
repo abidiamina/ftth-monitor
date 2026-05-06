@@ -12,8 +12,10 @@ import {
   TextInput,
   View,
 } from 'react-native'
+import { Navigation } from 'lucide-react-native'
 import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as ImagePicker from 'expo-image-picker'
+import * as Location from 'expo-location'
 import { DashboardTabs } from '../components/DashboardTabs'
 import { RoleBadge } from '../components/RoleBadge'
 import { Screen } from '../components/Screen'
@@ -25,7 +27,8 @@ import {
   updateInterventionFieldCheck,
 } from '../services/interventionApi'
 import { listNotifications, markNotificationAsRead } from '../services/notificationApi'
-import { colors } from '../theme/colors'
+import { getSocket } from '../services/socketService'
+import { useThemeColors, palette } from '../theme/colors'
 import type {
   InterventionPriority,
   InterventionRecord,
@@ -66,6 +69,7 @@ const formatDate = (value?: string | null) => {
 }
 
 export function TechnicianDashboardScreen() {
+  console.log('🖥️ Rendu de TechnicianDashboardScreen');
   const { user, logout, refreshCurrentUser } = useAuth()
   const [activeTab, setActiveTab] = useState<TechnicianTab>('overview')
   const [interventions, setInterventions] = useState<InterventionRecord[]>([])
@@ -87,6 +91,7 @@ export function TechnicianDashboardScreen() {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions()
 
   const loadData = async (silent = false) => {
+    console.log('🔄 Chargement des données du dashboard...');
     if (!silent) {
       setLoading(true)
     }
@@ -103,6 +108,7 @@ export function TechnicianDashboardScreen() {
         setSelectedInterventionId(interventionData[0].id)
       }
     } catch (error: any) {
+      console.error('Error loading dashboard data:', error);
       Alert.alert(
         'Chargement impossible',
         error?.response?.data?.message ?? 'Impossible de recuperer les interventions assignees.'
@@ -114,8 +120,64 @@ export function TechnicianDashboardScreen() {
   }
 
   useEffect(() => {
+    console.log('🚀 TechnicianDashboardScreen monté');
     void loadData()
   }, [])
+
+  const [isTracking, setIsTracking] = useState(false);
+
+  // Suivi de localisation en temps réel
+  useEffect(() => {
+    let locationSubscription: Location.LocationSubscription | null = null;
+
+    const startLocationTracking = async () => {
+      console.log('📡 Démarrage du tracking GPS...');
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.warn('❌ Permission de localisation refusée');
+        setIsTracking(false);
+        return;
+      }
+
+      setIsTracking(true);
+      const socket = getSocket();
+      
+      console.log('🔌 Tentative de connexion socket mobile...');
+      
+      locationSubscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 5000,
+          distanceInterval: 10,
+        },
+        (location) => {
+          const { latitude, longitude } = location.coords;
+          console.log(`📍 Ma position : ${latitude}, ${longitude}`);
+
+          if (user?.technicien?.id) {
+            console.log(`📤 Envoi position via socket (ID: ${user.technicien.id})`);
+            socket.emit('technician_location_update', {
+              technicienId: user.technicien.id,
+              nom: `${user.prenom} ${user.nom}`,
+              latitude,
+              longitude,
+            });
+          } else {
+            console.warn('⚠️ Impossible d\'envoyer la position : user.technicien.id est manquant');
+          }
+        }
+      );
+    };
+
+    startLocationTracking();
+
+    return () => {
+      if (locationSubscription) {
+        console.log('🛑 Arrêt du tracking GPS');
+        locationSubscription.remove();
+      }
+    };
+  }, [user]);
 
   const selectedIntervention =
     interventions.find((item) => item.id === selectedInterventionId) ?? interventions[0] ?? null
@@ -162,6 +224,55 @@ export function TechnicianDashboardScreen() {
         'Action impossible',
         error?.response?.data?.message ?? 'La mise a jour n a pas pu etre appliquee.'
       )
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  const handleManualLocationUpdate = async () => {
+    setProcessingId(-1)
+    try {
+      const enabled = await Location.hasServicesEnabledAsync()
+      if (!enabled) {
+        Alert.alert('GPS désactivé', 'Merci d\'activer la localisation dans les réglages de votre téléphone.')
+        return
+      }
+
+      const { status } = await Location.requestForegroundPermissionsAsync()
+      if (status !== 'granted') {
+        Alert.alert('Permission refusée', 'L\'accès à la position est nécessaire pour cette fonctionnalité.')
+        return
+      }
+
+      let location = null
+      try {
+        location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        })
+      } catch (e) {
+        location = await Location.getLastKnownPositionAsync()
+      }
+
+      if (!location) {
+        Alert.alert('Signal GPS faible', 'Impossible de localiser votre appareil pour le moment. Réessayez à l\'extérieur.')
+        return
+      }
+
+      const { latitude, longitude } = location.coords
+      const socket = getSocket()
+      
+      if (user?.technicien?.id) {
+        socket.emit('technician_location_update', {
+          technicienId: user.technicien.id,
+          nom: `${user.prenom} ${user.nom}`,
+          latitude,
+          longitude,
+        })
+        Alert.alert('Position partagée', 'Votre position GPS a été mise à jour avec succès.')
+      }
+    } catch (error) {
+      console.error(error)
+      Alert.alert('Erreur GPS', 'Une erreur est survenue lors de la récupération de la position.')
     } finally {
       setProcessingId(null)
     }
@@ -340,6 +451,9 @@ export function TechnicianDashboardScreen() {
     }
   }
 
+  const colors = useThemeColors();
+  const styles = getStyles(colors);
+
   if (!user) {
     return null
   }
@@ -347,11 +461,37 @@ export function TechnicianDashboardScreen() {
   return (
     <Screen
       scrollable
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor={colors.primary} />}
     >
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>Operations technicien</Text>
-        <Text style={styles.title}>Missions terrain</Text>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.eyebrow}>Operations technicien</Text>
+            <Text style={styles.title}>Missions terrain</Text>
+          </View>
+          {isTracking && (
+            <View style={styles.liveBadge}>
+              <View style={styles.livePulse} />
+              <Text style={styles.liveText}>Live Tracking</Text>
+            </View>
+          )}
+        </View>
+        
+        {/* Manual GPS Update Button */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.gpsButton,
+            pressed ? styles.buttonPressed : null,
+            processingId === -1 ? styles.buttonDisabled : null
+          ]}
+          onPress={() => void handleManualLocationUpdate()}
+          disabled={processingId === -1}
+        >
+          <Navigation size={14} color={palette.indigo} />
+          <Text style={styles.gpsButtonText}>
+            {processingId === -1 ? 'Mise à jour...' : 'Mettre à jour ma position GPS'}
+          </Text>
+        </Pressable>
       </View>
 
       <DashboardTabs tabs={technicianTabs} activeTab={activeTab} onChange={setActiveTab} />
@@ -564,7 +704,7 @@ export function TechnicianDashboardScreen() {
               <View style={styles.card}>
                 <Text style={styles.sectionEyebrow}>Preuves</Text>
                 <Text style={styles.sectionTitle}>Preuves terrain</Text>
-                <View style={styles.photoActionsRow}>
+                <div style={styles.photoActionsRow}>
                   <Pressable
                     style={({ pressed }) => [styles.secondaryButton, pressed ? styles.buttonPressed : null]}
                     onPress={() => void handlePickEvidencePhoto('camera')}
@@ -577,7 +717,7 @@ export function TechnicianDashboardScreen() {
                   >
                     <Text style={styles.secondaryButtonText}>Galerie</Text>
                   </Pressable>
-                </View>
+                </div>
                 {evidencePhoto ? (
                   <View style={styles.previewCard}>
                     <Image source={{ uri: evidencePhoto.uri }} style={styles.previewImage} />
@@ -690,10 +830,28 @@ export function TechnicianDashboardScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  header: { gap: 6, marginTop: 2, marginBottom: 14 },
-  eyebrow: { color: colors.primary, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
-  title: { color: colors.text, fontSize: 32, lineHeight: 38, fontWeight: '800' },
+const getStyles = (colors: any) => StyleSheet.create({
+  header: { gap: 12, marginTop: 2, marginBottom: 18 },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: palette.indigoGlow, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, marginTop: 4 },
+  livePulse: { width: 6, height: 6, borderRadius: 3, backgroundColor: palette.indigo },
+  liveText: { color: palette.indigo, fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  eyebrow: { color: colors.primary, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, fontSize: 11 },
+  title: { color: colors.text, fontSize: 30, lineHeight: 36, fontWeight: '800' },
+  gpsButton: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 8, 
+    backgroundColor: palette.indigoGlow, 
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: palette.indigo + '33',
+    marginTop: 4
+  },
+  gpsButtonText: { color: palette.indigo, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
   profileCard: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -723,24 +881,24 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 2,
   },
-  subCard: { borderWidth: 1, borderColor: colors.border, backgroundColor: '#fbfcfe', borderRadius: 16, padding: 12, gap: 4 },
+  subCard: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bg, borderRadius: 16, padding: 12, gap: 4 },
   cardTitle: { fontSize: 21, lineHeight: 26, color: colors.text, fontWeight: '800' },
   detail: { color: colors.muted, lineHeight: 20 },
   statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
-  statCard: { flexGrow: 1, minWidth: '47%', backgroundColor: '#ecfeff', borderRadius: 20, padding: 14, borderWidth: 1, borderColor: '#c9f2ee' },
+  statCard: { flexGrow: 1, minWidth: '47%', backgroundColor: colors.primarySoft, borderRadius: 20, padding: 14, borderWidth: 1, borderColor: colors.border },
   statLabel: { color: colors.primary, fontWeight: '700', marginBottom: 8 },
   statValue: { color: colors.text, fontSize: 28, fontWeight: '800' },
   sectionEyebrow: { color: colors.primary, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 11 },
   sectionTitle: { fontSize: 20, fontWeight: '800', color: colors.text },
   emptyText: { color: colors.muted, lineHeight: 21 },
-  itemCard: { borderWidth: 1, borderColor: colors.border, backgroundColor: '#f8fbff', borderRadius: 18, padding: 14, gap: 6 },
-  selectedCard: { borderColor: colors.primary },
-  unreadCard: { borderColor: '#92d0ca', backgroundColor: '#f3fbfa' },
+  itemCard: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: 18, padding: 14, gap: 6 },
+  selectedCard: { borderColor: colors.primary, borderWidth: 2 },
+  unreadCard: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
   itemTitle: { flex: 1, fontSize: 16, fontWeight: '800', color: colors.text },
   badge: { color: colors.primary, fontWeight: '700', backgroundColor: colors.primarySoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, overflow: 'hidden' },
-  readBadge: { backgroundColor: '#eef3f7', color: colors.muted },
-  unreadBadge: { backgroundColor: colors.primarySoft, color: colors.primary },
+  readBadge: { backgroundColor: colors.border, color: colors.muted },
+  unreadBadge: { backgroundColor: colors.primary, color: '#ffffff' },
   itemDetail: { color: colors.muted, lineHeight: 20 },
   itemDescription: { color: colors.text, lineHeight: 21 },
   itemMeta: { color: colors.muted, lineHeight: 18, fontSize: 13 },
@@ -751,26 +909,26 @@ const styles = StyleSheet.create({
   pressableAction: { shadowColor: colors.shadow, shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
   startButton: { backgroundColor: colors.success },
   completeButton: { backgroundColor: colors.success },
-  rejectButton: { backgroundColor: '#b42318' },
+  rejectButton: { backgroundColor: colors.danger },
   actionButtonText: { color: '#ffffff', fontWeight: '700' },
-  outlineButton: { borderWidth: 1, borderColor: colors.border, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#f8fbff' },
+  outlineButton: { borderWidth: 1, borderColor: colors.border, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.surface },
   outlineButtonText: { color: colors.text, fontWeight: '700' },
   buttonDisabled: { opacity: 0.7 },
   buttonPressed: { opacity: 0.92, transform: [{ scale: 0.985 }] },
   inlineButton: { alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: colors.primarySoft },
   inlineButtonText: { color: colors.primary, fontWeight: '700' },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 14, color: colors.text, backgroundColor: '#f8fbff', fontSize: 16 },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 14, color: colors.text, backgroundColor: colors.surface, fontSize: 16 },
   textarea: { minHeight: 96 },
   primaryButton: { backgroundColor: colors.info, borderRadius: 18, paddingVertical: 15, alignItems: 'center' },
   primaryButtonText: { color: '#ffffff', fontWeight: '700', fontSize: 17 },
-  secondaryButton: { flex: 1, minWidth: 140, borderWidth: 1, borderColor: colors.border, borderRadius: 18, paddingVertical: 13, alignItems: 'center', backgroundColor: '#f8fbff' },
+  secondaryButton: { flex: 1, minWidth: 140, borderWidth: 1, borderColor: colors.border, borderRadius: 18, paddingVertical: 13, alignItems: 'center', backgroundColor: colors.surface },
   secondaryButtonText: { color: colors.text, fontWeight: '700' },
   photoActionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  previewCard: { borderWidth: 1, borderColor: colors.border, backgroundColor: '#f8fbff', borderRadius: 16, padding: 12, gap: 8 },
-  previewImage: { width: '100%', height: 160, borderRadius: 14, backgroundColor: '#e9eef2' },
+  previewCard: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: 16, padding: 12, gap: 8 },
+  previewImage: { width: '100%', height: 160, borderRadius: 14, backgroundColor: colors.border },
   scannerScreen: { flex: 1, backgroundColor: colors.bg, padding: 20, gap: 16, justifyContent: 'center' },
   scannerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   scannerTitle: { flex: 1, fontSize: 24, fontWeight: '800', color: colors.text },
-  cameraFrame: { overflow: 'hidden', borderRadius: 28, borderWidth: 1, borderColor: colors.border, backgroundColor: '#dfe8ee', minHeight: 420 },
+  cameraFrame: { overflow: 'hidden', borderRadius: 28, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.border, minHeight: 420 },
   cameraView: { flex: 1, minHeight: 420 },
 })

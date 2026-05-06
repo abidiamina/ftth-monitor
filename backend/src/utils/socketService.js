@@ -17,6 +17,12 @@ const initSocket = (server) => {
       console.log(`🏠 Client ${socket.id} a rejoint le salon : ${room}`);
     });
 
+    socket.on('technician_location_update', (data) => {
+      console.log(`📍 Position technicien ${data.technicienId} : ${data.latitude}, ${data.longitude}`);
+      // On retransmet à tout le monde (notamment au dashboard responsable)
+      io.emit('technician_location_broadcast', data);
+    });
+
     socket.on('disconnect', () => {
       console.log(`🔌 Client déconnecté : ${socket.id}`);
     });

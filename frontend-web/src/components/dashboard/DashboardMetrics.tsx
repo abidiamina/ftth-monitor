@@ -88,24 +88,24 @@ export function DashboardMetrics({ interventions }: DashboardMetricsProps) {
              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Total Missions</p>
              <TrendingUp className='h-4 w-4 text-slate-300' />
           </div>
-          <p className='text-3xl font-black text-slate-900'>{stats.total}</p>
+          <p className='text-3xl font-black text-slate-900 dark:text-white'>{stats.total}</p>
         </div>
 
         <div className='stat-pill border-emerald-100 bg-emerald-50/20 backdrop-blur-sm'>
           <div className='flex items-center justify-between mb-4'>
-             <p className='text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600'>Taux Réussite</p>
+             <p className='text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600'>Performance Globale</p>
              <CheckCircle2 className='h-4 w-4 text-emerald-500/30' />
           </div>
-          <p className='text-3xl font-black text-slate-900'>{stats.successRate}%</p>
+          <p className='text-3xl font-black text-slate-900 dark:text-white'>{stats.successRate}%</p>
         </div>
 
         <div className='stat-pill border-amber-100 bg-amber-50/20 backdrop-blur-sm'>
           <div className='flex items-center justify-between mb-4'>
-             <p className='text-[10px] font-black uppercase tracking-[0.2em] text-amber-600'>Satisfaction</p>
+             <p className='text-[10px] font-black uppercase tracking-[0.2em] text-amber-600'>Qualité de Service</p>
              <Star className='h-4 w-4 text-amber-500/30' />
           </div>
           <div className='flex items-baseline gap-1'>
-            <p className='text-3xl font-black text-slate-900'>{stats.avgRating}</p>
+            <p className='text-3xl font-black text-slate-900 dark:text-white'>{stats.avgRating}</p>
             <span className='text-sm font-bold text-amber-600/50'>/ 5</span>
           </div>
         </div>
@@ -115,7 +115,7 @@ export function DashboardMetrics({ interventions }: DashboardMetricsProps) {
              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-rose-600'>Urgences</p>
              <Clock className='h-4 w-4 text-rose-500/30' />
           </div>
-          <p className={`text-3xl font-black ${stats.urgentPending > 0 ? 'text-rose-600' : 'text-slate-900'}`}>
+          <p className={`text-3xl font-black ${stats.urgentPending > 0 ? 'text-rose-600' : 'text-slate-900 dark:text-white'}`}>
             {stats.urgentPending}
           </p>
         </div>
@@ -132,26 +132,33 @@ export function DashboardMetrics({ interventions }: DashboardMetricsProps) {
           <div className='h-[300px] w-full'>
             <ResponsiveContainer width='100%' height='100%' minWidth={0}>
               <BarChart data={dailyData}>
-                <CartesianGrid strokeDasharray='3 3' vertical={false} stroke='#f1f5f9' />
+                <CartesianGrid strokeDasharray='3 3' vertical={false} stroke='var(--chart-grid)' />
                 <XAxis 
                   dataKey='date' 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} 
+                  tick={{ fontSize: 10, fontWeight: 700, fill: 'var(--chart-text)' }} 
                   dy={10}
                 />
                 <YAxis 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} 
+                  tick={{ fontSize: 10, fontWeight: 700, fill: 'var(--chart-text)' }} 
                 />
                 <Tooltip 
-                  cursor={{ fill: '#f8fafc' }}
-                  contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }}
+                  cursor={{ fill: 'var(--chart-grid)' }}
+                  contentStyle={{ 
+                    borderRadius: '1rem', 
+                    border: 'none', 
+                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', 
+                    fontWeight: 'bold',
+                    backgroundColor: 'var(--chart-tooltip)',
+                    color: 'var(--app-text-main)'
+                  }}
                 />
                 <Bar 
                   dataKey='missions' 
-                  fill='#0f172a' 
+                  fill='var(--chart-bar)' 
                   radius={[6, 6, 0, 0]} 
                   barSize={32}
                 />
@@ -183,13 +190,20 @@ export function DashboardMetrics({ interventions }: DashboardMetricsProps) {
                   ))}
                 </Pie>
                 <Tooltip 
-                   contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }}
+                   contentStyle={{ 
+                     borderRadius: '1rem', 
+                     border: 'none', 
+                     boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', 
+                     fontWeight: 'bold',
+                     backgroundColor: 'var(--chart-tooltip)',
+                     color: 'var(--app-text-main)'
+                   }}
                 />
                 <Legend 
                   verticalAlign='bottom' 
                   height={36} 
                   iconType='circle'
-                  formatter={(value) => <span className='text-[10px] font-black uppercase tracking-wider text-slate-500 ml-2'>{value}</span>}
+                  formatter={(value) => <span className='text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 ml-2'>{value}</span>}
                 />
               </PieChart>
             </ResponsiveContainer>

@@ -218,7 +218,7 @@ export const AdminDashboardPage = () => {
     if (isEditing) {
       return (
         <div key={user.id} className='dashboard-card border-violet-200 bg-violet-50/30 animate-in fade-in zoom-in-95 duration-200'>
-          <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-end'>
+          <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-5 items-end'>
             <div className='space-y-1'>
                <p className='text-[10px] font-black uppercase tracking-widest text-violet-600 ml-1'>Identité</p>
                <div className='flex gap-2'>
@@ -246,6 +246,16 @@ export const AdminDashboardPage = () => {
                />
             </div>
             <div className='space-y-1'>
+               <p className='text-[10px] font-black uppercase tracking-widest text-violet-600 ml-1'>Téléphone</p>
+               <input 
+                 type="tel"
+                 placeholder="+216..."
+                 className='w-full bg-white border border-violet-100 rounded-xl px-4 py-2.5 text-sm font-bold'
+                 value={editForm.telephone}
+                 onChange={e => setEditForm(c => ({...c, telephone: e.target.value}))}
+               />
+            </div>
+            <div className='space-y-1'>
                <p className='text-[10px] font-black uppercase tracking-widest text-violet-600 ml-1'>Rôle</p>
                <select 
                  className='w-full bg-white border border-violet-100 rounded-xl px-4 py-2.5 text-sm font-bold'
@@ -259,7 +269,7 @@ export const AdminDashboardPage = () => {
                </select>
             </div>
             {editForm.role === 'CLIENT' && (
-              <div className='lg:col-span-4 space-y-1 mt-2'>
+              <div className='lg:col-span-5 space-y-1 mt-2'>
                 <p className='text-[10px] font-black uppercase tracking-widest text-violet-600 ml-1'>Adresse Installation</p>
                 <input 
                   placeholder="Adresse complète"
@@ -465,6 +475,7 @@ export const AdminDashboardPage = () => {
                        <input placeholder="Nom" className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" value={employeeForm.nom} onChange={e => setEmployeeForm(c => ({...c, nom: e.target.value}))} />
                     </div>
                     <input type="email" placeholder="Email Corporate" className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" value={employeeForm.email} onChange={e => setEmployeeForm(c => ({...c, email: e.target.value}))} />
+                    <input type="tel" placeholder="Téléphone" className="w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold" value={employeeForm.telephone} onChange={e => setEmployeeForm(c => ({...c, telephone: e.target.value}))} />
                     <select value={employeeForm.role} onChange={e => setEmployeeForm(c => ({...c, role: e.target.value as any}))} className='w-full bg-slate-50 rounded-2xl px-5 py-4 border-none text-sm font-bold'>
                       <option value='ADMIN'>Administrateur</option>
                       <option value='RESPONSABLE'>Responsable Ops</option>

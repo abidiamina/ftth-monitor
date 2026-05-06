@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Search, Bell, LogOut, LayoutDashboard, Ticket, Wrench, MapPinned, UserCog, CircleHelp, Settings, Shield, BarChart3, Users, Menu, X, Activity } from 'lucide-react'
+import { Search, Bell, LogOut, LayoutDashboard, Ticket, Wrench, MapPinned, UserCog, CircleHelp, Settings, Shield, BarChart3, Users, Menu, X, Activity, Moon, Sun } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -78,6 +78,23 @@ export const AppDashboardShell = ({
   const { user } = useSelector((state: RootState) => state.auth)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [appName, setAppName] = useState(workspaceLabel)
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return document.documentElement.classList.contains('dark') || 
+             localStorage.getItem('theme') === 'dark'
+    }
+    return false
+  })
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark')
+      localStorage.setItem('theme', 'dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+      localStorage.setItem('theme', 'light')
+    }
+  }, [isDarkMode])
 
   useEffect(() => {
     if (user?.id) {
@@ -132,7 +149,7 @@ export const AppDashboardShell = ({
 
         {/* Sidebar */}
         <aside className={`
-          fixed inset-y-0 left-0 z-50 w-72 transform border-r border-white/40 bg-white/60 p-6 backdrop-blur-3xl transition-transform duration-500 ease-in-out xl:relative xl:translate-x-0
+          fixed inset-y-0 left-0 z-50 w-72 transform border-r border-white/40 bg-white/60 dark:bg-slate-900/80 dark:border-slate-800 p-6 backdrop-blur-3xl transition-transform duration-500 ease-in-out xl:relative xl:translate-x-0
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
           <div className='flex flex-col h-full'>
@@ -141,8 +158,8 @@ export const AppDashboardShell = ({
                 <Shield className='h-6 w-6 text-white' />
               </div>
               <div className='min-w-0'>
-                <h2 className='text-lg font-bold truncate tracking-tight text-slate-950'>{appName}</h2>
-                <p className='text-[10px] uppercase tracking-widest font-bold text-slate-400'>{workspaceTitle}</p>
+                <h2 className='text-lg font-bold truncate tracking-tight text-slate-950 dark:text-white'>{appName}</h2>
+                <p className='text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500'>{workspaceTitle}</p>
               </div>
             </div>
 
@@ -168,7 +185,7 @@ export const AppDashboardShell = ({
                     <Icon className={`h-4.5 w-4.5 ${active ? 'text-white' : 'text-slate-400'}`} />
                     <span className='flex-1 font-semibold'>{item.label}</span>
                     {item.badge && (
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${active ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
                         {item.badge}
                       </span>
                     )}
@@ -178,7 +195,7 @@ export const AppDashboardShell = ({
             </nav>
 
             {/* Profile Summary Card */}
-            <div className='mt-6 p-5 rounded-3xl bg-slate-50/50 border border-white relative overflow-hidden group hover:bg-white transition-all duration-300'>
+            <div className='mt-6 p-5 rounded-3xl bg-slate-50/50 dark:bg-slate-800/40 border border-white dark:border-slate-800 relative overflow-hidden group hover:bg-white dark:hover:bg-slate-800 transition-all duration-300'>
               <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:rotate-12 transition-transform">
                 <LayoutDashboard className="h-12 w-12" />
               </div>
@@ -208,23 +225,31 @@ export const AppDashboardShell = ({
             <div className='flex items-center gap-4 flex-1'>
               <button 
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="xl:hidden p-2 rounded-xl bg-white border border-slate-200"
+                className="xl:hidden p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
               >
-                <Menu className="h-5 w-5" />
+                <Menu className="h-5 w-5 dark:text-white" />
               </button>
               
-              <div className='hidden md:flex items-center gap-3 bg-white/70 border border-white rounded-2xl px-4 py-2.5 w-full max-w-md focus-within:shadow-lg focus-within:shadow-slate-100 transition-all'>
+              <div className='hidden md:flex items-center gap-3 bg-white/70 dark:bg-slate-900/60 border border-white dark:border-slate-800 rounded-2xl px-4 py-2.5 w-full max-w-md focus-within:shadow-lg focus-within:shadow-slate-100 dark:focus-within:shadow-black/20 transition-all'>
                 <Search className='h-4 w-4 text-slate-400' />
-                <input placeholder='Rechercher un dossier...' className='bg-transparent border-none focus:ring-0 text-sm w-full outline-none' />
+                <input placeholder='Rechercher un dossier...' className='bg-transparent border-none focus:ring-0 text-sm w-full outline-none dark:text-white' />
               </div>
             </div>
 
             <div className='flex items-center gap-4'>
               <button 
-                onClick={() => onSectionTabChange?.('NOTIFICATIONS')}
-                className='relative p-2.5 rounded-2xl bg-white border border-white shadow-sm hover:scale-105 active:scale-95 transition-all'
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className='p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-white dark:border-slate-700 shadow-sm hover:scale-105 active:scale-95 transition-all text-slate-600 dark:text-slate-300'
+                title={isDarkMode ? "Passer en mode clair" : "Passer en mode sombre"}
               >
-                <Bell className='h-4.5 w-4.5 text-slate-600' />
+                {isDarkMode ? <Sun className='h-4.5 w-4.5' /> : <Moon className='h-4.5 w-4.5' />}
+              </button>
+
+              <button 
+                onClick={() => onSectionTabChange?.('NOTIFICATIONS')}
+                className='relative p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-white dark:border-slate-700 shadow-sm hover:scale-105 active:scale-95 transition-all'
+              >
+                <Bell className='h-4.5 w-4.5 text-slate-600 dark:text-slate-300' />
                 {sectionTabs?.find(t => t.id === 'NOTIFICATIONS')?.badge && (
                   <span className='absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white' />
                 )}
@@ -232,13 +257,13 @@ export const AppDashboardShell = ({
 
               <div className='h-10 w-[1px] bg-slate-200 mx-1 hidden sm:block' />
 
-              <div className='flex items-center gap-3 bg-white/80 border border-white rounded-2xl p-1.5 pr-4 shadow-sm hover:shadow-md transition-all'>
-                <div className='flex h-8 w-8 items-center justify-center rounded-xl bg-slate-950 text-xs font-bold text-white uppercase'>
+              <div className='flex items-center gap-3 bg-white/80 dark:bg-slate-800 border border-white dark:border-slate-700 rounded-2xl p-1.5 pr-4 shadow-sm hover:shadow-md transition-all'>
+                <div className='flex h-8 w-8 items-center justify-center rounded-xl bg-slate-950 dark:bg-white text-xs font-bold text-white dark:text-slate-950 uppercase'>
                   {user?.prenom?.[0] ?? 'U'}
                 </div>
                 <div className='hidden lg:block min-w-0'>
-                  <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1'>{role}</p>
-                  <p className='text-sm font-bold text-slate-900 truncate'>{user?.prenom ?? 'Admin'}</p>
+                  <p className='text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mb-1'>{role}</p>
+                  <p className='text-sm font-bold text-slate-900 dark:text-white truncate'>{user?.prenom ?? 'Admin'}</p>
                 </div>
               </div>
 

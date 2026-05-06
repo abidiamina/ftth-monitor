@@ -10,7 +10,7 @@ import {
   type RefreshControlProps,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors } from '../theme/colors'
+import { useThemeColors } from '../theme/colors'
 
 type ScreenProps = PropsWithChildren<{
   scrollable?: boolean
@@ -24,6 +24,7 @@ export function Screen({
   scrollEnabled = true,
   refreshControl,
 }: ScreenProps) {
+  const colors = useThemeColors()
   const opacity = useRef(new Animated.Value(0)).current
   const translateY = useRef(new Animated.Value(12)).current
 
@@ -43,6 +44,8 @@ export function Screen({
       }),
     ]).start()
   }, [opacity, translateY])
+
+  const styles = getStyles(colors)
 
   const content = (
     <Animated.View style={[styles.content, { opacity, transform: [{ translateY }] }]}>
@@ -77,7 +80,7 @@ export function Screen({
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -89,7 +92,7 @@ const styles = StyleSheet.create({
     width: 250,
     height: 250,
     borderRadius: 999,
-    backgroundColor: '#d8ecff',
+    backgroundColor: colors.bg === '#020617' ? 'rgba(45, 212, 191, 0.05)' : '#d8ecff',
   },
   backdropBottom: {
     position: 'absolute',
@@ -98,7 +101,7 @@ const styles = StyleSheet.create({
     width: 280,
     height: 280,
     borderRadius: 999,
-    backgroundColor: '#dcfbf5',
+    backgroundColor: colors.bg === '#020617' ? 'rgba(99, 102, 241, 0.05)' : '#dcfbf5',
   },
   keyboardAvoid: {
     flex: 1,
