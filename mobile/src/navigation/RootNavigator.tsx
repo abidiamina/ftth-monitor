@@ -32,6 +32,8 @@ function RootStack() {
         ? TechnicianDashboardScreen
         : UnauthorizedMobileScreen
 
+  console.log(`🧭 Navigation : Rôle=${user?.role}, Authentifié=${isAuthenticated}, Écran rendu=${dashboardScreen.name}`);
+
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>

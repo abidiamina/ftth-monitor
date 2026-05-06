@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { colors } from '../theme/colors'
+import { useThemeColors } from '../theme/colors'
 
 type TabItem<T extends string> = {
   key: T
@@ -17,6 +17,9 @@ export function DashboardTabs<T extends string>({
   activeTab,
   onChange,
 }: DashboardTabsProps<T>) {
+  const colors = useThemeColors()
+  const styles = getStyles(colors)
+  
   return (
     <View style={styles.wrapper}>
       {tabs.map((tab) => {
@@ -39,10 +42,10 @@ export function DashboardTabs<T extends string>({
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   wrapper: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
@@ -59,7 +62,7 @@ const styles = StyleSheet.create({
     minHeight: 40,
   },
   tabActive: {
-    backgroundColor: '#dbeafe',
+    backgroundColor: colors.primarySoft,
   },
   tabPressed: {
     opacity: 0.9,
@@ -71,6 +74,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   tabTextActive: {
-    color: '#1d4ed8',
+    color: colors.primary,
   },
 })

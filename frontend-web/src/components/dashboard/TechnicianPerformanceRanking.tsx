@@ -14,14 +14,14 @@ export function TechnicianPerformanceRanking() {
     })
   }, [])
 
-  if (loading) return <div className="animate-pulse h-40 bg-slate-50 rounded-3xl" />
+  if (loading) return <div className="animate-pulse h-40 bg-slate-50 dark:bg-slate-800 rounded-3xl" />
 
   return (
     <div className='dashboard-card'>
       <div className='flex items-center justify-between mb-8'>
         <div>
-          <h3 className='text-lg font-black text-slate-900'>Performance Qualité</h3>
-          <p className='text-[10px] font-bold text-slate-400 uppercase tracking-widest'>Classement par sentiment client</p>
+          <h3 className='text-lg font-black text-slate-900 dark:text-white'>Performance Qualité</h3>
+          <p className='text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest'>Classement par sentiment client</p>
         </div>
         <Award className='h-6 w-6 text-amber-400' />
       </div>
@@ -31,18 +31,18 @@ export function TechnicianPerformanceRanking() {
           <div key={tech.id} className='group'>
             <div className='flex items-center justify-between mb-2'>
               <div className='flex items-center gap-3'>
-                <span className='flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-[10px] font-black text-white'>
+                <span className='flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 dark:bg-sky-500 text-[10px] font-black text-white'>
                   {index + 1}
                 </span>
-                <p className='text-sm font-black text-slate-700 group-hover:text-sky-600 transition-colors'>
+                <p className='text-sm font-black text-slate-700 dark:text-slate-200 group-hover:text-sky-600 transition-colors'>
                   {tech.nom}
                 </p>
               </div>
               <div className='flex items-center gap-2'>
                  <span className={`flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-lg ${
-                   tech.satisfactionRate >= 80 ? 'bg-emerald-50 text-emerald-600' :
-                   tech.satisfactionRate >= 50 ? 'bg-amber-50 text-amber-600' :
-                   'bg-rose-50 text-rose-600'
+                   tech.satisfactionRate >= 80 ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400' :
+                   tech.satisfactionRate >= 50 ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400' :
+                   'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400'
                  }`}>
                    {tech.satisfactionRate >= 80 ? <TrendingUp className="h-3 w-3" /> : 
                     tech.satisfactionRate >= 50 ? <Minus className="h-3 w-3" /> : 
@@ -53,13 +53,13 @@ export function TechnicianPerformanceRanking() {
             </div>
 
             {/* Barre de progression segmentée (Sentiment) */}
-            <div className='h-2 w-full bg-slate-100 rounded-full overflow-hidden flex'>
+            <div className='h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex'>
               <div 
                 className='h-full bg-emerald-500 transition-all duration-1000' 
                 style={{ width: `${(tech.sentiments.POSITIVE / tech.totalTerminees) * 100}%` }} 
               />
               <div 
-                className='h-full bg-slate-300 transition-all duration-1000' 
+                className='h-full bg-slate-300 dark:bg-slate-600 transition-all duration-1000' 
                 style={{ width: `${(tech.sentiments.NEUTRAL / tech.totalTerminees) * 100}%` }} 
               />
               <div 
@@ -69,7 +69,7 @@ export function TechnicianPerformanceRanking() {
             </div>
             
             <div className='flex justify-between mt-2'>
-               <p className='text-[9px] font-bold text-slate-400'>{tech.totalTerminees} missions terminées</p>
+               <p className='text-[9px] font-bold text-slate-400 dark:text-slate-500'>{tech.totalTerminees} missions terminées</p>
                <div className='flex gap-3'>
                   <span className='text-[9px] font-black text-emerald-600'>{tech.sentiments.POSITIVE} 🙂</span>
                   <span className='text-[9px] font-black text-slate-400'>{tech.sentiments.NEUTRAL} 😐</span>
