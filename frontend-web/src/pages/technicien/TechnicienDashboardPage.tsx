@@ -10,8 +10,13 @@ import {
   Wrench,
   Navigation,
   Clock,
+  CheckCircle2,
+  MapPin,
+  QrCode,
+  Camera,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import { AIPersonalityWidget } from '@/components/dashboard/AIPersonalityWidget'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs'
 import { NotificationsPanel } from '@/components/dashboard/NotificationsPanel'
@@ -198,6 +203,26 @@ export const TechnicienDashboardPage = () => {
               </div>
            </div>
            
+           <div className='mt-6 pt-6 border-t border-slate-100/50'>
+              <div className='bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 border border-slate-100/50'>
+                 <p className='text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3'>Validation Technique</p>
+                 <div className='grid grid-cols-3 gap-2'>
+                    <div className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all ${i.gpsConfirmedAt ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-white dark:bg-slate-800 border-slate-100 text-slate-300'}`}>
+                       {i.gpsConfirmedAt ? <CheckCircle2 className='h-4 w-4 mb-1' /> : <MapPin className='h-4 w-4 mb-1 opacity-50' />}
+                       <span className='text-[8px] font-bold uppercase'>GPS</span>
+                    </div>
+                    <div className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all ${i.qrVerifiedAt ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-white dark:bg-slate-800 border-slate-100 text-slate-300'}`}>
+                       {i.qrVerifiedAt ? <CheckCircle2 className='h-4 w-4 mb-1' /> : <QrCode className='h-4 w-4 mb-1 opacity-50' />}
+                       <span className='text-[8px] font-bold uppercase'>QR Code</span>
+                    </div>
+                    <div className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all ${i.evidences && i.evidences.length > 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-white dark:bg-slate-800 border-slate-100 text-slate-300'}`}>
+                       {i.evidences && i.evidences.length > 0 ? <CheckCircle2 className='h-4 w-4 mb-1' /> : <Camera className='h-4 w-4 mb-1 opacity-50' />}
+                       <span className='text-[8px] font-bold uppercase'>Photo</span>
+                    </div>
+                 </div>
+              </div>
+           </div>
+
            {i.description && (
              <p className='mt-6 text-sm font-medium text-slate-500 leading-relaxed italic'>"{i.description}"</p>
            )}
@@ -257,15 +282,18 @@ export const TechnicienDashboardPage = () => {
             </div>
           </div>
 
-          <div className='grid gap-4 sm:grid-cols-2 content-center'>
-             <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40'>
-                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Total Missions</p>
-                <p className='text-5xl font-black text-slate-950'>{interventions.length}</p>
-             </article>
-             <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-slate-950 border-slate-900 shadow-xl flex flex-col justify-between h-40'>
-                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-white/40'>Messages</p>
-                <p className='text-5xl font-black text-white'>{missionDeck.unread}</p>
-             </article>
+          <div className='flex flex-col gap-4 justify-center'>
+             <AIPersonalityWidget />
+             <div className='grid gap-4 sm:grid-cols-2'>
+                <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40'>
+                   <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Total Missions</p>
+                   <p className='text-5xl font-black text-slate-950'>{interventions.length}</p>
+                </article>
+                <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-slate-950 border-slate-900 shadow-xl flex flex-col justify-between h-40'>
+                   <p className='text-[10px] font-black uppercase tracking-[0.2em] text-white/40'>Messages</p>
+                   <p className='text-5xl font-black text-white'>{missionDeck.unread}</p>
+                </article>
+             </div>
           </div>
         </div>
       </header>

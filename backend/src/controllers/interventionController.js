@@ -587,12 +587,45 @@ const updateIntervention = async (req, res) => {
       }
     }
 
+    if (technicienId !== undefined && technicienId !== null && technicienId !== existing.technicienId) {
+      const activeIntervention = await prisma.intervention.findFirst({
+        where: {
+          technicienId: parseOptionalInt(technicienId),
+          statut: { in: ['EN_ATTENTE', 'EN_COURS'] },
+          id: { not: interventionId }
+        }
+      });
+      if (activeIntervention) {
+        return res.status(400).json({
+          success: false,
+          message: 'Ce technicien a deja une intervention active. Il doit la terminer avant d en recevoir une nouvelle.',
+        });
+      }
+    }
+
     if (statut === 'TERMINEE' && existing.statut !== 'TERMINEE') {
+      // 1. Check Photos
       const reqPhoto = await getConfigAsBoolean('REQ_PHOTO', true);
       if (reqPhoto && existing.evidences.length === 0) {
         return res.status(400).json({
           success: false,
-          message: 'Au moins une photo de preuve est obligatoire pour terminer l intervention.',
+          message: 'Au moins une photo de preuve avec commentaire est obligatoire pour terminer l intervention.',
+        });
+      }
+
+      // 2. Check GPS
+      if (!existing.gpsConfirmedAt) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vous devez confirmer votre position GPS sur le lieu de l intervention avant de la terminer.',
+        });
+      }
+
+      // 3. Check QR Code
+      if (!existing.qrVerifiedAt) {
+        return res.status(400).json({
+          success: false,
+          message: 'Le scan du QR Code de l equipement est obligatoire pour valider la fin des travaux.',
         });
       }
     }

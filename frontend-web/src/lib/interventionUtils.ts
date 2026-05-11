@@ -24,10 +24,7 @@ export const normalizePhotoData = (data?: string | null): string => {
   // Otherwise assume it's a raw base64 string (typical of Expo ImagePicker on certain configs)
   return `data:image/jpeg;base64,${data}`
 }
-
-/**
- * Parses the custom signature format "DRAWN_SIGNATURE:x,y;x,y;..." into an SVG path d-attribute.
- */
+ 
 export const parseSignatureToPath = (signature?: string | null): string => {
   if (!signature || !signature.startsWith('DRAWN_SIGNATURE:')) {
     return ''

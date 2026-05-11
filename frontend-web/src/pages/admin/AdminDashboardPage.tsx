@@ -14,6 +14,7 @@ import {
   BellRing,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import { AIPersonalityWidget } from '@/components/dashboard/AIPersonalityWidget'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs'
 import { Button } from '@/components/ui/button'
@@ -397,44 +398,47 @@ export const AdminDashboardPage = () => {
             </div>
           </div>
 
-          <div className='grid gap-4 sm:grid-cols-2 content-center'>
-            <article 
-              onClick={() => { setTab('UTILISATEURS'); setRoleFilter('ALL'); }}
-              className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40 group hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer'
-            >
-              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Total Comptes</p>
-              <p className='text-4xl font-black text-slate-950 group-hover:text-violet-600 transition-colors'>{stats.total}</p>
-            </article>
-            <article 
-              onClick={() => setTab('CREATION')}
-              className='dashboard-kpi rounded-[2.5rem] p-8 bg-violet-600 border-violet-500 shadow-xl flex flex-col justify-between h-40 cursor-pointer hover:bg-violet-700 transition-all hover:-translate-y-1 group'
-            >
-               <div className='flex items-center justify-between'>
-                 <p className='text-[10px] font-black uppercase tracking-[0.2em] text-white/50'>Action</p>
-                 <UserPlus className='h-5 w-5 text-white/30 group-hover:rotate-12 transition-transform' />
-               </div>
-               <p className='text-xl font-black text-white leading-tight'>Ajouter<br />un Membre</p>
-            </article>
-            <article 
-              onClick={() => setTab('PARAMETRES')}
-              className='dashboard-kpi rounded-[2.5rem] p-8 bg-slate-950 border-slate-900 shadow-xl flex flex-col justify-between h-40 group hover:-translate-y-1 transition-transform cursor-pointer'
-            >
-               <p className='text-xl font-bold text-white leading-tight'>Système &<br />Paramètres</p>
-            </article>
-            <article 
-              onClick={() => navigate('/admin/audit')}
-              className='dashboard-kpi rounded-[2.5rem] p-8 bg-emerald-600 border-emerald-500 shadow-xl flex flex-col justify-between h-40 group hover:-translate-y-1 transition-transform cursor-pointer'
-            >
-               <Activity className='h-8 w-8 text-white opacity-20 group-hover:opacity-40 transition-opacity' />
-               <p className='text-xl font-bold text-white leading-tight'>Audit &<br />Traçabilité</p>
-            </article>
-            <article 
-              onClick={() => { setTab('UTILISATEURS'); setRoleFilter('ALL'); }}
-              className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all group'
-            >
-               <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Inactifs</p>
-               <p className='text-5xl font-black text-rose-500 group-hover:scale-110 transition-transform origin-left'>{stats.inactifs}</p>
-            </article>
+          <div className='flex flex-col gap-4 justify-center'>
+            <AIPersonalityWidget />
+            <div className='grid gap-4 sm:grid-cols-2 content-center'>
+              <article 
+                onClick={() => { setTab('UTILISATEURS'); setRoleFilter('ALL'); }}
+                className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40 group hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer'
+              >
+                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Total Comptes</p>
+                <p className='text-4xl font-black text-slate-950 group-hover:text-violet-600 transition-colors'>{stats.total}</p>
+              </article>
+              <article 
+                onClick={() => setTab('CREATION')}
+                className='dashboard-kpi rounded-[2.5rem] p-8 bg-violet-600 border-violet-500 shadow-xl flex flex-col justify-between h-40 cursor-pointer hover:bg-violet-700 transition-all hover:-translate-y-1 group'
+              >
+                <div className='flex items-center justify-between'>
+                  <p className='text-[10px] font-black uppercase tracking-[0.2em] text-white/50'>Action</p>
+                  <UserPlus className='h-5 w-5 text-white/30 group-hover:rotate-12 transition-transform' />
+                </div>
+                <p className='text-xl font-black text-white leading-tight'>Ajouter<br />un Membre</p>
+              </article>
+              <article 
+                onClick={() => setTab('PARAMETRES')}
+                className='dashboard-kpi rounded-[2.5rem] p-8 bg-slate-950 border-slate-900 shadow-xl flex flex-col justify-between h-40 group hover:-translate-y-1 transition-transform cursor-pointer'
+              >
+                <p className='text-xl font-bold text-white leading-tight'>Système &<br />Paramètres</p>
+              </article>
+              <article 
+                onClick={() => navigate('/admin/audit')}
+                className='dashboard-kpi rounded-[2.5rem] p-8 bg-emerald-600 border-emerald-500 shadow-xl flex flex-col justify-between h-40 group hover:-translate-y-1 transition-transform cursor-pointer'
+              >
+                <Activity className='h-8 w-8 text-white opacity-20 group-hover:opacity-40 transition-opacity' />
+                <p className='text-xl font-bold text-white leading-tight'>Audit &<br />Traçabilité</p>
+              </article>
+              <article 
+                onClick={() => { setTab('UTILISATEURS'); setRoleFilter('ALL'); }}
+                className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all group'
+              >
+                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Inactifs</p>
+                <p className='text-5xl font-black text-rose-500 group-hover:scale-110 transition-transform origin-left'>{stats.inactifs}</p>
+              </article>
+            </div>
           </div>
         </div>
       </header>

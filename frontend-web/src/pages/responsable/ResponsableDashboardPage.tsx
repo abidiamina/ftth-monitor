@@ -23,6 +23,9 @@ import { DashboardMetrics } from '@/components/dashboard/DashboardMetrics'
 import { TechnicianPerformanceRanking } from '@/components/dashboard/TechnicianPerformanceRanking'
 import { WeatherWidget } from '@/components/dashboard/WeatherWidget'
 import { TechnicianAlertsWidget } from '@/components/dashboard/TechnicianAlertsWidget'
+import { AIPersonalityWidget } from '@/components/dashboard/AIPersonalityWidget'
+
+import { AISentimentWidget } from '@/components/dashboard/AISentimentWidget'
 import type {
   ClientRecord,
   CreateInterventionRequest,
@@ -236,17 +239,7 @@ export const ResponsableDashboardPage = () => {
         return matchesStatus && matchesPriority && matchesQuery
       })
       .sort((a, b) => {
-        // Critère 1 : Retard
-        const isDelayedA = isInterventionDelayed(a) ? 1 : 0
-        const isDelayedB = isInterventionDelayed(b) ? 1 : 0
-        if (isDelayedA !== isDelayedB) return isDelayedB - isDelayedA
-
-        // Critère 2 : Urgence
-        const isUrgentA = a.priorite === 'URGENTE' && a.statut !== 'TERMINEE' ? 1 : 0
-        const isUrgentB = b.priorite === 'URGENTE' && b.statut !== 'TERMINEE' ? 1 : 0
-        if (isUrgentA !== isUrgentB) return isUrgentB - isUrgentA
-
-        // Critère 3 : Date de création (décroissant)
+        // Tri par date de création (décroissant)
         return new Date(b.dateCreation).getTime() - new Date(a.dateCreation).getTime()
       })
   }, [interventions, priorityFilter, query, statusFilter])
@@ -826,23 +819,26 @@ export const ResponsableDashboardPage = () => {
             </div>
           </div>
 
-          <div className='grid gap-4 sm:grid-cols-2'>
-            <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 dark:bg-slate-800/40 border-white dark:border-slate-800 shadow-sm flex flex-col justify-between h-40'>
-              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Total Missions</p>
-              <p className='text-5xl font-black text-slate-950 dark:text-white'>{stats.total}</p>
-            </article>
-            <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40'>
-              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Sans Technicien</p>
-              <p className='text-5xl font-black text-amber-500'>{stats.sansTechnicien}</p>
-            </article>
-            <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 dark:bg-slate-800/40 border-white dark:border-slate-800 shadow-sm flex flex-col justify-between h-40'>
-              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Statut Réseau</p>
-              <p className='text-3xl font-black text-emerald-500 uppercase tracking-tighter'>Optimal</p>
-            </article>
-            <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-slate-950 border-slate-900 shadow-xl flex flex-col justify-between h-40'>
-              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-white/40'>Inbox</p>
-              <p className='text-5xl font-black text-white'>{stats.unread}</p>
-            </article>
+          <div className='flex flex-col gap-4 justify-center'>
+            <AIPersonalityWidget />
+            <div className='grid gap-4 sm:grid-cols-2'>
+              <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 dark:bg-slate-800/40 border-white dark:border-slate-800 shadow-sm flex flex-col justify-between h-40'>
+                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Total Missions</p>
+                <p className='text-5xl font-black text-slate-950 dark:text-white'>{stats.total}</p>
+              </article>
+              <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40'>
+                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Sans Technicien</p>
+                <p className='text-5xl font-black text-amber-500'>{stats.sansTechnicien}</p>
+              </article>
+              <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 dark:bg-slate-800/40 border-white dark:border-slate-800 shadow-sm flex flex-col justify-between h-40'>
+                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Statut Réseau</p>
+                <p className='text-3xl font-black text-emerald-500 uppercase tracking-tighter'>Optimal</p>
+              </article>
+              <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-slate-950 border-slate-900 shadow-xl flex flex-col justify-between h-40'>
+                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-white/40'>Inbox</p>
+                <p className='text-5xl font-black text-white'>{stats.unread}</p>
+              </article>
+            </div>
           </div>
         </div>
       </header>
@@ -859,9 +855,9 @@ export const ResponsableDashboardPage = () => {
             {(() => {
               const urgentes = filteredInterventions.filter(i => i.priorite === 'URGENTE' && i.statut !== 'TERMINEE')
               
-              const enRetard = filteredInterventions.filter(i => isInterventionDelayed(i) && i.priorite !== 'URGENTE')
+              const enRetard = filteredInterventions.filter(i => isInterventionDelayed(i))
               
-              const autres = filteredInterventions.filter(i => !isInterventionDelayed(i) && i.priorite !== 'URGENTE')
+              const autres = filteredInterventions.filter(i => !isInterventionDelayed(i))
 
               return (
                 <>
@@ -907,25 +903,34 @@ export const ResponsableDashboardPage = () => {
                   </div>
 
                   <div className="space-y-6">
-                    {(categoryFilter === 'ALL' || categoryFilter === 'URGENTES') && urgentes.length > 0 && (
+                    {categoryFilter === 'RECENTES' ? (
                       <div className="space-y-4">
-                        {categoryFilter === 'ALL' && <h3 className="text-sm font-black uppercase tracking-widest text-rose-600 flex items-center gap-2 border-b border-rose-100 dark:border-rose-900 pb-2">🚨 Urgences à traiter ({urgentes.length})</h3>}
-                        {urgentes.map(i => renderInterventionCard(i))}
+                        <h3 className="text-sm font-black uppercase tracking-widest text-sky-600 flex items-center gap-2 border-b border-sky-100 dark:border-sky-900 pb-2">📅 Flux Chronologique ({filteredInterventions.length})</h3>
+                        {filteredInterventions.map(i => renderInterventionCard(i))}
                       </div>
-                    )}
-                    
-                    {(categoryFilter === 'ALL' || categoryFilter === 'RETARD') && enRetard.length > 0 && (
-                      <div className="space-y-4">
-                        {categoryFilter === 'ALL' && <h3 className="text-sm font-black uppercase tracking-widest text-amber-600 flex items-center gap-2 border-b border-amber-100 dark:border-amber-900 pb-2">⚠️ Missions en retard ({enRetard.length})</h3>}
-                        {enRetard.map(i => renderInterventionCard(i))}
-                      </div>
-                    )}
+                    ) : (
+                      <>
+                        {(categoryFilter === 'ALL' || categoryFilter === 'URGENTES') && urgentes.length > 0 && (
+                          <div className="space-y-4">
+                            {categoryFilter === 'ALL' && <h3 className="text-sm font-black uppercase tracking-widest text-rose-600 flex items-center gap-2 border-b border-rose-100 dark:border-rose-900 pb-2">🚨 Urgences à traiter ({urgentes.length})</h3>}
+                            {urgentes.map(i => renderInterventionCard(i))}
+                          </div>
+                        )}
+                        
+                        {(categoryFilter === 'ALL' || categoryFilter === 'RETARD') && enRetard.length > 0 && (
+                          <div className="space-y-4">
+                            {categoryFilter === 'ALL' && <h3 className="text-sm font-black uppercase tracking-widest text-amber-600 flex items-center gap-2 border-b border-amber-100 dark:border-amber-900 pb-2">⚠️ Missions en retard ({enRetard.length})</h3>}
+                            {enRetard.map(i => renderInterventionCard(i))}
+                          </div>
+                        )}
 
-                    {(categoryFilter === 'ALL' || categoryFilter === 'RECENTES') && autres.length > 0 && (
-                      <div className="space-y-4">
-                        {categoryFilter === 'ALL' && <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">📅 Récemment ajoutées ({autres.length})</h3>}
-                        {autres.map(i => renderInterventionCard(i))}
-                      </div>
+                        {categoryFilter === 'ALL' && autres.length > 0 && (
+                          <div className="space-y-4">
+                            <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">📅 Autres activités ({autres.length})</h3>
+                            {autres.map(i => renderInterventionCard(i))}
+                          </div>
+                        )}
+                      </>
                     )}
                     
                     {filteredInterventions.length === 0 && (
@@ -997,9 +1002,14 @@ export const ResponsableDashboardPage = () => {
                      <p className='text-slate-500 dark:text-slate-400 font-medium mt-1'>Analyse en temps réel de la performance de vos missions.</p>
                   </div>
                </div>
-               <div className='grid gap-8 lg:grid-cols-[1fr_350px]'>
-                  <DashboardMetrics interventions={interventions} />
-                  <TechnicianPerformanceRanking />
+               <div className='flex flex-col gap-8'>
+                  <div className='grid gap-8 lg:grid-cols-2'>
+                     <DashboardMetrics interventions={interventions} />
+                     <AISentimentWidget />
+                  </div>
+                  <div className='grid gap-8'>
+                     <TechnicianPerformanceRanking />
+                  </div>
                </div>
             </div>
         ) : tab === 'RAPPORTS' ? (
@@ -1041,9 +1051,14 @@ export const ResponsableDashboardPage = () => {
                    <p className='text-slate-500 font-medium mt-1'>Résumé de l'activité NOC en temps réel.</p>
                 </div>
              </div>
-             <div className='grid gap-8 lg:grid-cols-[1fr_350px]'>
-                <DashboardMetrics interventions={interventions} />
-                <TechnicianPerformanceRanking />
+             <div className='flex flex-col gap-8'>
+                <div className='grid gap-8 lg:grid-cols-2'>
+                   <DashboardMetrics interventions={interventions} />
+                   <AISentimentWidget />
+                </div>
+                <div className='grid gap-8'>
+                   <TechnicianPerformanceRanking />
+                </div>
              </div>
           </div>
         )}
