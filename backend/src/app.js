@@ -12,6 +12,7 @@ const configRoutes       = require('./routes/configRoutes');
 const auditRoutes        = require('./routes/auditRoutes');
 const alertRoutes        = require('./routes/alertRoutes');
 const statsRoutes        = require('./routes/statsRoutes');
+const aiRoutes           = require('./routes/aiRoutes');
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use('/api/configs',       configRoutes);
 app.use('/api/audit',         auditRoutes);
 app.use('/api/alerts',        alertRoutes);
 app.use('/api/stats',         statsRoutes);
+app.use('/api/ai',            aiRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -53,7 +55,14 @@ const { initSocket } = require('./utils/socketService');
 const server = http.createServer(app);
 initSocket(server);
 
+const { checkAndNotifyDelays } = require('./utils/delayService');
+
 const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => {
   console.log(`✅ Backend démarré sur http://localhost:${PORT}`);
+  
+  // Démarrer la vérification des retards toutes les minutes
+  setInterval(() => {
+    checkAndNotifyDelays();
+  }, 60 * 1000);
 });

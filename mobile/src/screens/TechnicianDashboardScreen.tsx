@@ -704,7 +704,7 @@ export function TechnicianDashboardScreen() {
               <View style={styles.card}>
                 <Text style={styles.sectionEyebrow}>Preuves</Text>
                 <Text style={styles.sectionTitle}>Preuves terrain</Text>
-                <div style={styles.photoActionsRow}>
+                <View style={styles.photoActionsRow}>
                   <Pressable
                     style={({ pressed }) => [styles.secondaryButton, pressed ? styles.buttonPressed : null]}
                     onPress={() => void handlePickEvidencePhoto('camera')}
@@ -717,7 +717,7 @@ export function TechnicianDashboardScreen() {
                   >
                     <Text style={styles.secondaryButtonText}>Galerie</Text>
                   </Pressable>
-                </div>
+                </View>
                 {evidencePhoto ? (
                   <View style={styles.previewCard}>
                     <Image source={{ uri: evidencePhoto.uri }} style={styles.previewImage} />

@@ -3,6 +3,7 @@ import { BellRing, CheckCircle2, ClipboardList, MapPin, ShieldCheck, Star, Ticke
 import { useDispatch } from 'react-redux'
 import { toast } from 'react-hot-toast'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
+import { AIPersonalityWidget } from '@/components/dashboard/AIPersonalityWidget'
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs'
 import { NotificationsPanel } from '@/components/dashboard/NotificationsPanel'
 import { ClientSprint3Panel } from '@/components/sprint3/ClientSprint3Panel'
@@ -375,14 +376,17 @@ export const ClientDashboardPage = () => {
             </p>
           </div>
 
-          <div className='grid gap-4 sm:grid-cols-2'>
-            <div className='stat-pill border-emerald-100 bg-emerald-50/50 min-w-[200px]'>
-              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600'>Interventions Ouvertes</p>
-              <p className='mt-2 text-3xl font-black text-slate-950'>{stats.ouvertes}</p>
-            </div>
-            <div className='stat-pill border-sky-100 bg-sky-50/50 min-w-[200px]'>
-              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-sky-600'>En cours</p>
-              <p className='mt-2 text-3xl font-black text-slate-950'>{stats.enCours}</p>
+          <div className='flex flex-col gap-4 justify-center'>
+            <AIPersonalityWidget />
+            <div className='grid gap-4 sm:grid-cols-2'>
+              <div className='stat-pill border-emerald-100 bg-emerald-50/50 min-w-[200px]'>
+                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600'>Interventions Ouvertes</p>
+                <p className='mt-2 text-3xl font-black text-slate-950'>{stats.ouvertes}</p>
+              </div>
+              <div className='stat-pill border-sky-100 bg-sky-50/50 min-w-[200px]'>
+                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-sky-600'>En cours</p>
+                <p className='mt-2 text-3xl font-black text-slate-950'>{stats.enCours}</p>
+              </div>
             </div>
           </div>
         </div>
