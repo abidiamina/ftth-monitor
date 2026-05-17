@@ -30,7 +30,7 @@ export const AISentimentWidget = () => {
   }
 
   const total = stats.reduce((acc, curr) => acc + curr._count.id, 0)
-  const positivePerc = total > 0 ? Math.round((getCount('POSITIVE') / total) * 100) : 0
+  const positivePerc = total > 0 ? Math.round((getCount('Positif') / total) * 100) : 0
 
   if (loading) return null
 
@@ -41,7 +41,7 @@ export const AISentimentWidget = () => {
           <MessageSquare className="h-5 w-5" />
         </div>
         <div>
-          <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Analyse de Satisfaction (IA)</h3>
+          <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Analyse de Satisfaction (CamemBERT)</h3>
           <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">Sentiment global des clients</p>
         </div>
       </div>
@@ -50,21 +50,21 @@ export const AISentimentWidget = () => {
         <div className="text-center">
           <div className="flex flex-col items-center gap-1">
             <Smile className="h-6 w-6 text-emerald-500" />
-            <span className="text-xl font-black text-slate-900 dark:text-white">{getCount('POSITIVE')}</span>
+            <span className="text-xl font-black text-slate-900 dark:text-white">{getCount('Positif')}</span>
             <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Positifs</span>
           </div>
         </div>
         <div className="text-center">
           <div className="flex flex-col items-center gap-1">
             <Meh className="h-6 w-6 text-slate-400" />
-            <span className="text-xl font-black text-slate-900 dark:text-white">{getCount('NEUTRAL')}</span>
+            <span className="text-xl font-black text-slate-900 dark:text-white">{getCount('Neutre')}</span>
             <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Neutres</span>
           </div>
         </div>
         <div className="text-center">
           <div className="flex flex-col items-center gap-1">
             <Frown className="h-6 w-6 text-rose-500" />
-            <span className="text-xl font-black text-slate-900 dark:text-white">{getCount('NEGATIVE')}</span>
+            <span className="text-xl font-black text-slate-900 dark:text-white">{getCount('Négatif')}</span>
             <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Négatifs</span>
           </div>
         </div>

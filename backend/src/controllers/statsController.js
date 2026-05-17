@@ -136,7 +136,10 @@ const getTechnicianPerformance = async (req, res) => {
 
       const sentiments = tech.interventions.reduce((acc, curr) => {
         const s = curr.clientFeedbackSentiment || 'UNKNOWN';
-        acc[s] = (acc[s] || 0) + 1;
+        // Support pour les anciens labels (maj) et les nouveaux (Français rapport)
+        if (s === 'POSITIVE' || s === 'Positif') acc.POSITIVE++;
+        else if (s === 'NEGATIVE' || s === 'Négatif') acc.NEGATIVE++;
+        else if (s === 'NEUTRAL' || s === 'Neutre') acc.NEUTRAL++;
         return acc;
       }, { POSITIVE: 0, NEUTRAL: 0, NEGATIVE: 0 });
 
