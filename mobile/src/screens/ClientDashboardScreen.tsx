@@ -91,6 +91,7 @@ export function ClientDashboardScreen() {
   const [feedbackRating, setFeedbackRating] = useState(5)
   const [isDrawingSignature, setIsDrawingSignature] = useState(false)
   const [gettingLocation, setGettingLocation] = useState(false)
+  const [isConfirming, setIsConfirming] = useState(false)
 
   const handleSignatureChange = useCallback((payload: string, hasSignature: boolean) => {
     setSignaturePayload(payload)
@@ -180,6 +181,11 @@ export function ClientDashboardScreen() {
       return
     }
 
+    if (!isConfirming) {
+      setIsConfirming(true)
+      return
+    }
+
     setSubmitting(true)
 
     try {
@@ -194,6 +200,7 @@ export function ClientDashboardScreen() {
 
       Alert.alert('Demande enregistree', response.message)
       setForm(emptyForm)
+      setIsConfirming(false)
       await loadData(true)
     } catch (error: any) {
       Alert.alert(
@@ -337,103 +344,163 @@ export function ClientDashboardScreen() {
       {activeTab === 'interventions' ? (
         <>
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Nouvelle demande</Text>
+            <Text style={styles.sectionTitle}>
+              {!isConfirming ? 'Nouvelle demande' : 'Verification finale'}
+            </Text>
             
-            <Pressable
-              style={({ pressed }) => [
-                styles.outlineButton,
-                { borderStyle: 'dashed', backgroundColor: colors.primarySoft, borderColor: colors.primary, marginBottom: 10 },
-                pressed ? styles.buttonPressed : null,
-                gettingLocation ? styles.buttonDisabled : null
-              ]}
-              onPress={() => void handleGetLocation()}
-              disabled={gettingLocation}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                {gettingLocation ? (
-                  <ActivityIndicator size='small' color={colors.primary} />
-                ) : (
-                  <Text style={[styles.outlineButtonText, { color: colors.primary }]}>📍 Utiliser ma position actuelle</Text>
-                )}
-              </View>
-            </Pressable>
+            {!isConfirming ? (
+              <>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.outlineButton,
+                    { borderStyle: 'dashed', backgroundColor: colors.primarySoft, borderColor: colors.primary, marginBottom: 10 },
+                    pressed ? styles.buttonPressed : null,
+                    gettingLocation ? styles.buttonDisabled : null
+                  ]}
+                  onPress={() => void handleGetLocation()}
+                  disabled={gettingLocation}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                    {gettingLocation ? (
+                      <ActivityIndicator size='small' color={colors.primary} />
+                    ) : (
+                      <Text style={[styles.outlineButtonText, { color: colors.primary }]}>📍 Utiliser ma position actuelle</Text>
+                    )}
+                  </View>
+                </Pressable>
 
-            <TextInput
-              value={form.titre}
-              onChangeText={(value) => setForm((current) => ({ ...current, titre: value }))}
-              placeholder='Titre'
-              placeholderTextColor={colors.muted}
-              style={styles.input}
-            />
-            <TextInput
-              value={form.description}
-              onChangeText={(value) => setForm((current) => ({ ...current, description: value }))}
-              placeholder='Description'
-              placeholderTextColor={colors.muted}
-              multiline
-              textAlignVertical='top'
-              style={[styles.input, styles.textarea]}
-            />
-            <TextInput
-              value={form.adresse}
-              onChangeText={(value) => setForm((current) => ({ ...current, adresse: value }))}
-              placeholder='Adresse'
-              placeholderTextColor={colors.muted}
-              style={styles.input}
-            />
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <TextInput
-                value={form.latitude?.toString()}
-                onChangeText={(value) => setForm((current) => ({ ...current, latitude: value }))}
-                placeholder='Latitude'
-                placeholderTextColor={colors.muted}
-                keyboardType='numeric'
-                style={[styles.input, { flex: 1 }]}
-              />
-              <TextInput
-                value={form.longitude?.toString()}
-                onChangeText={(value) => setForm((current) => ({ ...current, longitude: value }))}
-                placeholder='Longitude'
-                placeholderTextColor={colors.muted}
-                keyboardType='numeric'
-                style={[styles.input, { flex: 1 }]}
-              />
-            </View>
-            <View style={styles.chipsRow}>
-              {priorities.map((priority) => {
-                const isActive = (form.priorite ?? 'NORMALE') === priority
-                return (
+                <TextInput
+                  value={form.titre}
+                  onChangeText={(value) => setForm((current) => ({ ...current, titre: value }))}
+                  placeholder='Titre'
+                  placeholderTextColor={colors.muted}
+                  style={styles.input}
+                />
+                <TextInput
+                  value={form.description}
+                  onChangeText={(value) => setForm((current) => ({ ...current, description: value }))}
+                  placeholder='Description'
+                  placeholderTextColor={colors.muted}
+                  multiline
+                  textAlignVertical='top'
+                  style={[styles.input, styles.textarea]}
+                />
+                <TextInput
+                  value={form.adresse}
+                  onChangeText={(value) => setForm((current) => ({ ...current, adresse: value }))}
+                  placeholder='Adresse'
+                  placeholderTextColor={colors.muted}
+                  style={styles.input}
+                />
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TextInput
+                    value={form.latitude?.toString()}
+                    onChangeText={(value) => setForm((current) => ({ ...current, latitude: value }))}
+                    placeholder='Latitude'
+                    placeholderTextColor={colors.muted}
+                    keyboardType='numeric'
+                    style={[styles.input, { flex: 1 }]}
+                  />
+                  <TextInput
+                    value={form.longitude?.toString()}
+                    onChangeText={(value) => setForm((current) => ({ ...current, longitude: value }))}
+                    placeholder='Longitude'
+                    placeholderTextColor={colors.muted}
+                    keyboardType='numeric'
+                    style={[styles.input, { flex: 1 }]}
+                  />
+                </View>
+                <View style={styles.chipsRow}>
+                  {priorities.map((priority) => {
+                    const isActive = (form.priorite ?? 'NORMALE') === priority
+                    return (
+                      <Pressable
+                        key={priority}
+                        style={({ pressed }) => [
+                          styles.chip,
+                          isActive ? styles.chipActive : null,
+                          pressed ? styles.buttonPressed : null,
+                        ]}
+                        onPress={() => setForm((current) => ({ ...current, priorite: priority }))}
+                      >
+                        <Text style={[styles.chipText, isActive ? styles.chipTextActive : null]}>
+                          {priorityLabels[priority]}
+                        </Text>
+                      </Pressable>
+                    )
+                  })}
+                </View>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.primaryButton,
+                    submitting ? styles.buttonDisabled : null,
+                    pressed ? styles.buttonPressed : null,
+                  ]}
+                  onPress={() => void handleCreate()}
+                  disabled={submitting}
+                >
+                  <Text style={styles.primaryButtonText}>Suivant</Text>
+                </Pressable>
+              </>
+            ) : (
+              <View style={{ gap: 16 }}>
+                <View style={styles.summaryBox}>
+                  <View style={styles.summaryItem}>
+                    <Text style={styles.summaryLabel}>Sujet</Text>
+                    <Text style={styles.summaryValue}>{form.titre}</Text>
+                  </View>
+                  <View style={styles.summaryItem}>
+                    <Text style={styles.summaryLabel}>Adresse</Text>
+                    <Text style={styles.summaryValue}>{form.adresse}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 20 }}>
+                    <View style={styles.summaryItem}>
+                      <Text style={styles.summaryLabel}>Priorite</Text>
+                      <Text style={[styles.summaryValue, { color: colors.primary }]}>{priorityLabels[form.priorite ?? 'NORMALE']}</Text>
+                    </View>
+                    <View style={styles.summaryItem}>
+                      <Text style={styles.summaryLabel}>GPS</Text>
+                      <Text style={styles.summaryValue}>{form.latitude ? '✅ Oui' : '❌ Non'}</Text>
+                    </View>
+                  </View>
+                  <View style={[styles.summaryItem, { borderBottomWidth: 0 }]}>
+                    <Text style={styles.summaryLabel}>Description</Text>
+                    <Text style={[styles.summaryValue, { fontStyle: 'italic', color: colors.muted, fontSize: 14 }]}>
+                      "{form.description}"
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={{ gap: 10 }}>
                   <Pressable
-                    key={priority}
                     style={({ pressed }) => [
-                      styles.chip,
-                      isActive ? styles.chipActive : null,
+                      styles.primaryButton,
+                      { backgroundColor: colors.success },
+                      submitting ? styles.buttonDisabled : null,
                       pressed ? styles.buttonPressed : null,
                     ]}
-                    onPress={() => setForm((current) => ({ ...current, priorite: priority }))}
+                    onPress={() => void handleCreate()}
+                    disabled={submitting}
                   >
-                    <Text style={[styles.chipText, isActive ? styles.chipTextActive : null]}>
-                      {priorityLabels[priority]}
-                    </Text>
+                    {submitting ? (
+                      <ActivityIndicator color='#ffffff' />
+                    ) : (
+                      <Text style={styles.primaryButtonText}>Confirmer l'envoi</Text>
+                    )}
                   </Pressable>
-                )
-              })}
-            </View>
-            <Pressable
-              style={({ pressed }) => [
-                styles.primaryButton,
-                submitting ? styles.buttonDisabled : null,
-                pressed ? styles.buttonPressed : null,
-              ]}
-              onPress={() => void handleCreate()}
-              disabled={submitting}
-            >
-              {submitting ? (
-                <ActivityIndicator color='#ffffff' />
-              ) : (
-                <Text style={styles.primaryButtonText}>Envoyer</Text>
-              )}
-            </Pressable>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.outlineButton,
+                      { borderColor: colors.muted, borderStyle: 'solid' },
+                      pressed ? styles.buttonPressed : null,
+                    ]}
+                    onPress={() => setIsConfirming(false)}
+                  >
+                    <Text style={[styles.outlineButtonText, { textAlign: 'center', color: colors.muted }]}>Modifier les informations</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
           </View>
 
           <View style={styles.card}>
@@ -682,4 +749,8 @@ const styles = StyleSheet.create({
   starButton: { padding: 4 },
   displayStarsRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
   ratingText: { fontSize: 13, fontWeight: '700', color: colors.text, marginLeft: 4 },
+  summaryBox: { backgroundColor: '#f0f7ff', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: '#dbeafe', gap: 12 },
+  summaryItem: { borderBottomWidth: 1, borderBottomColor: '#e2e8f0', pb: 8, gap: 2 },
+  summaryLabel: { fontSize: 10, fontWeight: '700', color: colors.muted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  summaryValue: { fontSize: 16, fontWeight: '800', color: colors.text },
 })

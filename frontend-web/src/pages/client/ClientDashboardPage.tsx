@@ -81,6 +81,7 @@ export const ClientDashboardPage = () => {
   const [passwordForm, setPasswordForm] = useState({ motDePasseActuel: '', nouveauMotDePasse: '' })
   const [requestForm, setRequestForm] = useState<CreateInterventionRequest>({ titre: '', description: '', adresse: '', priorite: 'NORMALE', latitude: '', longitude: '' })
   const [isLocating, setIsLocating] = useState(false)
+  const [isConfirmingRequest, setIsConfirmingRequest] = useState(false)
 
   const loadDashboard = useCallback(async () => {
     setLoading(true)
@@ -189,6 +190,12 @@ export const ClientDashboardPage = () => {
       return
     }
 
+    if (!isConfirmingRequest) {
+      setIsConfirmingRequest(true)
+      toast.success('Veuillez vérifier vos informations une dernière fois.')
+      return
+    }
+
     setSubmittingRequest(true)
     try {
       await createIntervention(requestForm)
@@ -201,6 +208,7 @@ export const ClientDashboardPage = () => {
         latitude: '',
         longitude: ''
       })
+      setIsConfirmingRequest(false)
       loadDashboard()
       setTab('SUIVI')
     } catch (error) { toast.error(getErrorMessage(error, "Erreur lors de la création de l'intervention.")) }
@@ -425,66 +433,127 @@ export const ClientDashboardPage = () => {
               </div>
            </div>
         ) : tab === 'DEMANDE' ? (
-           <div className='max-w-2xl mx-auto'>
-              <div className='dashboard-card p-10'>
-                 <h3 className='text-3xl font-black text-slate-950 mb-8'>Nouvelle Intervention</h3>
-                 <form className='space-y-5' onSubmit={handleRequestSubmit}>
-                    <div className='space-y-2'>
-                       <label className='text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4'>Sujet</label>
-                       <input className='w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-bold' placeholder="Problème de connexion, Installation..." value={requestForm.titre} onChange={e => setRequestForm(c => ({...c, titre: e.target.value}))} />
-                    </div>
-                    <div className='space-y-2'>
-                       <label className='text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4'>Description détaillée</label>
-                       <textarea rows={4} className='w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-bold' placeholder="Détaillez votre besoin technique..." value={requestForm.description} onChange={e => setRequestForm(c => ({...c, description: e.target.value}))} />
-                    </div>
-                    <div className='space-y-2'>
-                       <label className='text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4'>Niveau d'urgence</label>
-                       <select 
-                          className='w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-bold cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all appearance-none'
-                          value={requestForm.priorite} 
-                          onChange={e => setRequestForm(c => ({...c, priorite: e.target.value as InterventionPriority}))}
-                       >
-                         <option value="BASSE">Basse (Non urgent)</option>
-                         <option value="NORMALE">Normale (Standard)</option>
-                         <option value="HAUTE">Haute (Impact important)</option>
-                         <option value="URGENTE">Urgente (Critique, panne totale)</option>
-                       </select>
-                    </div>
-                    
-                    <div className='bg-slate-50 rounded-2xl p-5 border border-slate-100 space-y-4'>
-                      <div className='flex items-center justify-between'>
-                        <div className='flex items-center gap-2'>
-                          <Navigation className={`h-4 w-4 ${requestForm.latitude ? 'text-emerald-500' : 'text-slate-400'}`} />
-                          <span className='text-[10px] font-black uppercase tracking-widest text-slate-500'>Localisation GPS</span>
+            <div className='max-w-2xl mx-auto'>
+               <div className='dashboard-card p-10'>
+                  {!isConfirmingRequest ? (
+                    <>
+                      <h3 className='text-3xl font-black text-slate-950 mb-8'>Nouvelle Intervention</h3>
+                      <form className='space-y-5' onSubmit={handleRequestSubmit}>
+                         <div className='space-y-2'>
+                            <label className='text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4'>Sujet</label>
+                            <input className='w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-bold' placeholder="Problème de connexion, Installation..." value={requestForm.titre} onChange={e => setRequestForm(c => ({...c, titre: e.target.value}))} />
+                         </div>
+                         <div className='space-y-2'>
+                            <label className='text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4'>Description détaillée</label>
+                            <textarea rows={4} className='w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-bold' placeholder="Détaillez votre besoin technique..." value={requestForm.description} onChange={e => setRequestForm(c => ({...c, description: e.target.value}))} />
+                         </div>
+                         <div className='space-y-2'>
+                            <label className='text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4'>Adresse d'intervention</label>
+                            <input className='w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-bold' placeholder="N° de rue, Ville..." value={requestForm.adresse} onChange={e => setRequestForm(c => ({...c, adresse: e.target.value}))} />
+                         </div>
+                         <div className='space-y-2'>
+                            <label className='text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4'>Niveau d'urgence</label>
+                            <select 
+                               className='w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-bold cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all appearance-none'
+                               value={requestForm.priorite} 
+                               onChange={e => setRequestForm(c => ({...c, priorite: e.target.value as InterventionPriority}))}
+                            >
+                              <option value="BASSE">Basse (Non urgent)</option>
+                              <option value="NORMALE">Normale (Standard)</option>
+                              <option value="HAUTE">Haute (Impact important)</option>
+                              <option value="URGENTE">Urgente (Critique, panne totale)</option>
+                            </select>
+                         </div>
+                         
+                         <div className='bg-slate-50 rounded-2xl p-5 border border-slate-100 space-y-4'>
+                           <div className='flex items-center justify-between'>
+                             <div className='flex items-center gap-2'>
+                               <Navigation className={`h-4 w-4 ${requestForm.latitude ? 'text-emerald-500' : 'text-slate-400'}`} />
+                               <span className='text-[10px] font-black uppercase tracking-widest text-slate-500'>Localisation GPS</span>
+                             </div>
+                             <button 
+                               type="button"
+                               onClick={handleGetLocation}
+                               disabled={isLocating}
+                               className='px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50'
+                             >
+                               {isLocating ? 'Détection...' : 'Ma Position'}
+                             </button>
+                           </div>
+                           
+                           {requestForm.latitude && (
+                             <div className='grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300'>
+                               <div className='bg-white rounded-xl p-3 border border-slate-100'>
+                                 <p className='text-[8px] font-black text-slate-400 uppercase mb-1'>Latitude</p>
+                                 <p className='text-xs font-bold text-slate-900'>{requestForm.latitude}</p>
+                               </div>
+                               <div className='bg-white rounded-xl p-3 border border-slate-100'>
+                                 <p className='text-[8px] font-black text-slate-400 uppercase mb-1'>Longitude</p>
+                                 <p className='text-xs font-bold text-slate-900'>{requestForm.longitude}</p>
+                               </div>
+                             </div>
+                           )}
+                         </div>
+
+                         <button type="submit" className='btn-premium w-full py-5 text-lg uppercase tracking-[.2em] mt-6'>Transmettre mon intervention</button>
+                      </form>
+                    </>
+                  ) : (
+                    <div className="animate-in fade-in zoom-in-95 duration-300">
+                      <div className='inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-amber-700 mb-6'>
+                        Vérification Finale
+                      </div>
+                      <h3 className='text-3xl font-black text-slate-950 mb-4'>Tout est correct ?</h3>
+                      <p className='text-slate-500 font-medium mb-8'>Vérifiez bien votre adresse et le motif. Une fois validée, l'intervention sera transmise à nos équipes techniques.</p>
+                      
+                      <div className='space-y-6 bg-slate-50 rounded-3xl p-8 border border-slate-100 mb-8'>
+                        <div>
+                          <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1'>Sujet</p>
+                          <p className='text-lg font-bold text-slate-900'>{requestForm.titre}</p>
                         </div>
+                        <div>
+                          <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1'>Adresse d'intervention</p>
+                          <p className='text-md font-bold text-slate-900'>{requestForm.adresse}</p>
+                        </div>
+                        <div className='grid grid-cols-2 gap-4'>
+                          <div>
+                            <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1'>Priorité</p>
+                            <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase ${priorityColors[requestForm.priorite]}`}>
+                              {priorityLabels[requestForm.priorite]}
+                            </span>
+                          </div>
+                          <div>
+                            <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1'>Géolocalisation</p>
+                            <p className='text-xs font-bold text-slate-900'>
+                              {requestForm.latitude ? '✅ Activée' : '❌ Non renseignée'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className='pt-4 border-t border-slate-200'>
+                          <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2'>Description</p>
+                          <p className='text-sm text-slate-600 font-medium leading-relaxed italic'>"{requestForm.description}"</p>
+                        </div>
+                      </div>
+
+                      <div className='flex flex-col gap-3'>
                         <button 
-                          type="button"
-                          onClick={handleGetLocation}
-                          disabled={isLocating}
-                          className='px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50'
+                          onClick={handleRequestSubmit} 
+                          disabled={submittingRequest} 
+                          className='btn-premium w-full py-5 text-lg uppercase tracking-[.2em]'
                         >
-                          {isLocating ? 'Détection...' : 'Ma Position'}
+                          {submittingRequest ? 'Transmission...' : 'Confirmer et Envoyer'}
+                        </button>
+                        <button 
+                          onClick={() => setIsConfirmingRequest(false)} 
+                          className='w-full py-4 text-slate-500 font-black text-[10px] uppercase tracking-widest hover:text-slate-800 transition-colors'
+                        >
+                          Retour pour modifier
                         </button>
                       </div>
-                      
-                      {requestForm.latitude && (
-                        <div className='grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300'>
-                          <div className='bg-white rounded-xl p-3 border border-slate-100'>
-                            <p className='text-[8px] font-black text-slate-400 uppercase mb-1'>Latitude</p>
-                            <p className='text-xs font-bold text-slate-900'>{requestForm.latitude}</p>
-                          </div>
-                          <div className='bg-white rounded-xl p-3 border border-slate-100'>
-                            <p className='text-[8px] font-black text-slate-400 uppercase mb-1'>Longitude</p>
-                            <p className='text-xs font-bold text-slate-900'>{requestForm.longitude}</p>
-                          </div>
-                        </div>
-                      )}
                     </div>
-
-                    <button type="submit" disabled={submittingRequest} className='btn-premium w-full py-5 text-lg uppercase tracking-[.2em] mt-6'>Transmettre mon intervention</button>
-                 </form>
-              </div>
-           </div>
+                  )}
+               </div>
+            </div>
         ) : tab === 'SUIVI' ? (
             <div className='grid gap-4'>
               <h2 className='text-2xl font-black text-slate-950 tracking-tight mb-4'>Historique des interventions</h2>

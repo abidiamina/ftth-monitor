@@ -26,6 +26,7 @@ import { TechnicianAlertsWidget } from '@/components/dashboard/TechnicianAlertsW
 import { AIPersonalityWidget } from '@/components/dashboard/AIPersonalityWidget'
 
 import { AISentimentWidget } from '@/components/dashboard/AISentimentWidget'
+import { AIPredictionWidget } from '@/components/dashboard/AIPredictionWidget'
 import type {
   ClientRecord,
   CreateInterventionRequest,
@@ -492,7 +493,7 @@ export const ResponsableDashboardPage = () => {
               }`}>
                 {statusLabels[intervention.statut]}
               </span>
-              <span className='px-3 py-1 rounded-full bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest'>
+              <span className='px-3 py-1 rounded-full bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-[10px] font-black text-slate-600 dark:text-slate-500 uppercase tracking-widest'>
                 {priorityLabels[intervention.priorite]}
               </span>
               {isDelayed && (
@@ -507,11 +508,11 @@ export const ResponsableDashboardPage = () => {
               )}
               <div className="w-full sm:w-auto sm:ml-auto flex items-center gap-2">
                 {intervention.datePlanifiee && (
-                  <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm ${isDelayed ? 'bg-rose-50 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400' : 'bg-white/50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400'}`}>
+                  <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm ${isDelayed ? 'bg-rose-50 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400' : 'bg-white/50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-500'}`}>
                     Prévue le : {formatDate(intervention.datePlanifiee)}
                   </span>
                 )}
-                <span className='text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest bg-white/50 dark:bg-slate-800/50 px-3 py-1 rounded-full border border-slate-100 dark:border-slate-800 shadow-sm'>
+                <span className='text-[10px] font-black text-slate-500 dark:text-slate-600 uppercase tracking-widest bg-white/50 dark:bg-slate-800/50 px-3 py-1 rounded-full border border-slate-100 dark:border-slate-800 shadow-sm'>
                   Ajoutée le : {formatDate(intervention.dateCreation)}
                 </span>
               </div>
@@ -523,7 +524,7 @@ export const ResponsableDashboardPage = () => {
                   <MapPin className='h-4.5 w-4.5' />
                 </div>
                 <div className='min-w-0'>
-                  <p className='text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5'>Localisation</p>
+                  <p className='text-[10px] font-black text-slate-500 dark:text-slate-600 uppercase tracking-widest mb-0.5'>Localisation</p>
                   <p className='text-sm font-bold text-slate-900 dark:text-slate-100 truncate'>{intervention.adresse}</p>
                 </div>
               </div>
@@ -532,20 +533,20 @@ export const ResponsableDashboardPage = () => {
                   <UsersRound className='h-4.5 w-4.5' />
                 </div>
                 <div className='min-w-0'>
-                  <p className='text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5'>Client</p>
+                  <p className='text-[10px] font-black text-slate-500 dark:text-slate-600 uppercase tracking-widest mb-0.5'>Client</p>
                   <p className='text-sm font-bold text-slate-900 dark:text-slate-100 truncate'>{intervention.client.prenom} {intervention.client.nom}</p>
                 </div>
               </div>
             </div>
 
             <details className='mt-6 rounded-3xl border border-slate-200/50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20 p-5 group/details'>
-              <summary className='cursor-pointer text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors'>
+              <summary className='cursor-pointer text-xs font-black uppercase tracking-widest text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors'>
                 Rapport Terrain détaillé
               </summary>
               <div className='mt-5 space-y-6'>
                 {intervention.description && (
                   <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
-                    <p className='text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2'>Description</p>
+                    <p className='text-[10px] font-black text-slate-500 dark:text-slate-600 uppercase tracking-widest mb-2'>Description</p>
                     <p className='text-slate-700 dark:text-slate-300 text-sm leading-relaxed'>{intervention.description}</p>
                   </div>
                 )}
@@ -565,7 +566,7 @@ export const ResponsableDashboardPage = () => {
                 </div>
                 {intervention.evidences.length > 0 && (
                   <div>
-                    <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3'>Preuves Photos</p>
+                    <p className='text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3'>Preuves Photos</p>
                     <div className='flex flex-wrap gap-2'>
                       {intervention.evidences.map((ev) => (
                         <img 
@@ -594,7 +595,7 @@ export const ResponsableDashboardPage = () => {
                           <div>
                             <p className="text-xs font-bold text-slate-900 dark:text-slate-100">
                               {r.technicien?.utilisateur.prenom} {r.technicien?.utilisateur.nom}
-                              <span className="ml-2 font-normal text-slate-400 dark:text-slate-500">• {formatDate(r.createdAt)}</span>
+                              <span className="ml-2 font-normal text-slate-500 dark:text-slate-600">• {formatDate(r.createdAt)}</span>
                             </p>
                             <p className="text-xs text-rose-700 mt-1 font-medium leading-relaxed">
                               " {r.motif} "
@@ -610,7 +611,7 @@ export const ResponsableDashboardPage = () => {
                   <div className='grid gap-6 pt-6 border-t border-slate-100'>
                     {intervention.clientSignature && (
                       <div className='space-y-3'>
-                        <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest'>Signature Client</p>
+                        <p className='text-[10px] font-black text-slate-500 uppercase tracking-widest'>Signature Client</p>
                         <div className='bg-white rounded-2xl border border-slate-100 p-2 w-fit group-hover:border-sky-100 transition-colors shadow-sm'>
                           {intervention.clientSignature.startsWith('DRAWN_SIGNATURE:') ? (
                             <svg width="160" height="80" viewBox="0 0 160 80" className="opacity-80">
@@ -627,7 +628,7 @@ export const ResponsableDashboardPage = () => {
                             <img src={intervention.clientSignature} alt="Signature" className="max-w-[160px] max-h-[80px] h-auto object-contain opacity-80" />
                           )}
                           <div className='mt-2 pt-2 border-t border-slate-50 text-center'>
-                             <p className='text-[9px] font-bold text-slate-400 italic'>Signé par: {intervention.clientSignatureBy || 'Client'}</p>
+                             <p className='text-[9px] font-bold text-slate-500 italic'>Signé par: {intervention.clientSignatureBy || 'Client'}</p>
                           </div>
                         </div>
                       </div>
@@ -636,14 +637,14 @@ export const ResponsableDashboardPage = () => {
                     {(intervention.clientFeedbackRating !== null || intervention.clientFeedbackComment) && (
                       <div className='space-y-3'>
                         <div className='flex items-center justify-between'>
-                          <p className='text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest'>Évaluation & Note</p>
+                          <p className='text-[10px] font-black text-slate-500 dark:text-slate-600 uppercase tracking-widest'>Évaluation & Note</p>
                           {intervention.clientFeedbackSentiment && (
-                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-tighter ${
-                              intervention.clientFeedbackSentiment === 'POSITIVE' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                              intervention.clientFeedbackSentiment === 'NEGATIVE' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                            <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${
+                              (intervention.clientFeedbackSentiment === 'POSITIVE' || intervention.clientFeedbackSentiment === 'Positif') ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                              (intervention.clientFeedbackSentiment === 'NEGATIVE' || intervention.clientFeedbackSentiment === 'Négatif') ? 'bg-rose-50 text-rose-600 border border-rose-100' :
                               'bg-slate-50 text-slate-600 border border-slate-100'
                             }`}>
-                              Sentiment {intervention.clientFeedbackSentiment === 'POSITIVE' ? 'Positif' : intervention.clientFeedbackSentiment === 'NEGATIVE' ? 'Négatif' : 'Neutre'}
+                              Sentiment {(intervention.clientFeedbackSentiment === 'POSITIVE' || intervention.clientFeedbackSentiment === 'Positif') ? 'Positif' : (intervention.clientFeedbackSentiment === 'NEGATIVE' || intervention.clientFeedbackSentiment === 'Négatif') ? 'Négatif' : 'Neutre'}
                             </span>
                           )}
                         </div>
@@ -674,7 +675,7 @@ export const ResponsableDashboardPage = () => {
 
           <div className='flex flex-col gap-3 min-w-[240px]'>
             <div className='p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100/50 dark:border-slate-700 shadow-sm'>
-              <p className='text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1'>Assignation Technicien</p>
+              <p className='text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1'>Assignation Technicien</p>
               {(() => {
                 const hasCoords = intervention.latitude && intervention.longitude
                 const sortedTechnicians = hasCoords
@@ -735,7 +736,7 @@ export const ResponsableDashboardPage = () => {
             </div>
 
             <div className='p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100/50 dark:border-slate-700 shadow-sm'>
-              <p className='text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3'>Priorité</p>
+              <p className='text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3'>Priorité</p>
               <div className='flex flex-col gap-2'>
                 <select
                   value={priorityValue}
@@ -801,18 +802,18 @@ export const ResponsableDashboardPage = () => {
             <h1 className='mt-8 text-5xl font-black tracking-tight text-slate-950 dark:text-white sm:text-7xl leading-[1.05]'>
               Opérations <span className="text-sky-500 italic">Live.</span>
             </h1>
-            <p className="mt-6 text-slate-500 dark:text-slate-400 font-medium max-w-lg leading-relaxed text-lg">
+            <p className="mt-6 text-slate-600 dark:text-slate-500 font-medium max-w-lg leading-relaxed text-lg">
               Surveillance proactive du réseau et gestion agile des interventions terrain.
             </p>
 
             <div className='mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
               <div className='stat-pill bg-white/40 dark:bg-slate-800/40'>
                 <p className='text-[10px] font-black uppercase tracking-[0.2em] text-sky-600'>Activité</p>
-                <p className='mt-2 text-3xl font-black text-slate-950 dark:text-white'>{stats.enCours} <span className="text-lg font-bold text-slate-400">en cours</span></p>
+                <p className='mt-2 text-3xl font-black text-slate-950 dark:text-white'>{stats.enCours} <span className="text-lg font-bold text-slate-500">en cours</span></p>
               </div>
               <div className='stat-pill bg-white/40 dark:bg-slate-800/40'>
                 <p className='text-[10px] font-black uppercase tracking-[0.2em] text-rose-500'>Alerte</p>
-                <p className='mt-2 text-3xl font-black text-slate-950 dark:text-white'>{stats.urgentes} <span className="text-lg font-bold text-slate-400">urgents</span></p>
+                <p className='mt-2 text-3xl font-black text-slate-950 dark:text-white'>{stats.urgentes} <span className="text-lg font-bold text-slate-500">urgents</span></p>
               </div>
               <TechnicianAlertsWidget interventions={interventions} technicians={technicians} />
               <WeatherWidget />
@@ -823,15 +824,15 @@ export const ResponsableDashboardPage = () => {
             <AIPersonalityWidget />
             <div className='grid gap-4 sm:grid-cols-2'>
               <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 dark:bg-slate-800/40 border-white dark:border-slate-800 shadow-sm flex flex-col justify-between h-40'>
-                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Total Missions</p>
+                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-500'>Total Missions</p>
                 <p className='text-5xl font-black text-slate-950 dark:text-white'>{stats.total}</p>
               </article>
               <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40'>
-                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Sans Technicien</p>
+                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-500'>Sans Technicien</p>
                 <p className='text-5xl font-black text-amber-500'>{stats.sansTechnicien}</p>
               </article>
               <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 dark:bg-slate-800/40 border-white dark:border-slate-800 shadow-sm flex flex-col justify-between h-40'>
-                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Statut Réseau</p>
+                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-500'>Statut Réseau</p>
                 <p className='text-3xl font-black text-emerald-500 uppercase tracking-tighter'>Optimal</p>
               </article>
               <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-slate-950 border-slate-900 shadow-xl flex flex-col justify-between h-40'>
@@ -849,7 +850,7 @@ export const ResponsableDashboardPage = () => {
 
       <div className="mt-10">
         {loading ? (
-          <div className="text-center py-20 animate-pulse text-slate-400 font-black uppercase tracking-widest text-sm">Synchronisation...</div>
+          <div className="text-center py-20 animate-pulse text-slate-500 font-black uppercase tracking-widest text-sm">Synchronisation...</div>
         ) : tab === 'INTERVENTIONS' ? (
           <div className='grid gap-6'>
             {(() => {
@@ -865,7 +866,7 @@ export const ResponsableDashboardPage = () => {
                     <div className='flex flex-wrap items-center justify-between gap-4'>
                       <h2 className='text-2xl font-black text-slate-950 dark:text-white tracking-tight'>Flux de travail</h2>
                       <div className='flex items-center gap-3 bg-white/50 dark:bg-slate-800/50 p-2 rounded-2xl border border-white dark:border-slate-700'>
-                        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className='bg-transparent border-none text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-300'>
+                        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className='bg-transparent border-none text-xs font-black uppercase tracking-widest text-slate-600 dark:text-slate-300'>
                           <option value='ALL'>Tous Statuts</option>
                           <option value='EN_ATTENTE'>En attente</option>
                           <option value='EN_COURS'>En cours</option>
@@ -877,7 +878,7 @@ export const ResponsableDashboardPage = () => {
                     <div className='flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide'>
                       <button 
                         onClick={() => setCategoryFilter('ALL')}
-                        className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all ${categoryFilter === 'ALL' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-700'}`}
+                        className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all ${categoryFilter === 'ALL' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-md' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-700'}`}
                       >
                         Tout voir
                       </button>
@@ -934,7 +935,7 @@ export const ResponsableDashboardPage = () => {
                     )}
                     
                     {filteredInterventions.length === 0 && (
-                      <div className="text-center py-10 text-slate-400 font-bold">Aucune intervention trouvée.</div>
+                      <div className="text-center py-10 text-slate-500 font-bold">Aucune intervention trouvée.</div>
                     )}
                   </div>
                 </>
@@ -980,7 +981,7 @@ export const ResponsableDashboardPage = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Planification</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Planification</p>
                   <input 
                     type="datetime-local" 
                     className="w-full bg-slate-50 dark:bg-slate-900 rounded-2xl px-5 py-4 border-none text-sm font-bold dark:text-white" 
@@ -999,13 +1000,16 @@ export const ResponsableDashboardPage = () => {
                <div className='flex items-center justify-between mb-10'>
                   <div>
                      <h2 className='text-4xl font-black text-slate-950 dark:text-white tracking-tight'>Pilotage <span className="text-sky-600 italic">Opérationnel.</span></h2>
-                     <p className='text-slate-500 dark:text-slate-400 font-medium mt-1'>Analyse en temps réel de la performance de vos missions.</p>
+                     <p className='text-slate-600 dark:text-slate-500 font-medium mt-1'>Analyse en temps réel de la performance de vos missions.</p>
                   </div>
                </div>
                <div className='flex flex-col gap-8'>
                   <div className='grid gap-8 lg:grid-cols-2'>
                      <DashboardMetrics interventions={interventions} />
                      <AISentimentWidget />
+                  </div>
+                  <div className='grid gap-8'>
+                     <AIPredictionWidget />
                   </div>
                   <div className='grid gap-8'>
                      <TechnicianPerformanceRanking />
@@ -1015,15 +1019,15 @@ export const ResponsableDashboardPage = () => {
         ) : tab === 'RAPPORTS' ? (
           <div className='max-w-2xl mx-auto py-10'>
             <div className='dashboard-card p-10 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/40'>
-              <div className='h-24 w-24 bg-white dark:bg-slate-900 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-sm border border-slate-100 dark:border-slate-800 text-slate-400'>
+              <div className='h-24 w-24 bg-white dark:bg-slate-900 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-sm border border-slate-100 dark:border-slate-800 text-slate-500'>
                 <ClipboardList className='h-12 w-12' />
               </div>
               <h2 className='text-3xl font-black text-slate-950 dark:text-white mb-4'>Génération de Rapports</h2>
-              <p className='text-slate-500 dark:text-slate-400 font-medium mb-10'>Exportez les données d'interventions au format PDF pour vos archives et analyses mensuelles.</p>
+              <p className='text-slate-600 dark:text-slate-500 font-medium mb-10'>Exportez les données d'interventions au format PDF pour vos archives et analyses mensuelles.</p>
               
               <div className='space-y-4'>
                 <div className='flex flex-col items-center gap-2 mb-6'>
-                  <label className='text-[10px] font-black uppercase tracking-widest text-slate-400'>Sélectionner la date du rapport</label>
+                  <label className='text-[10px] font-black uppercase tracking-widest text-slate-500'>Sélectionner la date du rapport</label>
                   <input 
                     type='date' 
                     value={selectedReportDate}
@@ -1048,7 +1052,7 @@ export const ResponsableDashboardPage = () => {
              <div className='flex items-center justify-between mb-10'>
                 <div>
                    <h2 className='text-4xl font-black text-slate-950 tracking-tight'>Vue <span className="text-emerald-600 italic">D'ensemble.</span></h2>
-                   <p className='text-slate-500 font-medium mt-1'>Résumé de l'activité NOC en temps réel.</p>
+                   <p className='text-slate-600 font-medium mt-1'>Résumé de l'activité NOC en temps réel.</p>
                 </div>
              </div>
              <div className='flex flex-col gap-8'>
@@ -1067,7 +1071,7 @@ export const ResponsableDashboardPage = () => {
              <div className='flex items-center justify-between mb-8'>
                 <div>
                    <h2 className='text-3xl font-black text-slate-900 tracking-tight'>Cartographie live</h2>
-                   <p className='text-slate-500 mt-1'>Visualisez vos interventions et vos techniciens sur le terrain.</p>
+                   <p className='text-slate-600 mt-1'>Visualisez vos interventions et vos techniciens sur le terrain.</p>
                 </div>
              </div>
              <MapInterventionsView interventions={filteredInterventions} />

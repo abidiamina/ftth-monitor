@@ -178,7 +178,7 @@ export const TechnicienDashboardPage = () => {
               </div>
               <div className='min-w-0'>
                  <h4 className='text-lg font-black text-slate-950 truncate tracking-tight'>{i.titre}</h4>
-                 <p className='text-[10px] font-black uppercase tracking-widest text-slate-400'>ID: #{i.id}</p>
+                 <p className='text-[10px] font-black uppercase tracking-widest text-slate-500'>ID: #{i.id}</p>
               </div>
            </div>
 
@@ -188,7 +188,7 @@ export const TechnicienDashboardPage = () => {
                     <Navigation className='h-4 w-4' />
                  </div>
                  <div className='min-w-0'>
-                    <p className='text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5'>Lieu</p>
+                    <p className='text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5'>Lieu</p>
                     <p className='text-sm font-bold text-slate-900 truncate'>{i.adresse}</p>
                  </div>
               </div>
@@ -197,7 +197,7 @@ export const TechnicienDashboardPage = () => {
                     <Clock className='h-4 w-4' />
                  </div>
                  <div className='min-w-0'>
-                    <p className='text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5'>Date prévue</p>
+                    <p className='text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5'>Date prévue</p>
                     <p className='text-sm font-bold text-slate-900 truncate'>{formatDate(i.datePlanifiee)}</p>
                  </div>
               </div>
@@ -205,7 +205,7 @@ export const TechnicienDashboardPage = () => {
            
            <div className='mt-6 pt-6 border-t border-slate-100/50'>
               <div className='bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 border border-slate-100/50'>
-                 <p className='text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3'>Validation Technique</p>
+                 <p className='text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3'>Validation Technique</p>
                  <div className='grid grid-cols-3 gap-2'>
                     <div className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all ${i.gpsConfirmedAt ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-white dark:bg-slate-800 border-slate-100 text-slate-300'}`}>
                        {i.gpsConfirmedAt ? <CheckCircle2 className='h-4 w-4 mb-1' /> : <MapPin className='h-4 w-4 mb-1 opacity-50' />}
@@ -224,7 +224,7 @@ export const TechnicienDashboardPage = () => {
            </div>
 
            {i.description && (
-             <p className='mt-6 text-sm font-medium text-slate-500 leading-relaxed italic'>"{i.description}"</p>
+             <p className='mt-6 text-sm font-medium text-slate-600 leading-relaxed italic'>"{i.description}"</p>
            )}
         </div>
 
@@ -254,7 +254,7 @@ export const TechnicienDashboardPage = () => {
             <h1 className='mt-8 text-5xl font-black tracking-tight text-slate-950 sm:text-7xl leading-[1.05]'>
               Bonjour, <span className="text-sky-500 italic">{user?.prenom}.</span>
             </h1>
-            <p className="mt-6 text-slate-500 font-medium max-w-lg leading-relaxed text-lg">
+            <p className="mt-6 text-slate-600 font-medium max-w-lg leading-relaxed text-lg">
               Prêt pour vos missions du jour ? Gérez vos interventions avec efficacité.
             </p>
 
@@ -286,7 +286,7 @@ export const TechnicienDashboardPage = () => {
              <AIPersonalityWidget />
              <div className='grid gap-4 sm:grid-cols-2'>
                 <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-white/40 border-white shadow-sm flex flex-col justify-between h-40'>
-                   <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-400'>Total Missions</p>
+                   <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-500'>Total Missions</p>
                    <p className='text-5xl font-black text-slate-950'>{interventions.length}</p>
                 </article>
                 <article className='dashboard-kpi rounded-[2.5rem] p-8 bg-slate-950 border-slate-900 shadow-xl flex flex-col justify-between h-40'>
@@ -304,7 +304,7 @@ export const TechnicienDashboardPage = () => {
 
       <div className='mt-10'>
         {loading ? (
-          <div className="text-center py-20 animate-pulse font-black uppercase tracking-widest text-slate-400">Initialisation...</div>
+          <div className="text-center py-20 animate-pulse font-black uppercase tracking-widest text-slate-500">Initialisation...</div>
         ) : tab === 'APERCU' ? (
            <div className='space-y-12'>
               <section className='space-y-6'>
@@ -333,7 +333,7 @@ export const TechnicienDashboardPage = () => {
                         </>
                       )))
                     ) : (
-                      <div className='dashboard-card text-center py-10 text-slate-400 font-medium'>Aucune mission en attente.</div>
+                      <div className='dashboard-card text-center py-10 text-slate-500 font-medium'>Aucune mission en attente.</div>
                     )}
                  </div>
               </section>
@@ -364,7 +364,7 @@ export const TechnicienDashboardPage = () => {
                         </div>
                       )))
                     ) : (
-                      <div className='dashboard-card text-center py-10 text-slate-400 font-medium'>Aucun job en cours.</div>
+                      <div className='dashboard-card text-center py-10 text-slate-500 font-medium'>Aucun job en cours.</div>
                     )}
                  </div>
               </section>
@@ -379,17 +379,17 @@ export const TechnicienDashboardPage = () => {
                     <div className='flex items-center gap-6 p-6 bg-slate-50 rounded-[2rem]'>
                        <div className='h-20 w-20 rounded-full bg-sky-500 flex items-center justify-center text-white text-3xl font-black'>{user?.prenom?.[0] ?? '?'}</div>
                        <div>
-                          <p className='text-sm font-black text-slate-400 uppercase tracking-widest'>Technicien Certifié</p>
+                          <p className='text-sm font-black text-slate-500 uppercase tracking-widest'>Technicien Certifié</p>
                           <h4 className='text-2xl font-black text-slate-950'>{user?.prenom} {user?.nom}</h4>
                        </div>
                     </div>
                     <div className='grid gap-4 sm:grid-cols-2'>
                        <div className='p-5 rounded-2xl border border-slate-100 bg-white'>
-                          <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest'>Email</p>
+                          <p className='text-[10px] font-black text-slate-500 uppercase tracking-widest'>Email</p>
                           <p className='text-sm font-bold mt-1'>{user?.email}</p>
                        </div>
                        <div className='p-5 rounded-2xl border border-slate-100 bg-white'>
-                          <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest'>Contact</p>
+                          <p className='text-[10px] font-black text-slate-500 uppercase tracking-widest'>Contact</p>
                           <p className='text-sm font-bold mt-1'>{user?.telephone || 'Non renseigné'}</p>
                        </div>
                     </div>

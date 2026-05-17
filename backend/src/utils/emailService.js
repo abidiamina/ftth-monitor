@@ -100,4 +100,39 @@ const sendPasswordResetEmail = async ({ to, prenom, token }) => {
   return { delivered: true, fallback: false };
 };
 
-module.exports = { sendEmployeeWelcomeEmail, sendEmployeeResetPasswordEmail, sendPasswordResetEmail };
+const sendOutageAlertEmail = async ({ to, zone, probability, recommendation }) => {
+  const mailerConfig = getMailerConfig();
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@ftth-monitor.local';
+  const subject = `🚨 ALERTE CRITIQUE : Risque de panne élevé - ${zone}`;
+
+  const text = [
+    `ALERTE SYSTÈME FTTH MONITOR`,
+    `--------------------------`,
+    `Zone concernée : ${zone}`,
+    `Probabilité de panne : ${probability}%`,
+    `Niveau de risque : CRITIQUE`,
+    '',
+    `Analyse IA :`,
+    recommendation,
+    '',
+    `Veuillez vous connecter au Dashboard Responsable pour plus de détails.`,
+    `Généré le : ${new Date().toLocaleString('fr-FR')}`,
+  ].join('\n');
+
+  if (!mailerConfig) {
+    console.log('[email:outage-alert:fallback]', { to, subject, text });
+    return { delivered: false, fallback: true };
+  }
+
+  const transporter = nodemailer.createTransport(mailerConfig);
+  await transporter.sendMail({ from, to, subject, text });
+
+  return { delivered: true, fallback: false };
+};
+
+module.exports = { 
+  sendEmployeeWelcomeEmail, 
+  sendEmployeeResetPasswordEmail, 
+  sendPasswordResetEmail,
+  sendOutageAlertEmail
+};
