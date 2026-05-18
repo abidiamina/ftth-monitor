@@ -25,13 +25,25 @@ interface Prediction {
   recommendation: string;
 }
 
-// Coordonnées approximatives pour l'affichage des zones sur la carte (Focus Tunis)
+// Coordonnées approximatives pour l'affichage des zones sur la carte
 const getZoneCoordinates = (zoneName: string): [number, number] => {
   const lowerZone = zoneName.toLowerCase();
+  
+  // Villes Tunisiennes principales pour le test
+  if (lowerZone.includes('jendouba')) return [36.5011, 8.7802];
+  if (lowerZone.includes('sousse')) return [35.8256, 10.6369];
+  if (lowerZone.includes('sfax')) return [34.7405, 10.7603];
+  if (lowerZone.includes('bizerte')) return [37.2744, 9.8739];
+  if (lowerZone.includes('nabeul')) return [36.4561, 10.7376];
+  if (lowerZone.includes('kairouan')) return [35.6781, 10.0963];
+  
+  // Zones du Grand Tunis
   if (lowerZone.includes('nord')) return [36.85, 10.18]; // Ariana / Nord
   if (lowerZone.includes('sud')) return [36.75, 10.20]; // Ben Arous / Sud
   if (lowerZone.includes('centre')) return [36.80, 10.18]; // Centre ville
-  return [36.8065, 10.1815]; // Default Tunis
+  
+  // Default Tunis
+  return [36.8065, 10.1815]; 
 };
 
 // Couleurs Hexa pour les CircleMarkers
@@ -91,8 +103,8 @@ export const AIPredictionWidget = () => {
         {/* CARTE GEOGRAPHIQUE (Scénario nominal Étape 4) */}
         <div className="h-[500px] w-full rounded-[2rem] overflow-hidden border border-slate-100 shadow-inner relative z-0">
            <MapContainer 
-            center={[36.8065, 10.1815]} 
-            zoom={11} 
+            center={[35.8, 10.0]} 
+            zoom={7} 
             scrollWheelZoom={false}
             className="h-full w-full"
           >

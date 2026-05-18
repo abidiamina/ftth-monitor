@@ -103,7 +103,7 @@ const sendPasswordResetEmail = async ({ to, prenom, token }) => {
 const sendOutageAlertEmail = async ({ to, zone, probability, recommendation }) => {
   const mailerConfig = getMailerConfig();
   const from = process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@ftth-monitor.local';
-  const subject = `🚨 ALERTE CRITIQUE : Risque de panne élevé - ${zone}`;
+  const subject = `ALERTE CRITIQUE : Risque de panne eleve - ${zone}`;
 
   const text = [
     `ALERTE SYSTÈME FTTH MONITOR`,

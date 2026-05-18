@@ -1,5 +1,9 @@
 const axios = require('axios');
 const prisma = require('../config/prisma');
+const { sendOutageAlertEmail } = require('./emailService');
+
+// Suivi des dernières alertes envoyées par zone (évite le spam)
+const lastOutageAlerts = {};
 
 // URL du Microservice Python (FastAPI) décrit dans le rapport (Conception 5.7.1)
 // Ce microservice intègre les modèles Random Forest et CamemBERT
@@ -40,27 +44,43 @@ const analyzeSentiment = async (text, rating = null) => {
  * Suit la séquence détaillée de la Table 5.7 du rapport.
  */
 const predictOutages = async () => {
-  // Étape 2 & 3 de la Table 5.7 : PredictionController -> DB
+  // 1. Récupérer les zones des techniciens existants
   const techniciens = await prisma.technicien.findMany({ select: { zone: true } });
-  const zones = [...new Set(techniciens.map(t => t.zone).filter(Boolean))];
-  const targetZones = zones.length > 0 ? zones : ['Zone Nord', 'Zone Sud'];
+  const techZones = techniciens.map(t => t.zone).filter(Boolean);
+
+  // 2. Récupérer les adresses des interventions non assignées pour en faire des zones dynamiques
+  const unassigned = await prisma.intervention.findMany({
+    where: { technicienId: null },
+    select: { adresse: true }
+  });
+  const unassignedZones = unassigned.map(i => i.adresse).filter(Boolean);
+
+  // Fusionner toutes les zones uniques (Techniciens + Adresses des pannes non assignées)
+  const allZones = [...new Set([...techZones, ...unassignedZones])];
+  const targetZones = allZones.length > 0 ? allZones : ['Zone Nord', 'Zone Sud'];
 
   const predictions = await Promise.all(targetZones.map(async (zone) => {
     // Récupération de l'historique pour le modèle Random Forest
+    // Isole correctement les risques : on cible la zone du technicien OU l'adresse de la panne non assignée
     const historique = await prisma.intervention.findMany({
-      where: { technicien: { zone: zone } },
+      where: {
+        OR: [
+          { technicien: { zone: zone } },
+          { technicienId: null, adresse: { contains: zone, mode: 'insensitive' } }
+        ]
+      },
       take: 30,
       orderBy: { dateCreation: 'desc' },
-      select: { dateCreation: true, priorite: true, statut: true }
+      select: { dateCreation: true, priorite: true, statut: true, technicienId: true }
     });
 
-    // Scénario Alternatif (Table 5.7) : Données insuffisantes
-    if (historique.length < 2) {
+    // Scénario Alternatif : S'il n'y a absolument aucune donnée
+    if (historique.length === 0) {
       return {
         zone,
         probability: 0,
         riskLevel: 'Faible',
-        recommendation: 'Données insuffisantes pour une analyse Random Forest fiable.',
+        recommendation: 'Aucun incident récent. Réseau stable.',
         color: 'emerald'
       };
     }
@@ -96,28 +116,117 @@ const predictOutages = async () => {
           criticality: { label: 'Charge', value: 'Optimale', impact: 25 }
         },
         recommendation: risque === 'Élevé' 
-          ? '🚨 Alerte NOC ! Intervention préventive recommandée (US-35).' 
+          ? '🚨 Alerte NOC ! Intervention préventive recommandée .' 
           : 'Surveillance réseau standard.',
         updatedAt: new Date()
       };
     } catch (error) {
-      console.warn(`Microservice Random Forest inaccessible pour ${zone}. Utilisation du moteur de secours.`);
+      console.warn(`Microservice Random Forest inaccessible pour ${zone}. Utilisation du moteur de secours basé sur les données réelles.`);
+      
+      // Calcul dynamique basé sur l'historique réel
+      let calculProbabilite = 10; // Base
+      let impactInterventions = 0;
+      let chargeCritique = 0;
+
+      historique.forEach(interv => {
+        let baseImpact = 0;
+        if (interv.priorite === 'URGENTE') baseImpact = 35;
+        else if (interv.priorite === 'HAUTE') baseImpact = 20;
+        else baseImpact = 10;
+
+        // La logique d'atténuation du risque : affecter/résoudre diminue le risque
+        if (!interv.technicienId) {
+          // Non assignée : Risque maximal (Panne non prise en charge)
+          calculProbabilite += baseImpact;
+          impactInterventions += baseImpact;
+          chargeCritique += 15;
+        } else if (interv.statut === 'EN_ATTENTE') {
+          // Assignée au technicien mais pas encore démarrée : Le risque diminue
+          calculProbabilite += (baseImpact * 0.4);
+          impactInterventions += (baseImpact * 0.4);
+          chargeCritique += 5;
+        } else if (interv.statut === 'EN_COURS') {
+          // En cours de résolution : Le risque s'effondre
+          calculProbabilite += (baseImpact * 0.1);
+        } else if (interv.statut === 'TERMINEE' || interv.statut === 'ANNULEE') {
+          // Résolue : Diminue le risque global de la zone
+          calculProbabilite -= 5;
+        }
+      });
+
+      const probability = Math.max(0, Math.min(98, Math.round(calculProbabilite)));
+      let riskLevel = 'Faible';
+      let color = 'emerald';
+      let trend = 'STABLE';
+      let recommendation = 'Le réseau fonctionne normalement (Analyse de secours).';
+
+      if (probability >= 70) {
+        riskLevel = 'Élevé';
+        color = 'rose';
+        trend = 'UP';
+        recommendation = '🚨 Alerte NOC ! Risque de panne détecté (Analyse de secours).';
+      } else if (probability >= 40) {
+        riskLevel = 'Moyen';
+        color = 'amber';
+        trend = 'UP';
+        recommendation = 'Surveillance réseau renforcée requise.';
+      }
+
       return {
         zone,
-        probability: 12,
-        riskLevel: 'Faible',
-        trend: 'STABLE',
-        color: 'emerald',
+        probability,
+        riskLevel,
+        trend,
+        color,
         factors: {
           weather: { label: 'Météo', value: 'Dégagé', impact: 10 },
-          incidents: { label: 'Historique', value: 'Stable', impact: 15 },
-          criticality: { label: 'Charge', value: 'Optimale', impact: 5 }
+          incidents: { label: 'Historique', value: `${historique.length} Interv.`, impact: Math.min(50, impactInterventions) },
+          criticality: { label: 'Charge', value: riskLevel === 'Faible' ? 'Optimale' : (riskLevel === 'Moyen' ? 'Modérée' : 'Critique'), impact: Math.min(40, chargeCritique) }
         },
-        recommendation: 'Le réseau fonctionne normalement (Moteur de secours Node.js).',
+        recommendation,
         updatedAt: new Date()
       };
     }
   }));
+
+  // Trier les prédictions par risque décroissant (les plus critiques en premier)
+  predictions.sort((a, b) => b.probability - a.probability);
+
+  // === ENVOI AUTOMATIQUE D'ALERTE AUX RESPONSABLES ===
+  // Notification envoyée si la probabilité de panne atteint ou dépasse 50%
+  const alertPredictions = predictions.filter(p => p.probability >= 50);
+  if (alertPredictions.length > 0) {
+    const now = Date.now();
+    
+    // Vérifier si on doit envoyer des alertes (cooldown d'une heure par zone)
+    const zonesToAlert = alertPredictions.filter(p => !lastOutageAlerts[p.zone] || (now - lastOutageAlerts[p.zone]) > 3600000);
+    
+    if (zonesToAlert.length > 0) {
+      try {
+        const responsables = await prisma.utilisateur.findMany({
+          where: { role: 'RESPONSABLE', actif: true },
+          select: { email: true }
+        });
+
+        if (responsables.length > 0) {
+          for (const p of zonesToAlert) {
+            lastOutageAlerts[p.zone] = now; // Mettre à jour le timestamp
+
+            responsables.forEach(resp => {
+              sendOutageAlertEmail({
+                to: resp.email,
+                zone: p.zone,
+                probability: p.probability,
+                recommendation: p.recommendation
+              }).catch(err => console.error(`[Alerte NOC] Échec email pour ${resp.email}:`, err));
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération des responsables pour l\'alerte NOC:', error);
+      }
+    }
+  }
 
   return predictions;
 };

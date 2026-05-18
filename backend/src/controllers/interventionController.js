@@ -779,7 +779,10 @@ const submitInterventionClientApproval = async (req, res) => {
       });
     }
 
-    const sentiment = await analyzeSentiment(feedbackComment, Number(feedbackRating));
+    const sentimentResult = await analyzeSentiment(feedbackComment, Number(feedbackRating));
+    const sentimentString = typeof sentimentResult === 'object' && sentimentResult !== null 
+       ? sentimentResult.sentiment 
+       : String(sentimentResult || 'Neutre');
 
     const intervention = await prisma.intervention.update({
       where: { id: interventionId },
@@ -789,7 +792,7 @@ const submitInterventionClientApproval = async (req, res) => {
         clientSignatureAt: new Date(),
         clientFeedbackRating: Number(feedbackRating),
         clientFeedbackComment: normalizeText(feedbackComment),
-        clientFeedbackSentiment: sentiment,
+        clientFeedbackSentiment: sentimentString,
         clientFeedbackAt: new Date(),
       },
       include: interventionInclude,
