@@ -1,0 +1,10 @@
+# Dossiers générés par l'entraînement (Trop lourds pour GitHub)
+models/
+results/
+results_gen/
+__pycache__/
+*.pkl
+
+# Environnement virtuel (si utilisé plus tard)
+venv/
+.env
