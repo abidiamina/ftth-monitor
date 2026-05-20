@@ -8,3 +8,5 @@ scikit-learn
 sentencepiece
 accelerate
 datasets
+joblib
+requests

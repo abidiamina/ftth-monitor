@@ -129,7 +129,7 @@ export function DashboardMetrics({ interventions }: DashboardMetricsProps) {
             <h3 className='text-lg font-black text-slate-900'>Activité 7 Jours</h3>
             <p className='text-[10px] font-bold text-slate-400 uppercase tracking-widest'>Missions par jour</p>
           </div>
-          <div className='h-[300px] w-full'>
+          <div className='h-[300px] min-h-[300px] w-full'>
             <ResponsiveContainer width='100%' height='100%' minWidth={0}>
               <BarChart data={dailyData}>
                 <CartesianGrid strokeDasharray='3 3' vertical={false} stroke='var(--chart-grid)' />
@@ -173,7 +173,7 @@ export function DashboardMetrics({ interventions }: DashboardMetricsProps) {
             <h3 className='text-lg font-black text-slate-900'>État du Flux</h3>
             <p className='text-[10px] font-bold text-slate-400 uppercase tracking-widest'>Répartition statut</p>
           </div>
-          <div className='h-[300px] w-full'>
+          <div className='h-[300px] min-h-[300px] w-full'>
             <ResponsiveContainer width='100%' height='100%' minWidth={0}>
               <PieChart>
                 <Pie

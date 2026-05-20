@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react'
+import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertTriangle, RotateCcw } from 'lucide-react'
 
 interface Props {
@@ -46,7 +46,7 @@ export class ErrorBoundary extends Component<Props, State> {
               Recharger l'application
             </button>
 
-            {process.env.NODE_ENV === 'development' && (
+            {import.meta.env.DEV && (
               <div className="mt-8 p-4 bg-slate-50 rounded-2xl text-left overflow-auto max-h-40 border border-slate-100">
                 <p className="text-[10px] font-mono text-rose-600 break-all">
                   {this.state.error?.toString()}

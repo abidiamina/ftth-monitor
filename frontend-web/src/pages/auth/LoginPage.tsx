@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+
 import { AuthShell } from '@/components/auth/AuthShell'
 import { validateLoginForm } from '@/lib/validation'
 import { loginUser } from '@/services/authApi'
@@ -58,6 +58,7 @@ export const LoginPage = () => {
     <AuthShell 
       layout='single' 
       sideLabel="FTTH MONITOR PRO"
+      title="Connexion"
     >
       <div className='mt-10'>
         <div className="mb-8">

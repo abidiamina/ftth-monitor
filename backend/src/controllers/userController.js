@@ -191,7 +191,10 @@ const listUsers = async (req, res) => {
 
 const getUserById = async (req, res) => {
   try {
-    const userId = Number(req.params.id);
+    const userId = parseInt(req.params.id, 10);
+    if (isNaN(userId)) {
+      return res.status(400).json({ success: false, message: 'ID utilisateur invalide.' });
+    }
     const user = await prisma.utilisateur.findUnique({
       where: { id: userId },
       select: {
@@ -304,7 +307,10 @@ const createEmployee = async (req, res) => {
 
 const updateUser = async (req, res) => {
   try {
-    const userId = Number(req.params.id);
+    const userId = parseInt(req.params.id, 10);
+    if (isNaN(userId)) {
+      return res.status(400).json({ success: false, message: 'ID utilisateur invalide.' });
+    }
     const { nom, prenom, telephone, email, role, adresse } = req.body;
 
     const existingUser = await findUserDetailsById(userId);
@@ -451,7 +457,10 @@ const updateUser = async (req, res) => {
 
 const updateUserStatus = async (req, res) => {
   try {
-    const userId = Number(req.params.id);
+    const userId = parseInt(req.params.id, 10);
+    if (isNaN(userId)) {
+      return res.status(400).json({ success: false, message: 'ID utilisateur invalide.' });
+    }
     const { actif } = req.body;
 
     if (typeof actif !== 'boolean') {
@@ -493,7 +502,10 @@ const updateUserStatus = async (req, res) => {
 
 const deleteUser = async (req, res) => {
   try {
-    const userId = Number(req.params.id);
+    const userId = parseInt(req.params.id, 10);
+    if (isNaN(userId)) {
+      return res.status(400).json({ success: false, message: 'ID utilisateur invalide.' });
+    }
     const existingUser = await findUserById(userId);
 
     if (!existingUser) {
@@ -540,7 +552,10 @@ const deleteUser = async (req, res) => {
 
 const resetEmployeePassword = async (req, res) => {
   try {
-    const userId = Number(req.params.id);
+    const userId = parseInt(req.params.id, 10);
+    if (isNaN(userId)) {
+      return res.status(400).json({ success: false, message: 'ID utilisateur invalide.' });
+    }
     const user = await findUserById(userId);
 
     if (!user) {

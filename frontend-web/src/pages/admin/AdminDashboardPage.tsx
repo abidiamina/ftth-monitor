@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   KeyRound,
   Pencil,
-  Search,
   ShieldCheck,
   ShieldEllipsis,
   Settings,
@@ -17,22 +16,20 @@ import { toast } from 'react-hot-toast'
 import { AIPersonalityWidget } from '@/components/dashboard/AIPersonalityWidget'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs'
-import { Button } from '@/components/ui/button'
-import { validateEmployeeForm, validateUserUpdateForm } from '@/lib/validation'
+
+import { validateUserUpdateForm } from '@/lib/validation'
 import { useNavigate } from 'react-router-dom'
 import {
   createEmployee,
   deleteUser,
-  getUserById,
   listUsers,
-  resetEmployeePassword,
   updateUser,
   updateUserStatus,
 } from '@/services/authApi'
 import { listNotifications, markNotificationAsRead } from '@/services/notificationApi'
 import { listConfigs, updateConfig } from '@/services/configApi'
 import { NotificationsPanel } from '@/components/dashboard/NotificationsPanel'
-import type { ConfigurationRecord, CreateEmployeeRequest, CurrentUser, UpdateUserRequest, User, UserRole } from '@/types/auth.types'
+import type { ConfigurationRecord, CreateEmployeeRequest, NotificationRecord, UpdateUserRequest, User, UserRole } from '@/types/auth.types'
 
 const roleLabels: Record<UserRole, string> = {
   ADMIN: 'Administrateur',
@@ -81,7 +78,7 @@ export const AdminDashboardPage = () => {
   const [editingUserId, setEditingUserId] = useState<User['id'] | null>(null)
   const [savingUser, setSavingUser] = useState(false)
   const [roleFilter, setRoleFilter] = useState<'ALL' | UserRole>('ALL')
-  const [userQuery, setUserQuery] = useState('')
+
   const [tab, setTab] = useState<'APERCU' | 'UTILISATEURS' | 'CREATION' | 'ROLES' | 'PARAMETRES' | 'AUDIT' | 'NOTIFICATIONS'>('APERCU')
   const [configs, setConfigs] = useState<ConfigurationRecord[]>([])
   const [notifications, setNotifications] = useState<NotificationRecord[]>([])
@@ -123,13 +120,11 @@ export const AdminDashboardPage = () => {
   }, [users, notifications])
 
   const visibleUsers = useMemo(() => {
-    const q = userQuery.trim().toLowerCase()
     return users.filter(u => {
       const matchesRole = roleFilter === 'ALL' || u.role === roleFilter
-      const matchesQuery = !q || `${u.prenom} ${u.nom} ${u.email}`.toLowerCase().includes(q)
-      return matchesRole && matchesQuery
+      return matchesRole
     })
-  }, [roleFilter, userQuery, users])
+  }, [roleFilter, users])
 
   const tabs = useMemo(() => [
     { id: 'APERCU', label: 'Overview', icon: ShieldCheck },
@@ -573,7 +568,7 @@ export const AdminDashboardPage = () => {
             </div>
           </div>
         ) : tab === 'NOTIFICATIONS' ? (
-          <NotificationsPanel notifications={notifications} loading={loading} onMarkAsRead={handleMarkAsRead} />
+          <NotificationsPanel notifications={notifications} loading={loading} onMarkAsRead={handleMarkAsRead} accentClassName="text-violet-700 bg-violet-50" />
         ) : (
           <div className='grid grid-cols-1 gap-8'>
              <div className='dashboard-card h-64 flex flex-col items-center justify-center text-center'>

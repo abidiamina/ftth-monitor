@@ -197,8 +197,7 @@ const buildNotificationPayloadsForCreation = (intervention) => {
 // Removed: buildNotificationPayloadsForUpdate moved to interventionService
 
 
-// Removed: validateTechnicianUpdate moved to interventionService
-
+// Notification/update validation helpers were moved to interventionService.
 
 // GET /api/interventions
 const getInterventions = async (req, res) => {
@@ -241,8 +240,12 @@ const getInterventions = async (req, res) => {
 // GET /api/interventions/:id
 const getIntervention = async (req, res) => {
   try {
+    const interventionId = parseInt(req.params.id, 10);
+    if (isNaN(interventionId)) {
+      return res.status(400).json({ success: false, message: 'ID intervention invalide.' });
+    }
     const intervention = await prisma.intervention.findUnique({
-      where: { id: parseInt(req.params.id, 10) },
+      where: { id: interventionId },
       include: {
         ...interventionInclude,
         rapport: true,
@@ -407,6 +410,9 @@ const updateIntervention = async (req, res) => {
     }
 
     const interventionId = parseInt(id, 10);
+    if (isNaN(interventionId)) {
+      return res.status(400).json({ success: false, message: 'ID intervention invalide.' });
+    }
     const existing = await prisma.intervention.findUnique({
       where: { id: interventionId },
       include: interventionInclude,
@@ -516,7 +522,7 @@ const updateIntervention = async (req, res) => {
     const dateData = {};
     if (statut === 'EN_COURS' && !existing.dateDebut) dateData.dateDebut = new Date();
     if (statut === 'TERMINEE' && !existing.dateFin) dateData.dateFin = new Date();
-    if (statut === 'EN_ATTENTE' && technicienId === null) {
+    if ((statut === 'EN_ATTENTE' || technicienId === null) && existing.statut !== 'TERMINEE') {
       dateData.dateDebut = null;
       dateData.dateFin = null;
     }
@@ -599,6 +605,9 @@ const updateIntervention = async (req, res) => {
 const updateInterventionFieldCheck = async (req, res) => {
   try {
     const interventionId = parseInt(req.params.id, 10);
+    if (isNaN(interventionId)) {
+      return res.status(400).json({ success: false, message: 'ID intervention invalide.' });
+    }
     const { gpsLatitude, gpsLongitude, qrCodeValue, confirmGps } = req.body ?? {};
 
     const validationError = validateFieldCheckPayload({
@@ -650,6 +659,8 @@ const updateInterventionFieldCheck = async (req, res) => {
       include: interventionInclude,
     });
 
+    emitToInterventionParticipants(intervention, 'UPDATE', intervention.id);
+
     res.json({
       success: true,
       data: flattenIntervention(intervention),
@@ -664,6 +675,9 @@ const updateInterventionFieldCheck = async (req, res) => {
 const addInterventionEvidence = async (req, res) => {
   try {
     const interventionId = parseInt(req.params.id, 10);
+    if (isNaN(interventionId)) {
+      return res.status(400).json({ success: false, message: 'ID intervention invalide.' });
+    }
     const { commentaire, photoName, photoData } = req.body ?? {};
 
     const validationError = validateEvidencePayload({ commentaire, photoName });
@@ -719,6 +733,8 @@ const addInterventionEvidence = async (req, res) => {
       buildEvidenceNotificationPayloads(intervention, evidence.commentaire, req.user.id)
     );
 
+    emitToInterventionParticipants(intervention, 'UPDATE', intervention.id);
+
     res.status(201).json({
       success: true,
       data: evidence,
@@ -734,6 +750,9 @@ const addInterventionEvidence = async (req, res) => {
 const submitInterventionClientApproval = async (req, res) => {
   try {
     const interventionId = parseInt(req.params.id, 10);
+    if (isNaN(interventionId)) {
+      return res.status(400).json({ success: false, message: 'ID intervention invalide.' });
+    }
     const {
       signature,
       signatureBy,
@@ -800,6 +819,8 @@ const submitInterventionClientApproval = async (req, res) => {
 
     await createNotifications(buildClientApprovalNotificationPayloads(intervention, req.user.id));
 
+    emitToInterventionParticipants(intervention, 'UPDATE', intervention.id);
+
     res.json({
       success: true,
       data: flattenIntervention(intervention),
@@ -816,6 +837,9 @@ const deleteIntervention = async (req, res) => {
     const { id } = req.params;
 
     const interventionId = parseInt(id, 10);
+    if (isNaN(interventionId)) {
+      return res.status(400).json({ success: false, message: 'ID intervention invalide.' });
+    }
     const existing = await prisma.intervention.findUnique({ where: { id: interventionId } });
 
     if (!existing) {
@@ -846,3 +870,4 @@ module.exports = {
   submitInterventionClientApproval,
   flattenIntervention,
 };
+

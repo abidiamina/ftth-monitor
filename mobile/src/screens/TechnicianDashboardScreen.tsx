@@ -177,7 +177,7 @@ export function TechnicianDashboardScreen() {
         locationSubscription.remove();
       }
     };
-  }, [user]);
+  }, [user?.id]);
 
   const selectedIntervention =
     interventions.find((item) => item.id === selectedInterventionId) ?? interventions[0] ?? null

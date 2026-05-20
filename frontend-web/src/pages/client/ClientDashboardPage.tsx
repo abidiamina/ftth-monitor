@@ -518,8 +518,8 @@ export const ClientDashboardPage = () => {
                         <div className='grid grid-cols-2 gap-4'>
                           <div>
                             <p className='text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1'>Priorité</p>
-                            <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase ${priorityColors[requestForm.priorite]}`}>
-                              {priorityLabels[requestForm.priorite]}
+                            <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase ${priorityColors[requestForm.priorite ?? 'NORMALE']}`}>
+                              {priorityLabels[requestForm.priorite ?? 'NORMALE']}
                             </span>
                           </div>
                           <div>
@@ -585,7 +585,7 @@ export const ClientDashboardPage = () => {
               </div>
            </div>
         ) : (
-           <NotificationsPanel notifications={notifications} loading={loading} onMarkAsRead={handleMarkAsRead} />
+           <NotificationsPanel notifications={notifications} loading={loading} onMarkAsRead={handleMarkAsRead} accentClassName="text-amber-700 bg-amber-50" />
         )}
       </div>
     </AppDashboardShell>

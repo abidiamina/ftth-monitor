@@ -13,10 +13,7 @@ export const TechnicianAlertsWidget = ({ interventions, technicians }: Technicia
     let overloads = 0
     const now = new Date().getTime()
 
-    // Calcul des retards
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const startOfToday = today.getTime()
+
 
     interventions.forEach(i => {
       if (i.statut !== 'TERMINEE' && i.statut !== 'ANNULEE' && i.datePlanifiee) {

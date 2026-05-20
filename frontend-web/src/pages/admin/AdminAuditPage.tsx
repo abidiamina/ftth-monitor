@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Shield, Search, Filter, Calendar, User, Activity, ArrowLeft, RefreshCw, Eye, ShieldCheck, Users, UserPlus, ShieldEllipsis, Settings, BellRing, UserCog } from 'lucide-react'
+import { Search, Filter, Calendar, User, Activity, ArrowLeft, RefreshCw, ShieldCheck, Users, UserPlus, ShieldEllipsis, Settings, BellRing, UserCog } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import axios from 'axios'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'

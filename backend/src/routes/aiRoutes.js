@@ -10,4 +10,7 @@ router.get('/message', protect, aiController.getPersonalizedMessage);
 router.get('/predictions', protect, authorize('RESPONSABLE', 'ADMIN'), aiController.getOutagePredictions);
 router.get('/sentiment-stats', protect, authorize('RESPONSABLE', 'ADMIN'), aiController.getSentimentStats);
 
+// Routes de test (Admin seulement)
+router.post('/test-sentiment', protect, authorize('ADMIN'), aiController.testSentiment);
+
 module.exports = router;

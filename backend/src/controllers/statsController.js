@@ -22,28 +22,31 @@ const getDashboardStats = async (req, res) => {
       : 0;
 
     // Interventions by month (for charts)
-    // Simplified: just get last 6 months
-    const statsByMonth = [];
+    // Optimized: Use Promise.all to fetch all months in parallel
+    const monthsData = [];
     for (let i = 5; i >= 0; i--) {
       const date = new Date();
       date.setMonth(date.getMonth() - i);
-      const month = date.toLocaleString('default', { month: 'short' });
-      const year = date.getFullYear();
-      
       const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
       const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-
-      const count = await prisma.intervention.count({
-        where: {
-          dateCreation: {
-            gte: startOfMonth,
-            lte: endOfMonth,
-          },
-        },
-      });
-
-      statsByMonth.push({ month: `${month} ${year}`, count });
+      const label = date.toLocaleString('default', { month: 'short' }) + ' ' + date.getFullYear();
+      
+      monthsData.push({ startOfMonth, endOfMonth, label });
     }
+
+    const statsByMonth = await Promise.all(
+      monthsData.map(async ({ startOfMonth, endOfMonth, label }) => {
+        const count = await prisma.intervention.count({
+          where: {
+            dateCreation: {
+              gte: startOfMonth,
+              lte: endOfMonth,
+            },
+          },
+        });
+        return { month: label, count };
+      })
+    );
 
     res.json({
       success: true,

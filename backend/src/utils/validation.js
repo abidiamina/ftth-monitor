@@ -19,11 +19,12 @@ const validateRequiredText = (label, value, min = 2, max = 120) => {
 };
 
 const validateRegisterPayload = ({ nom, prenom, email, telephone, adresse, motDePasse }) => {
-  const nameError =
-    validateRequiredText('Le prenom', prenom, 2, 60) ??
-    validateRequiredText('Le nom', nom, 2, 60);
+  const prenomError = validateRequiredText('Le prenom', prenom, 2, 60);
+  if (prenomError) return prenomError;
 
-  if (nameError) return nameError;
+  const nomError = validateRequiredText('Le nom', nom, 2, 60);
+  if (nomError) return nomError;
+
   if (!isValidEmail(email)) return 'Adresse email invalide.';
   if (!isValidPhone(telephone)) return 'Numero de telephone invalide.';
 
@@ -50,11 +51,11 @@ const validateLoginPayload = ({ email, motDePasse }) => {
 };
 
 const validateEmployeePayload = ({ nom, prenom, email, telephone, role }, managedRoles) => {
-  const nameError =
-    validateRequiredText('Le prenom', prenom, 2, 60) ??
-    validateRequiredText('Le nom', nom, 2, 60);
+  const prenomError = validateRequiredText('Le prenom', prenom, 2, 60);
+  if (prenomError) return prenomError;
 
-  if (nameError) return nameError;
+  const nomError = validateRequiredText('Le nom', nom, 2, 60);
+  if (nomError) return nomError;
   if (!isValidEmail(email)) return 'Adresse email invalide.';
   if (normalizeText(telephone) && !isValidPhone(telephone)) return 'Numero de telephone invalide.';
   if (!managedRoles.includes(normalizeText(role).toUpperCase())) {
@@ -65,11 +66,11 @@ const validateEmployeePayload = ({ nom, prenom, email, telephone, role }, manage
 };
 
 const validateUserProfilePayload = ({ nom, prenom, email, telephone, adresse }, options = {}) => {
-  const nameError =
-    validateRequiredText('Le prenom', prenom, 2, 60) ??
-    validateRequiredText('Le nom', nom, 2, 60);
+  const prenomError = validateRequiredText('Le prenom', prenom, 2, 60);
+  if (prenomError) return prenomError;
 
-  if (nameError) return nameError;
+  const nomError = validateRequiredText('Le nom', nom, 2, 60);
+  if (nomError) return nomError;
   if (email !== undefined && !isValidEmail(email)) return 'Adresse email invalide.';
   if (normalizeText(telephone) && !isValidPhone(telephone)) return 'Numero de telephone invalide.';
 

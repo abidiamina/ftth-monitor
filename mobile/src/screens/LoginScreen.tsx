@@ -18,8 +18,8 @@ type LoginScreenProps = NativeStackScreenProps<RootStackParamList, 'Login'>
 
 export function LoginScreen({ navigation }: LoginScreenProps) {
   const { login, isLoading } = useAuth()
-  const [email, setEmail] = useState('')
-  const [motDePasse, setMotDePasse] = useState('Password123')
+  const [email, setEmail] = useState('yahyab822@gmail.com')
+  const [motDePasse, setMotDePasse] = useState('FTTH-65928219')
 
   const handleLogin = async () => {
     try {

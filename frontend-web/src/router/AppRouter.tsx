@@ -7,6 +7,7 @@ import { RegisterPage } from '@/pages/auth/RegisterPage'
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { ProfilePage } from '@/pages/auth/ProfilePage'
+import AITestPage from '@/pages/admin/AITestPage'
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage'
 import { AdminAuditPage } from '@/pages/admin/AdminAuditPage'
 import { ClientDashboardPage } from '@/pages/client/ClientDashboardPage'
@@ -61,6 +62,14 @@ export const AppRouter = () => (
         element={
           <ProtectedRoute allowedRoles={['ADMIN']}>
             <AdminAuditPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='/admin/ai-test'
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <AITestPage />
           </ProtectedRoute>
         }
       />

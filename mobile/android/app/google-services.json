@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "444285847522",
+    "project_id": "pimot-ftth",
+    "storage_bucket": "pimot-ftth.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:444285847522:android:76b980c29ee5e889009bbb",
+        "android_client_info": {
+          "package_name": "com.ftthmonitor.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD011XGcpPs06AjQmiUHYBoIa-rvPKAuRY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

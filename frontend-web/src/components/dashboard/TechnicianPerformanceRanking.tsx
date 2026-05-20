@@ -8,10 +8,14 @@ export function TechnicianPerformanceRanking() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getTechnicianPerformance().then(res => {
-      setData(res)
-      setLoading(false)
-    })
+    getTechnicianPerformance()
+      .then(res => {
+        setData(res)
+        setLoading(false)
+      })
+      .catch(() => {
+        setLoading(false)
+      })
   }, [])
 
   if (loading) return <div className="animate-pulse h-40 bg-slate-50 dark:bg-slate-800 rounded-3xl" />

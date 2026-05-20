@@ -17,8 +17,23 @@ const initSocket = (server) => {
       console.log(`🏠 Client ${socket.id} a rejoint le salon : ${room}`);
     });
 
-    socket.on('technician_location_update', (data) => {
+    socket.on('technician_location_update', async (data) => {
       console.log(`📍 Position technicien ${data.technicienId} : ${data.latitude}, ${data.longitude}`);
+      
+      // Update database persistently
+      try {
+        const prisma = require('../config/prisma');
+        await prisma.technicien.update({
+          where: { id: Number(data.technicienId) },
+          data: {
+            latitude: data.latitude,
+            longitude: data.longitude
+          }
+        });
+      } catch (err) {
+        console.error('Failed to update technician location in DB:', err.message);
+      }
+
       // On retransmet à tout le monde (notamment au dashboard responsable)
       io.emit('technician_location_broadcast', data);
     });
@@ -52,7 +67,11 @@ const emitToRoom = (room, event, data) => {
 
 const emitToUser = (userId, event, data) => {
   if (io) {
-    io.to(`user:${userId}`).emit(event, data);
+    const room = `user:${userId}`;
+    const clientsInRoom = io.sockets.adapter.rooms.get(room);
+    const count = clientsInRoom ? clientsInRoom.size : 0;
+    console.log(`📤 Envoi événement '${event}' à l'utilisateur ${userId} (${count} client(s) dans le salon ${room})`);
+    io.to(room).emit(event, data);
   }
 };
 

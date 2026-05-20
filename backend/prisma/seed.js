@@ -19,6 +19,7 @@ async function main() {
         email,
         nom: details.nom,
         prenom: details.prenom,
+        telephone: details.telephone,
         motDePasse: hashedPassword,
         role,
         actif: true,
@@ -42,10 +43,8 @@ async function main() {
   const client1 = await upsertUser('clienttest1@gmail.com', '123456789', 'CLIENT', {
     nom: 'Client',
     prenom: 'Test1',
+    telephone: '0611223344',
     subModelData: {
-      nom: 'Client',
-      prenom: 'Test1',
-      telephone: '0611223344',
       adresse: '456 Avenue des Tests',
     },
   });

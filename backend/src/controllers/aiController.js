@@ -6,8 +6,8 @@ const getOutagePredictions = async (req, res) => {
     const predictions = await aiService.predictOutages();
     res.json(predictions);
   } catch (error) {
-    console.error('Erreur prédictions IA:', error);
-    res.status(500).json({ message: 'Erreur lors de la récupération des prédictions IA' });
+    console.error('Erreur predictions IA:', error);
+    res.status(500).json({ message: 'Erreur lors de la recuperation des predictions IA' });
   }
 };
 
@@ -20,14 +20,20 @@ const getPersonalizedMessage = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(44).json({ message: 'Utilisateur non trouvé' });
+      return res.status(404).json({ message: 'Utilisateur non trouve' });
     }
 
-    const message = await aiService.generatePersonalizedMessage(user);
-    res.json({ message });
+    const requestedRole = typeof req.query.role === 'string' ? req.query.role.toUpperCase() : null;
+    const role = req.user.role === 'ADMIN' && requestedRole ? requestedRole : user.role;
+
+    const messagePayload = await aiService.generatePersonalizedMessage({
+      ...user,
+      role
+    });
+    res.json(messagePayload);
   } catch (error) {
-    console.error('Erreur message personnalisé IA:', error);
-    res.status(500).json({ message: 'Erreur lors de la génération du message personnalisé' });
+    console.error('Erreur message personnalise IA:', error);
+    res.status(500).json({ message: 'Erreur lors de la generation du message personnalise' });
   }
 };
 
@@ -46,12 +52,28 @@ const getSentimentStats = async (req, res) => {
     res.json(stats);
   } catch (error) {
     console.error('Erreur stats sentiment IA:', error);
-    res.status(500).json({ message: 'Erreur lors de la récupération des statistiques de sentiment' });
+    res.status(500).json({ message: 'Erreur lors de la recuperation des statistiques de sentiment' });
+  }
+};
+
+const testSentiment = async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text) {
+      return res.status(400).json({ message: 'Le texte est requis' });
+    }
+
+    const result = await aiService.analyzeSentiment(text);
+    res.json(result);
+  } catch (error) {
+    console.error('Erreur test sentiment:', error);
+    res.status(500).json({ message: 'Erreur lors du test du sentiment' });
   }
 };
 
 module.exports = {
   getOutagePredictions,
   getPersonalizedMessage,
-  getSentimentStats
+  getSentimentStats,
+  testSentiment
 };

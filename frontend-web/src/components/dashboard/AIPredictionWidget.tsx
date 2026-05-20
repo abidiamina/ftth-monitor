@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, TrendingUp, TrendingDown, Info, Zap, Cloud, Activity, Map as MapIcon } from 'lucide-react';
+import { AlertTriangle, TrendingUp, TrendingDown, Info, Zap, Cloud, Map as MapIcon } from 'lucide-react';
 import { getOutagePredictions } from '@/services/aiApi';
 import { toast } from 'react-hot-toast';
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';

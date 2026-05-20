@@ -32,7 +32,7 @@ const getActiveAlerts = async (req, res) => {
     const delayedInterventions = await prisma.intervention.findMany({
       where: {
         datePlanifiee: { lt: now },
-        statut: { not: 'TERMINEE' },
+        statut: { notIn: ['TERMINEE', 'ANNULEE'] },
         NOT: { datePlanifiee: null }
       },
     });

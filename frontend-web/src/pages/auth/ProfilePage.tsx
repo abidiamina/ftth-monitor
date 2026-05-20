@@ -123,7 +123,7 @@ export const ProfilePage = () => {
                 </div>
               </div>
               <p className='text-[10px] text-slate-400 font-medium px-2'>
-                Membre depuis le {user ? new Date(user.createdAt).toLocaleDateString('fr-FR') : '-'}
+                Membre {new Date(user?.createdAt || Date.now()).toLocaleDateString('fr-FR', { dateStyle: 'long' })}
               </p>
             </div>
           </div>

@@ -13,7 +13,6 @@ export const getSocket = () => {
     // On enlève le /api de apiBaseUrl pour le socket si nécessaire
     const socketUrl = env.apiBaseUrl.replace('/api', '');
     socket = io(socketUrl, {
-      transports: ['websocket'],
       autoConnect: true,
     });
 

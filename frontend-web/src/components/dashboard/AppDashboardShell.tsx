@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
-import { Search, Bell, LogOut, LayoutDashboard, Ticket, Wrench, MapPinned, UserCog, CircleHelp, Settings, Shield, BarChart3, Users, Menu, X, Activity, Moon, Sun } from 'lucide-react'
+import { Search, Bell, LogOut, LayoutDashboard, Ticket, Wrench, MapPinned, UserCog, CircleHelp, Settings, Shield, BarChart3, Users, Menu, Activity, Moon, Sun } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
+
 import { logout } from '@/store/authSlice'
 import { listConfigs } from '@/services/configApi'
 import { useEffect, useState } from 'react'
@@ -122,6 +122,7 @@ export const AppDashboardShell = ({
         label: tab.label,
         icon: tab.icon ?? LayoutDashboard,
         badge: tab.badge !== undefined ? String(tab.badge) : undefined,
+        path: undefined,
       }))
     : roleNav[role].map((item) => ({
         id: item.label,

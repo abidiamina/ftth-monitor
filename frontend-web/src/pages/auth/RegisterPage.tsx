@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   UserCircle2,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+
 import { AuthShell } from '@/components/auth/AuthShell'
 import { validateRegisterForm } from '@/lib/validation'
 import { registerClient } from '@/services/authApi'
@@ -65,6 +65,7 @@ export const RegisterPage = () => {
     <AuthShell
       layout='single'
       sideLabel="INSCRIPTION CLIENT"
+      title="Création de compte"
     >
       <div className='mt-8 pb-10'>
         <div className="mb-10">

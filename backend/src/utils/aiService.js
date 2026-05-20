@@ -238,7 +238,7 @@ const predictOutages = async () => {
 const generatePersonalizedMessage = async (user) => {
   try {
     const response = await axios.get(`${IA_MICROSERVICE_URL}/ia/motivational-message/${user.role}`);
-    return response.data.message;
+    return response.data;
   } catch (error) {
     // Fallback statique si le microservice est hors ligne
     const greetings = {
@@ -247,7 +247,10 @@ const generatePersonalizedMessage = async (user) => {
       RESPONSABLE: `Les indicateurs de performance sont excellents, ${user.prenom}.`,
       CLIENT: `Ravi de vous revoir ${user.prenom}, la qualité de votre connexion est notre priorité.`
     };
-    return greetings[user.role] || `Bienvenue sur la plateforme FTTH Monitoring, ${user.prenom}.`;
+    return {
+      message: greetings[user.role] || `Bienvenue sur la plateforme FTTH Monitoring, ${user.prenom}.`,
+      ia_used: false
+    };
   }
 };
 

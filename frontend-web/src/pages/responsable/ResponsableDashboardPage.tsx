@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, BellRing, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, LayoutDashboard, LogOut, MapPin, Menu, QrCode, Search, ShieldCheck, Star, User, UsersRound, Wrench, X, UserCog } from 'lucide-react'
+import { BellRing, CheckCircle2, ClipboardList, LayoutDashboard, LogOut, MapPin, QrCode, ShieldCheck, Star, User, UsersRound, UserCog } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs'
 import { NotificationsPanel } from '@/components/dashboard/NotificationsPanel'
-import { validateInterventionForm } from '@/lib/validation'
 import { listTechnicians } from '@/services/authApi'
 import {
   createIntervention,
@@ -59,14 +58,6 @@ const formatDate = (value?: string | null) => {
   })
 }
 
-const formatValidationDate = (value?: string | null) => {
-  if (!value) return 'En attente de validation'
-  return new Date(value).toLocaleString('fr-FR', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  })
-}
-
 // Calcul de distance (formule Haversine)
 const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
   const R = 6371
@@ -109,10 +100,10 @@ export const ResponsableDashboardPage = () => {
   const [submitting, setSubmitting] = useState(false)
   const [tab, setTab] = useState<'APERCU' | 'CREATION' | 'INTERVENTIONS' | 'NOTIFICATIONS' | 'MAP' | 'SUPERVISION' | 'RAPPORTS'>('APERCU')
   const [statusFilter, setStatusFilter] = useState<'ALL' | InterventionStatus>('ALL')
-  const [priorityFilter, setPriorityFilter] = useState<'ALL' | InterventionPriority>('ALL')
+  const [priorityFilter] = useState<'ALL' | InterventionPriority>('ALL')
   const [categoryFilter, setCategoryFilter] = useState<'ALL' | 'URGENTES' | 'RETARD' | 'RECENTES'>('ALL')
   const [selectedReportDate, setSelectedReportDate] = useState<string>(new Date().toISOString().split('T')[0])
-  const [query, setQuery] = useState('')
+  const [query] = useState('')
   const [form, setForm] = useState<CreateInterventionRequest>({
     titre: '',
     description: '',
@@ -220,13 +211,6 @@ export const ResponsableDashboardPage = () => {
     const normalizedQuery = query.trim().toLowerCase()
     
     // Poids des priorités pour le tri
-    const priorityWeight: Record<InterventionPriority, number> = {
-      URGENTE: 4,
-      HAUTE: 3,
-      NORMALE: 2,
-      BASSE: 1,
-    }
-
     return interventions
       .filter((item) => {
         const matchesStatus = statusFilter === 'ALL' || item.statut === statusFilter
@@ -449,8 +433,8 @@ export const ResponsableDashboardPage = () => {
       })
 
       // Footer
-      const pageCount = doc.internal.getNumberOfPages()
-      for(let i = 1; i <= pageCount; i++) {
+      const pageCount = (doc.internal as any).getNumberOfPages()
+      for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i)
         doc.setFontSize(8)
         doc.setTextColor(148, 163, 184)
@@ -640,11 +624,11 @@ export const ResponsableDashboardPage = () => {
                           <p className='text-[10px] font-black text-slate-500 dark:text-slate-600 uppercase tracking-widest'>Évaluation & Note</p>
                           {intervention.clientFeedbackSentiment && (
                             <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${
-                              (intervention.clientFeedbackSentiment === 'POSITIVE' || intervention.clientFeedbackSentiment === 'Positif') ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                              (intervention.clientFeedbackSentiment === 'NEGATIVE' || intervention.clientFeedbackSentiment === 'Négatif') ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                              intervention.clientFeedbackSentiment === 'POSITIVE' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                              intervention.clientFeedbackSentiment === 'NEGATIVE' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
                               'bg-slate-50 text-slate-600 border border-slate-100'
                             }`}>
-                              Sentiment {(intervention.clientFeedbackSentiment === 'POSITIVE' || intervention.clientFeedbackSentiment === 'Positif') ? 'Positif' : (intervention.clientFeedbackSentiment === 'NEGATIVE' || intervention.clientFeedbackSentiment === 'Négatif') ? 'Négatif' : 'Neutre'}
+                              Sentiment {intervention.clientFeedbackSentiment === 'POSITIVE' ? 'Positif' : intervention.clientFeedbackSentiment === 'NEGATIVE' ? 'Negatif' : 'Neutre'}
                             </span>
                           )}
                         </div>
@@ -989,12 +973,14 @@ export const ResponsableDashboardPage = () => {
                     onChange={e => setForm(c => ({...c, datePlanifiee: e.target.value}))} 
                   />
                 </div>
-                <button type='submit' className='btn-premium w-full mt-6 py-5 text-lg uppercase tracking-[.3em]'>Lancer la mission</button>
+                <button type='submit' disabled={submitting} className='btn-premium w-full mt-6 py-5 text-lg uppercase tracking-[.3em] disabled:opacity-50'>
+                  {submitting ? 'Creation...' : 'Lancer la mission'}
+                </button>
               </form>
             </div>
           </div>
         ) : tab === 'NOTIFICATIONS' ? (
-           <NotificationsPanel notifications={notifications} loading={loading} onMarkAsRead={handleMarkNotificationAsRead} />
+           <NotificationsPanel notifications={notifications} loading={loading} accentClassName='text-violet-700 bg-violet-50' onMarkAsRead={handleMarkNotificationAsRead} />
          ) : tab === 'SUPERVISION' ? (
             <div className='max-w-7xl mx-auto'>
                <div className='flex items-center justify-between mb-10'>

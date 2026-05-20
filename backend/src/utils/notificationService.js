@@ -32,12 +32,12 @@ const createNotification = async (payload) => {
   ]);
 
   // Real-time socket notification
-  emitToUser(payload.userId, 'notification_received', notification);
+  emitToUser(payload.userId, 'new_notification', notification);
 
   return notification;
 };
-
 const createNotifications = async (payloads = []) => {
+  console.log(`🔔 Création de ${payloads.length} notifications...`);
   if (!Array.isArray(payloads) || payloads.length === 0) {
     return;
   }
@@ -69,7 +69,7 @@ const createNotifications = async (payloads = []) => {
 
   // Real-time socket notifications
   payloads.forEach((payload) => {
-    emitToUser(payload.userId, 'notification_received', {
+    emitToUser(payload.userId, 'new_notification', {
       ...payload,
       createdAt: new Date().toISOString(),
       lu: false,

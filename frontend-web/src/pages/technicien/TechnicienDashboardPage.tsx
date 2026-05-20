@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   BellRing,
-  CheckCheck,
-  ClipboardCheck,
+
   KeyRound,
   MapPinned,
   RadioTower,
@@ -21,7 +20,7 @@ import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs'
 import { NotificationsPanel } from '@/components/dashboard/NotificationsPanel'
 import { TechnicianSprint3Panel } from '@/components/sprint3/TechnicianSprint3Panel'
-import { validatePasswordChangeForm } from '@/lib/validation'
+
 import { changeCurrentPassword, getCurrentUser, updateTechnicianLocation } from '@/services/authApi'
 import { listInterventions, updateIntervention } from '@/services/interventionApi'
 import { listNotifications, markNotificationAsRead } from '@/services/notificationApi'
@@ -67,6 +66,8 @@ export const TechnicienDashboardPage = () => {
         listNotifications(),
       ])
       setUser(userData)
+      const s = getSocket()
+      s.emit('join_room', `user:${userData.id}`)
       setInterventions(interventionsData)
       setNotifications(notificationsData)
     } catch (error) {
@@ -133,7 +134,7 @@ export const TechnicienDashboardPage = () => {
   const handleReject = async (id: number) => {
     setActionId(id)
     try {
-      const response = await updateIntervention(id, { statut: 'EN_ATTENTE', technicienId: null })
+      await updateIntervention(id, { statut: 'EN_ATTENTE', technicienId: null })
       toast.success('Intervention refusée et remise en attente.')
       // Since it's no longer assigned to this technician, we remove it from their view
       setInterventions(curr => curr.filter(i => i.id !== id))
@@ -160,7 +161,7 @@ export const TechnicienDashboardPage = () => {
           setUpdatingLocation(false)
         }
       },
-      (error) => {
+      () => {
         setUpdatingLocation(false)
         toast.error('Impossible de récupérer votre position.')
       },
@@ -408,7 +409,7 @@ export const TechnicienDashboardPage = () => {
               </div>
            </div>
         ) : (
-           <NotificationsPanel notifications={notifications} loading={loading} onMarkAsRead={handleMarkAsRead} />
+           <NotificationsPanel notifications={notifications} loading={loading} onMarkAsRead={handleMarkAsRead} accentClassName="text-emerald-700 bg-emerald-50" />
         )}
       </div>
     </AppDashboardShell>
