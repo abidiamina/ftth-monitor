@@ -58,9 +58,13 @@ try:
             (
                 "categorical",
                 OneHotEncoder(handle_unknown="ignore"),
-                ["zone", "type"],
+                ["zone", "type", "weather_condition"],
             ),
-            ("numeric", "passthrough", ["nb_incidents", "statut_terminee"]),
+            (
+                "numeric",
+                "passthrough",
+                ["nb_incidents", "statut_terminee", "weather_wind_kmh", "weather_precip_mm", "weather_storm_flag"],
+            ),
         ]
     )
 

@@ -1,13 +1,68 @@
 const axios = require('axios');
 const prisma = require('../config/prisma');
 const { sendOutageAlertEmail } = require('./emailService');
+const { getWeatherData } = require('./weatherService');
 
 // Suivi des dernières alertes envoyées par zone (évite le spam)
 const lastOutageAlerts = {};
 
 // URL du Microservice Python (FastAPI) décrit dans le rapport (Conception 5.7.1)
 // Ce microservice intègre les modèles Random Forest et CamemBERT
-const IA_MICROSERVICE_URL = process.env.IA_MICROSERVICE_URL || 'http://localhost:8000';
+const IA_MICROSERVICE_URL = process.env.IA_MICROSERVICE_URL || 'http://localhost:8001';
+const IA_HTTP_TIMEOUT_MS = Number(process.env.IA_HTTP_TIMEOUT_MS || 10000);
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const postIAWithRetry = async (path, payload, attempts = 2) => {
+  let lastError;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      return await axios.post(`${IA_MICROSERVICE_URL}${path}`, payload, { timeout: IA_HTTP_TIMEOUT_MS });
+    } catch (error) {
+      lastError = error;
+      if (i < attempts - 1) await sleep(300 * (i + 1));
+    }
+  }
+  throw lastError;
+};
+
+const getIAWithRetry = async (path, attempts = 2) => {
+  let lastError;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      return await axios.get(`${IA_MICROSERVICE_URL}${path}`, { timeout: IA_HTTP_TIMEOUT_MS });
+    } catch (error) {
+      lastError = error;
+      if (i < attempts - 1) await sleep(300 * (i + 1));
+    }
+  }
+  throw lastError;
+};
+
+const normalizeZoneKey = (value) =>
+  String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+
+const mapWeatherForModel = (weatherData) => ({
+  condition: weatherData?.condition || 'Degage',
+  wind_kmh: Number.isFinite(weatherData?.windSpeedKmh) ? weatherData.windSpeedKmh : 10,
+  precip_mm: Number.isFinite(weatherData?.precipitationMm) ? weatherData.precipitationMm : 0,
+});
+
+const computeWeatherRiskDelta = (weatherData) => {
+  if (!weatherData) return 0;
+  let delta = 0;
+  if (weatherData.condition === 'Orage') delta += 18;
+  else if (weatherData.condition === 'Pluie') delta += 8;
+  else if (weatherData.condition === 'Neige') delta += 12;
+  if (Number.isFinite(weatherData.windSpeedKmh) && weatherData.windSpeedKmh >= 60) delta += 10;
+  else if (Number.isFinite(weatherData.windSpeedKmh) && weatherData.windSpeedKmh >= 40) delta += 5;
+  if (Number.isFinite(weatherData.precipitationMm) && weatherData.precipitationMm >= 12) delta += 8;
+  else if (Number.isFinite(weatherData.precipitationMm) && weatherData.precipitationMm >= 5) delta += 4;
+  return Math.max(0, Math.min(30, delta));
+};
 
 /**
  * US-34 : Analyse de sentiment des feedbacks clients (CamemBERT)
@@ -15,7 +70,7 @@ const IA_MICROSERVICE_URL = process.env.IA_MICROSERVICE_URL || 'http://localhost
  */
 const analyzeSentiment = async (text, rating = null) => {
   try {
-    const response = await axios.post(`${IA_MICROSERVICE_URL}/ia/analyze-sentiment`, { text, rating });
+    const response = await postIAWithRetry('/ia/analyze-sentiment', { text, rating });
     return response.data; 
   } catch (error) {
     const lower = (text || "").toLowerCase();
@@ -48,27 +103,35 @@ const predictOutages = async () => {
   const techniciens = await prisma.technicien.findMany({ select: { zone: true } });
   const techZones = techniciens.map(t => t.zone).filter(Boolean);
 
-  // 2. Récupérer les adresses des interventions non assignées pour en faire des zones dynamiques
-  const unassigned = await prisma.intervention.findMany({
-    where: { technicienId: null },
+  // 2. Récupérer les adresses des interventions (assignées + non assignées)
+  // pour éviter qu'une zone disparaisse après affectation.
+  const withAddress = await prisma.intervention.findMany({
+    where: { adresse: { not: '' } },
     select: { adresse: true }
   });
-  const unassignedZones = unassigned.map(i => i.adresse).filter(Boolean);
+  const addressZones = withAddress.map(i => i.adresse).filter(Boolean);
 
-  // Fusionner toutes les zones uniques (Techniciens + Adresses des pannes non assignées)
-  const allZones = [...new Set([...techZones, ...unassignedZones])];
-  const targetZones = allZones.length > 0 ? allZones : ['Zone Nord', 'Zone Sud'];
+  // Fusionner/dedupliquer avec une clé normalisée.
+  const zoneMap = new Map();
+  for (const zone of techZones) {
+    const key = normalizeZoneKey(zone);
+    if (key && !zoneMap.has(key)) zoneMap.set(key, { zone, source: 'TECH_ZONE' });
+  }
+  for (const zone of addressZones) {
+    const key = normalizeZoneKey(zone);
+    if (key && !zoneMap.has(key)) zoneMap.set(key, { zone, source: 'ADDRESS' });
+  }
+  const targetZones = zoneMap.size > 0
+    ? Array.from(zoneMap.values())
+    : [{ zone: 'Zone Nord', source: 'DEFAULT' }, { zone: 'Zone Sud', source: 'DEFAULT' }];
 
-  const predictions = await Promise.all(targetZones.map(async (zone) => {
+  const predictions = await Promise.all(targetZones.map(async ({ zone, source }) => {
     // Récupération de l'historique pour le modèle Random Forest
     // Isole correctement les risques : on cible la zone du technicien OU l'adresse de la panne non assignée
     const historique = await prisma.intervention.findMany({
-      where: {
-        OR: [
-          { technicien: { zone: zone } },
-          { technicienId: null, adresse: { contains: zone, mode: 'insensitive' } }
-        ]
-      },
+      where: source === 'TECH_ZONE'
+        ? { technicien: { zone } }
+        : { adresse: { contains: zone, mode: 'insensitive' } },
       take: 30,
       orderBy: { dateCreation: 'desc' },
       select: { dateCreation: true, priorite: true, statut: true, technicienId: true }
@@ -87,35 +150,65 @@ const predictOutages = async () => {
 
     try {
       // Étape 5 & 6 de la Table 5.7 : Envoi au microservice FastAPI (Random Forest)
-      const response = await axios.post(`${IA_MICROSERVICE_URL}/ia/predict-pannes`, {
+      const weatherData = await getWeatherData({ zone });
+      const weatherForModel = mapWeatherForModel(weatherData);
+      const weatherRiskDelta = computeWeatherRiskDelta(weatherData);
+      const response = await postIAWithRetry('/ia/predict-pannes', {
         zone,
         historique: historique.map(i => ({
           date: i.dateCreation.toISOString(),
           type: i.priorite,
           statut: i.statut,
           nb_incidents: i.priorite === 'URGENTE' ? 3 : 1
-        }))
+        })),
+        weather: weatherForModel
       });
 
-      const { probabilite, risque } = response.data;
+      const { probabilite } = response.data;
+
+      const pendingCount = historique.filter(i => i.statut === 'EN_ATTENTE' || i.statut === 'EN_COURS').length;
+      const completedCount = historique.filter(i => i.statut === 'TERMINEE' || i.statut === 'ANNULEE').length;
+      const lastStatus = historique[0]?.statut; // historique is sorted desc by dateCreation
+      const urgentCount = historique.filter(i => i.priorite === 'URGENTE').length;
+      const highCount = historique.filter(i => i.priorite === 'HAUTE').length;
+
+      // Keep model signal, then damp with operational progress so closures reduce risk.
+      let adjustedProbability = Number.isFinite(probabilite) ? probabilite : 0;
+      adjustedProbability += Math.min(20, pendingCount * 3);
+      adjustedProbability -= Math.min(35, completedCount * 4);
+      if (lastStatus === 'TERMINEE' || lastStatus === 'ANNULEE') adjustedProbability -= 20;
+      if (lastStatus === 'EN_COURS') adjustedProbability -= 8;
+      adjustedProbability += weatherRiskDelta;
+      adjustedProbability = Math.max(1, Math.min(99, Math.round(adjustedProbability)));
+
+      let adjustedRisk = 'Faible';
+      if (adjustedProbability >= 70) adjustedRisk = 'Élevé';
+      else if (adjustedProbability >= 40) adjustedRisk = 'Moyen';
 
       // Correspondance des couleurs (Figure 5.4 : Rouge/Orange/Vert)
       let color = 'emerald'; // Vert
-      if (risque === 'Élevé') color = 'rose'; // Rouge
-      if (risque === 'Moyen') color = 'amber'; // Orange
+      if (adjustedRisk === 'Élevé') color = 'rose'; // Rouge
+      if (adjustedRisk === 'Moyen') color = 'amber'; // Orange
+
+      const historyImpact = Math.max(5, Math.min(95, Math.round((urgentCount * 14) + (highCount * 8) + (pendingCount * 5) + (historique.length * 0.8))));
+      const chargeImpact = Math.max(5, Math.min(95, Math.round((pendingCount * 16) - (completedCount * 7) + (lastStatus === 'EN_COURS' ? 10 : 0) + (lastStatus === 'TERMINEE' ? -10 : 0))));
 
       return {
         zone,
-        probability: probabilite,
-        riskLevel: risque,
-        trend: probabilite > 50 ? 'UP' : 'STABLE',
+        probability: adjustedProbability,
+        riskLevel: adjustedRisk,
+        trend: adjustedProbability > 50 ? 'UP' : 'STABLE',
         color,
         factors: {
-          weather: { label: 'Météo (IA)', value: 'Analyse Live', impact: 30 },
-          incidents: { label: 'Historique', value: `${historique.length} Interv.`, impact: 45 },
-          criticality: { label: 'Charge', value: 'Optimale', impact: 25 }
+          weather: {
+            label: 'Meteo (IA)',
+            value: `${weatherData.condition} | vent ${weatherForModel.wind_kmh} km/h | pluie ${weatherForModel.precip_mm} mm`,
+            impact: Math.max(5, Math.min(95, weatherRiskDelta * 3))
+          },
+          incidents: { label: 'Historique', value: `${historique.length} Interv.`, impact: historyImpact },
+          criticality: { label: 'Charge', value: chargeImpact >= 65 ? 'Elevee' : (chargeImpact >= 35 ? 'Moderee' : 'Optimale'), impact: chargeImpact }
         },
-        recommendation: risque === 'Élevé' 
+        recommendation: adjustedRisk === 'Élevé' 
           ? '🚨 Alerte NOC ! Intervention préventive recommandée .' 
           : 'Surveillance réseau standard.',
         updatedAt: new Date()
@@ -237,7 +330,7 @@ const predictOutages = async () => {
  */
 const generatePersonalizedMessage = async (user) => {
   try {
-    const response = await axios.get(`${IA_MICROSERVICE_URL}/ia/motivational-message/${user.role}`);
+    const response = await getIAWithRetry(`/ia/motivational-message/${user.role}`);
     return response.data;
   } catch (error) {
     // Fallback statique si le microservice est hors ligne

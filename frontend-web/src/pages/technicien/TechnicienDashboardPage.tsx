@@ -112,6 +112,17 @@ export const TechnicienDashboardPage = () => {
     } catch (error) { toast.error('Erreur notification.') }
   }
 
+  const handleOpenNotificationIntervention = async (notification: NotificationRecord) => {
+    if (!notification.interventionId) return
+    setTab('TERRAIN')
+    window.localStorage.setItem(
+      'technician:selected_intervention_id',
+      String(notification.interventionId)
+    )
+    await handleMarkAsRead(notification.id)
+    toast.success(`Intervention #${notification.interventionId} ouverte.`)
+  }
+
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
@@ -409,7 +420,13 @@ export const TechnicienDashboardPage = () => {
               </div>
            </div>
         ) : (
-           <NotificationsPanel notifications={notifications} loading={loading} onMarkAsRead={handleMarkAsRead} accentClassName="text-emerald-700 bg-emerald-50" />
+           <NotificationsPanel
+             notifications={notifications}
+             loading={loading}
+             onMarkAsRead={handleMarkAsRead}
+             onOpenIntervention={handleOpenNotificationIntervention}
+             accentClassName="text-emerald-700 bg-emerald-50"
+           />
         )}
       </div>
     </AppDashboardShell>

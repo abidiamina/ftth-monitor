@@ -3,6 +3,7 @@ from transformers import CamembertTokenizer, CamembertForSequenceClassification,
 import torch
 from datasets import Dataset
 import os
+import unicodedata
 
 # 1. Configuration
 DATASET_PATH = "../dataset_camembert.csv"
@@ -10,8 +11,8 @@ MODEL_SAVE_PATH = "./models/camembert-ftth"
 MODEL_NAME = "camembert-base"
 
 # Mapping des labels
-label2id = {"Négatif": 0, "Neutre": 1, "Positif": 2}
-id2label = {0: "Négatif", 1: "Neutre", 2: "Positif"}
+label2id = {"Negatif": 0, "Neutre": 1, "Positif": 2}
+id2label = {0: "Negatif", 1: "Neutre", 2: "Positif"}
 
 print("Demarrage de l'entrainement de CamemBERT pour FTTH Monitor...")
 
@@ -20,8 +21,20 @@ if not os.path.exists(DATASET_PATH):
     print(f"Erreur : Le fichier {DATASET_PATH} est introuvable.")
     exit(1)
 
-df = pd.read_csv(DATASET_PATH)
-df['label'] = df['label'].map(label2id)
+try:
+    df = pd.read_csv(DATASET_PATH, encoding="utf-8")
+except UnicodeDecodeError:
+    df = pd.read_csv(DATASET_PATH, encoding="latin-1")
+
+def normalize_label(value: str) -> str:
+    text = str(value).strip()
+    text = unicodedata.normalize("NFD", text)
+    text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
+    return text
+
+df["label"] = df["label"].map(normalize_label).map(label2id)
+df = df.dropna(subset=["texte", "label"]).copy()
+df["label"] = df["label"].astype(int)
 
 print(f"Dataset charge : {len(df)} exemples.")
 

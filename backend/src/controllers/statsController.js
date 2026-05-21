@@ -1,6 +1,18 @@
 const prisma = require('../config/prisma');
 const { flattenIntervention } = require('./interventionController');
 
+const normalizeSentiment = (value) => {
+  const raw = String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim();
+  if (raw === 'POSITIVE' || raw === 'POSITIF') return 'POSITIVE';
+  if (raw === 'NEGATIVE' || raw === 'NEGATIF') return 'NEGATIVE';
+  if (raw === 'NEUTRAL' || raw === 'NEUTRE') return 'NEUTRAL';
+  return 'UNKNOWN';
+};
+
 // GET /api/stats/dashboard
 const getDashboardStats = async (req, res) => {
   try {
@@ -138,11 +150,10 @@ const getTechnicianPerformance = async (req, res) => {
         : 0;
 
       const sentiments = tech.interventions.reduce((acc, curr) => {
-        const s = curr.clientFeedbackSentiment || 'UNKNOWN';
-        // Support pour les anciens labels (maj) et les nouveaux (Français rapport)
-        if (s === 'POSITIVE' || s === 'Positif') acc.POSITIVE++;
-        else if (s === 'NEGATIVE' || s === 'Négatif') acc.NEGATIVE++;
-        else if (s === 'NEUTRAL' || s === 'Neutre') acc.NEUTRAL++;
+        const s = normalizeSentiment(curr.clientFeedbackSentiment);
+        if (s === 'POSITIVE') acc.POSITIVE++;
+        else if (s === 'NEGATIVE') acc.NEGATIVE++;
+        else if (s === 'NEUTRAL') acc.NEUTRAL++;
         return acc;
       }, { POSITIVE: 0, NEUTRAL: 0, NEGATIVE: 0 });
 
@@ -150,6 +161,8 @@ const getTechnicianPerformance = async (req, res) => {
       const satisfactionRate = totalTerminees > 0 
         ? (sentiments.POSITIVE / totalTerminees) * 100 
         : 0;
+      const ratingRate = avgRating > 0 ? (avgRating / 5) * 100 : 0;
+      const finalScore = Math.round((satisfactionRate * 0.6) + (ratingRate * 0.4));
 
       return {
         id: tech.id,
@@ -157,13 +170,18 @@ const getTechnicianPerformance = async (req, res) => {
         totalTerminees,
         avgRating: parseFloat(avgRating.toFixed(1)),
         satisfactionRate: Math.round(satisfactionRate),
+        finalScore,
         sentiments
       };
     });
 
     res.json({
       success: true,
-      data: performance.sort((a, b) => b.satisfactionRate - a.satisfactionRate)
+      data: performance.sort((a, b) => {
+        if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
+        if (b.satisfactionRate !== a.satisfactionRate) return b.satisfactionRate - a.satisfactionRate;
+        return b.totalTerminees - a.totalTerminees;
+      })
     });
   } catch (err) {
     console.error(err);

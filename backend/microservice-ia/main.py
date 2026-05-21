@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 import random
+import os
 
 app = FastAPI(title="Microservice IA - FTTH Monitor")
 
@@ -64,4 +65,5 @@ async def get_message(role: str, performance: Optional[float] = 100):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    ia_port = int(os.environ.get("IA_PORT", "8001"))
+    uvicorn.run(app, host="0.0.0.0", port=ia_port)

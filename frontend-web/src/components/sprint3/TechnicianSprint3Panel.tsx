@@ -107,8 +107,9 @@ export function TechnicianSprint3Panel({
   interventions,
   onRefresh,
 }: TechnicianSprint3PanelProps) {
+  const selectionStorageKey = 'technician:selected_intervention_id'
   const [selectedInterventionId, setSelectedInterventionId] = useState<number | null>(
-    interventions[0]?.id ?? null
+    null
   )
   const [evidenceNote, setEvidenceNote] = useState('')
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null)
@@ -119,9 +120,22 @@ export function TechnicianSprint3Panel({
   const scannerHostId = `qr-reader-${selectedInterventionId ?? 'none'}`
   const scannerCleanupRef = useRef<null | (() => Promise<void>)>(null)
 
+  const executionInterventions = useMemo(
+    () =>
+      [...interventions]
+        .filter((item) => item.statut === 'EN_ATTENTE' || item.statut === 'EN_COURS')
+        .sort(
+          (left, right) =>
+            new Date(right.updatedAt ?? right.dateCreation).getTime() -
+            new Date(left.updatedAt ?? left.dateCreation).getTime()
+        ),
+    [interventions]
+  )
+
   const historicalInterventions = useMemo(
     () =>
       [...interventions]
+        .filter((item) => item.statut === 'TERMINEE' || item.statut === 'ANNULEE')
         .sort(
           (left, right) =>
             new Date(right.dateFin ?? right.dateCreation).getTime() -
@@ -131,10 +145,7 @@ export function TechnicianSprint3Panel({
     [interventions]
   )
 
-  const selectedIntervention =
-    interventions.find((item) => item.id === selectedInterventionId) ??
-    historicalInterventions[0] ??
-    null
+  const selectedIntervention = interventions.find((item) => item.id === selectedInterventionId) ?? null
 
   const summary = useMemo(
     () => ({
@@ -146,10 +157,34 @@ export function TechnicianSprint3Panel({
   )
 
   useEffect(() => {
-    if (selectedInterventionId && !interventions.some((item) => item.id === selectedInterventionId)) {
-      setSelectedInterventionId(interventions[0]?.id ?? null)
+    const raw = window.localStorage.getItem(selectionStorageKey)
+    const fromStorage = raw ? Number(raw) : null
+    if (fromStorage && interventions.some((item) => item.id === fromStorage)) {
+      setSelectedInterventionId(fromStorage)
+      return
     }
-  }, [interventions, selectedInterventionId])
+    setSelectedInterventionId(executionInterventions[0]?.id ?? interventions[0]?.id ?? null)
+  // Run once on mount to restore previous user choice.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (!selectedInterventionId) {
+      if (!selectedIntervention && executionInterventions[0]?.id) {
+        setSelectedInterventionId(executionInterventions[0].id)
+      }
+      return
+    }
+    if (!interventions.some((item) => item.id === selectedInterventionId)) {
+      setSelectedInterventionId(executionInterventions[0]?.id ?? interventions[0]?.id ?? null)
+    }
+  }, [executionInterventions, interventions, selectedIntervention, selectedInterventionId])
+
+  useEffect(() => {
+    if (selectedInterventionId) {
+      window.localStorage.setItem(selectionStorageKey, String(selectedInterventionId))
+    }
+  }, [selectedInterventionId])
 
   useEffect(() => {
     setManualQrValue('')
@@ -358,12 +393,12 @@ export function TechnicianSprint3Panel({
         <div className='mt-6 grid gap-5 lg:grid-cols-[0.76fr_1.24fr]'>
           <div className='space-y-3'>
             <p className='text-xs uppercase tracking-[0.18em] text-slate-500'>Liste des missions</p>
-            {interventions.length === 0 ? (
+            {executionInterventions.length === 0 ? (
               <div className='rounded-[1.4rem] border border-slate-200 bg-white p-5 text-sm text-slate-600'>
-                Aucune intervention disponible.
+                Aucune mission en attente ou en cours.
               </div>
             ) : (
-              interventions.map((intervention) => {
+              executionInterventions.map((intervention) => {
                 const state = getStageState(intervention)
 
                 return (

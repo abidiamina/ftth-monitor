@@ -99,6 +99,7 @@ export const ResponsableDashboardPage = () => {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [tab, setTab] = useState<'APERCU' | 'CREATION' | 'INTERVENTIONS' | 'NOTIFICATIONS' | 'MAP' | 'SUPERVISION' | 'RAPPORTS'>('APERCU')
+  const [focusedInterventionId, setFocusedInterventionId] = useState<number | null>(null)
   const [statusFilter, setStatusFilter] = useState<'ALL' | InterventionStatus>('ALL')
   const [priorityFilter] = useState<'ALL' | InterventionPriority>('ALL')
   const [categoryFilter, setCategoryFilter] = useState<'ALL' | 'URGENTES' | 'RETARD' | 'RECENTES'>('ALL')
@@ -206,6 +207,26 @@ export const ResponsableDashboardPage = () => {
       toast.error(getErrorMessage(error, 'Notification impossible à marquer comme lue.'))
     }
   }
+
+  const handleOpenNotificationIntervention = async (notification: NotificationRecord) => {
+    if (!notification.interventionId) return
+    setTab('INTERVENTIONS')
+    setCategoryFilter('ALL')
+    setStatusFilter('ALL')
+    setFocusedInterventionId(notification.interventionId)
+    await handleMarkNotificationAsRead(notification.id)
+  }
+
+  useEffect(() => {
+    if (tab !== 'INTERVENTIONS' || !focusedInterventionId) return
+    const timer = window.setTimeout(() => {
+      const target = document.getElementById(`intervention-card-${focusedInterventionId}`)
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }, 120)
+    return () => window.clearTimeout(timer)
+  }, [focusedInterventionId, interventions, tab])
 
   const filteredInterventions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -460,9 +481,18 @@ export const ResponsableDashboardPage = () => {
 
     const isUrgent = intervention.priorite === 'URGENTE'
     const isDelayed = isInterventionDelayed(intervention)
+    const isFocused = focusedInterventionId === intervention.id
 
     return (
-      <div key={intervention.id} className={`dashboard-card group animate-in fade-in slide-in-from-bottom-4 duration-500 ${isUrgent ? '!border-2 !border-rose-500 !bg-rose-50 dark:!bg-rose-950/20 shadow-[0_0_15px_rgba(244,63,94,0.3)] relative overflow-hidden' : 'dark:bg-slate-900 dark:border-slate-800'}`}>
+      <div
+        id={`intervention-card-${intervention.id}`}
+        key={intervention.id}
+        className={`dashboard-card group animate-in fade-in slide-in-from-bottom-4 duration-500 ${
+          isUrgent
+            ? '!border-2 !border-rose-500 !bg-rose-50 dark:!bg-rose-950/20 shadow-[0_0_15px_rgba(244,63,94,0.3)] relative overflow-hidden'
+            : 'dark:bg-slate-900 dark:border-slate-800'
+        } ${isFocused ? '!border-2 !border-sky-500 ring-4 ring-sky-200/60 dark:ring-sky-900/40' : ''}`}
+      >
         {isUrgent && (
           <div className="absolute top-0 left-0 w-1.5 h-full bg-rose-500 animate-pulse" />
         )}
@@ -980,7 +1010,13 @@ export const ResponsableDashboardPage = () => {
             </div>
           </div>
         ) : tab === 'NOTIFICATIONS' ? (
-           <NotificationsPanel notifications={notifications} loading={loading} accentClassName='text-violet-700 bg-violet-50' onMarkAsRead={handleMarkNotificationAsRead} />
+           <NotificationsPanel
+             notifications={notifications}
+             loading={loading}
+             accentClassName='text-violet-700 bg-violet-50'
+             onMarkAsRead={handleMarkNotificationAsRead}
+             onOpenIntervention={handleOpenNotificationIntervention}
+           />
          ) : tab === 'SUPERVISION' ? (
             <div className='max-w-7xl mx-auto'>
                <div className='flex items-center justify-between mb-10'>

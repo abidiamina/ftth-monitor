@@ -3,6 +3,8 @@ from typing import List, Optional
 import json
 import os
 import random
+import re
+import unicodedata
 
 from fastapi import FastAPI
 import joblib
@@ -35,6 +37,7 @@ class InterventionData(BaseModel):
 class PredictionRequest(BaseModel):
     zone: str
     historique: List[InterventionData]
+    weather: Optional[dict] = None
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -48,6 +51,31 @@ gen_tokenizer = None
 gen_model = None
 rf_model = None
 rf_metadata = {}
+
+
+def _rule_based_sentiment(text: str):
+    text_lower = (
+        unicodedata.normalize("NFD", text.lower())
+        .encode("ascii", "ignore")
+        .decode("ascii")
+    )
+    if any(token in text_lower for token in ["panne", "inadmissible", "lent", "probleme", "colere", "decu", "inacceptable", "catastrophe"]):
+        return {"sentiment": "Negatif", "score": 0.9, "ia_used": False}
+    if any(token in text_lower for token in ["merci", "propre", "rapide", "excellent", "super", "parfait", "satisfait"]):
+        return {"sentiment": "Positif", "score": 0.9, "ia_used": False}
+    return {"sentiment": "Neutre", "score": 0.5, "ia_used": False}
+
+
+def _looks_valid_message(message: str) -> bool:
+    if not message or len(message.strip()) < 8:
+        return False
+    lower = message.lower()
+    if "ã" in lower or "â" in lower or "�" in message:
+        return False
+    if re.fullmatch(r"[\W_]+", message):
+        return False
+    letters = sum(1 for ch in message if ch.isalpha())
+    return letters >= max(6, int(len(message) * 0.35))
 
 try:
     if os.path.exists(MODEL_PATH):
@@ -94,15 +122,18 @@ async def analyze_sentiment(request: SentimentRequest):
             predicted_class_id = torch.argmax(scores).item()
             score = scores[0][predicted_class_id].item()
             sentiment = model.config.id2label[predicted_class_id]
-
+        rule = _rule_based_sentiment(request.text)
+        # Guardrail: if the model is unsure or predicts neutral while lexical cues are strong,
+        # prefer the deterministic label to avoid "all neutral" behavior.
+        if score < 0.55:
+            return rule
+        if sentiment.lower().startswith("neut") and rule["sentiment"] in {"Negatif", "Positif"}:
+            return {**rule, "ia_used": True}
+        if score < 0.55:
+            return rule
         return {"sentiment": sentiment, "score": round(score, 2), "ia_used": True}
 
-    text_lower = request.text.lower()
-    if "panne" in text_lower or "inadmissible" in text_lower:
-        return {"sentiment": "Negatif", "score": 0.9, "ia_used": False}
-    if "merci" in text_lower or "propre" in text_lower:
-        return {"sentiment": "Positif", "score": 0.9, "ia_used": False}
-    return {"sentiment": "Neutre", "score": 0.5, "ia_used": False}
+    return _rule_based_sentiment(request.text)
 
 
 @app.post("/ia/predict-pannes")
@@ -110,13 +141,14 @@ async def predict_pannes(request: PredictionRequest):
     if rf_model:
         try:
             if request.historique:
-                last_interv = request.historique[-1]
+                sorted_history = sorted(request.historique, key=lambda item: item.date)
+                last_interv = sorted_history[-1]
                 last_payload = (
                     last_interv.model_dump()
                     if hasattr(last_interv, "model_dump")
                     else last_interv.dict()
                 )
-                features = build_prediction_features(request.zone, last_payload)
+                features = build_prediction_features(request.zone, last_payload, request.weather)
                 probability = rf_model.predict_proba(features)[0]
                 positive_index = 1 if len(probability) > 1 else 0
                 final_prob = int(round(float(probability[positive_index]) * 100))
@@ -188,7 +220,8 @@ async def motivational_message(role: str):
             final_message = generated_text.split("Message: ")[-1].strip()
         else:
             final_message = generated_text.replace(prompt, "").strip()
-        return {"message": final_message, "ia_used": True}
+        if _looks_valid_message(final_message):
+            return {"message": final_message, "ia_used": True}
 
     messages = {
         "ADMIN": ["Le reseau est entre de bonnes mains aujourd'hui.", "Supervision optimale."],
@@ -206,4 +239,5 @@ async def motivational_message(role: str):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    ia_port = int(os.environ.get("IA_PORT", "8001"))
+    uvicorn.run(app, host="0.0.0.0", port=ia_port)

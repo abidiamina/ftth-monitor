@@ -17,8 +17,13 @@ if not os.path.exists(DATASET_PATH):
 
 # 2. Préparation des données (Format Causal Language Modeling)
 # On donne à l'IA des phrases sous la forme : "Rôle: TECHNICIEN | Message: Bon courage !"
-df = pd.read_csv(DATASET_PATH)
-df['text'] = "Rôle: " + df['role'] + " | Message: " + df['message'] + " <|endoftext|>"
+try:
+    df = pd.read_csv(DATASET_PATH, encoding="utf-8")
+except UnicodeDecodeError:
+    df = pd.read_csv(DATASET_PATH, encoding="latin-1")
+df["role"] = df["role"].fillna("INCONNU").astype(str)
+df["message"] = df["message"].fillna("").astype(str)
+df["text"] = "Role: " + df["role"] + " | Message: " + df["message"] + " <|endoftext|>"
 
 hf_dataset = Dataset.from_pandas(df[['text']])
 

@@ -1,4 +1,27 @@
 const nodemailer = require('nodemailer');
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const isTemporarySmtpError = (error) => {
+  const code = Number(error?.responseCode || 0);
+  const response = String(error?.response || '');
+  return code === 421 || (code >= 400 && code < 500) || response.includes('4.3.0');
+};
+
+const sendMailWithRetry = async (transporter, payload, maxAttempts = 3) => {
+  let lastError;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await transporter.sendMail(payload);
+    } catch (error) {
+      lastError = error;
+      if (!isTemporarySmtpError(error) || attempt === maxAttempts) {
+        throw error;
+      }
+      await sleep(attempt * 1000);
+    }
+  }
+  throw lastError;
+};
 
 const getMailerConfig = () => {
   const host = process.env.SMTP_HOST;
@@ -49,7 +72,7 @@ const sendCredentialsEmail = async ({
   }
 
   const transporter = nodemailer.createTransport(mailerConfig);
-  await transporter.sendMail({
+  await sendMailWithRetry(transporter, {
     from,
     to,
     subject,
@@ -95,7 +118,7 @@ const sendPasswordResetEmail = async ({ to, prenom, token }) => {
   }
 
   const transporter = nodemailer.createTransport(mailerConfig);
-  await transporter.sendMail({ from, to, subject, text });
+  await sendMailWithRetry(transporter, { from, to, subject, text });
 
   return { delivered: true, fallback: false };
 };
@@ -125,7 +148,7 @@ const sendOutageAlertEmail = async ({ to, zone, probability, recommendation }) =
   }
 
   const transporter = nodemailer.createTransport(mailerConfig);
-  await transporter.sendMail({ from, to, subject, text });
+  await sendMailWithRetry(transporter, { from, to, subject, text });
 
   return { delivered: true, fallback: false };
 };

@@ -2,7 +2,7 @@ import os
 
 import requests
 
-BASE_URL = os.environ.get("IA_BASE_URL", "http://localhost:8000")
+BASE_URL = os.environ.get("IA_BASE_URL", "http://localhost:8001")
 
 print("FTTH Monitor AI model smoke tests\n")
 print("=" * 60)

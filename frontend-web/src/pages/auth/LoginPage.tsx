@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+﻿import { useEffect, useState, type FormEvent } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
@@ -62,7 +62,6 @@ export const LoginPage = () => {
     >
       <div className='mt-10'>
         <div className="mb-8">
-            <h2 className="text-3xl font-black text-slate-950 tracking-tight">Connexion</h2>
             <p className="text-slate-500 font-medium mt-2">Accédez à votre espace sécurisé.</p>
         </div>
 

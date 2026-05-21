@@ -29,3 +29,486 @@ texte,label
 "L'application de suivi est pratique pour voir o√π en est l'incident.",Positif
 "Attente un peu longue au t√©l√©phone, mais le probl√®me a √©t√© r√©gl√©.",Neutre
 "D√©ploiement catastrophique dans mon quartier, tout le monde est en panne.",N√©gatif
+"Intervention rapide et propre, tout fonctionne parfaitement depuis ce matin.",Positif
+"Service impeccable, technicien ponctuel et tres pedagogue.",Positif
+"Merci pour la resolution, ma connexion est stable toute la journee.",Positif
+"Le debit est excellent, streaming et visioconference sans aucune coupure.",Positif
+"Equipe serieuse, probleme regle des la premiere visite.",Positif
+"Installation tres bien realisee, rien a redire.",Positif
+"Je suis satisfait, le technicien a pris le temps de verifier chaque point.",Positif
+"Connexion fibre au top, gros gain de vitesse.",Positif
+"Tres bon suivi client, on m a informe a chaque etape.",Positif
+"Raccordement fait proprement, chantier laisse nickel.",Positif
+"Probleme resolu rapidement, bravo pour l efficacite.",Positif
+"Excellente prestation, delai respecte et service de qualite.",Positif
+"La ligne est stable depuis l intervention, merci a l equipe.",Positif
+"Technicien aimable, explications claires et travail soigne.",Positif
+"Tout est revenu a la normale, je suis tres content.",Positif
+"Super experience, aucun souci depuis l activation.",Positif
+"Tres bon debit meme en heure de pointe.",Positif
+"Service fiable, je recommande.",Positif
+"Intervention preventive utile, plus de microcoupures.",Positif
+"Le support a ete reactif et professionnel.",Positif
+"Le ticket a ete traite vite et bien.",Positif
+"Connexion stable sur tous les appareils, excellent resultat.",Positif
+"Merci pour votre disponibilite, panne corrigee en quelques heures.",Positif
+"Travail tres propre sur le boitier et les cables.",Positif
+"Qualite de service nettement amelioree apres passage du technicien.",Positif
+"Le service fonctionne, pas de changement notable.",Neutre
+"Intervention correcte, mais rien d exceptionnel.",Neutre
+"Connexion globalement bonne, quelques lenteurs occasionnelles.",Neutre
+"Le rendez-vous a ete respecte, installation standard.",Neutre
+"Tout marche, j attends de voir sur la duree.",Neutre
+"Technicien poli, intervention rapide, resultat moyen.",Neutre
+"Petites variations de debit le soir, acceptable.",Neutre
+"Panne resolue, mais le delai etait un peu long.",Neutre
+"Le service est revenu, je reste vigilant.",Neutre
+"Aucun probleme majeur, juste une latence parfois.",Neutre
+"Installation terminee sans incident particulier.",Neutre
+"Support joignable apres plusieurs tentatives.",Neutre
+"Connexion utilisable, qualite correcte dans l ensemble.",Neutre
+"Intervention faite, je n ai pas assez de recul.",Neutre
+"Debit conforme la plupart du temps.",Neutre
+"Tout semble normal depuis hier.",Neutre
+"Le technicien etait en retard mais efficace.",Neutre
+"Service fonctionnel, experience moyenne.",Neutre
+"Quelques redemarrages de box, puis stabilisation.",Neutre
+"Probleme intermittent, pas totalement disparu.",Neutre
+"Rien a signaler de particulier cette semaine.",Neutre
+"Connexion correcte pour un usage basique.",Neutre
+"Le ticket a ete cloture, je continue de tester.",Neutre
+"Le debit varie selon l heure, sans etre bloquant.",Neutre
+"Intervention standard, communication minimale.",Neutre
+"Encore une coupure ce matin, service tres decevant.",NÈgatif
+"Internet indisponible depuis deux jours, c est inacceptable.",NÈgatif
+"Technicien non venu au rendez-vous sans prevenir.",NÈgatif
+"Le debit chute constamment, impossible de travailler.",NÈgatif
+"Service client difficile a joindre, aucune solution concrete.",NÈgatif
+"Probleme non resolu apres plusieurs interventions.",NÈgatif
+"Coupures repetitives chaque soir, situation penible.",NÈgatif
+"Boitier mal fixe, installation baclee.",NÈgatif
+"Tres mauvaise experience, je suis en colere.",NÈgatif
+"On m a promis un rappel, jamais recu.",NÈgatif
+"La panne revient sans cesse, perte de temps enorme.",NÈgatif
+"Retard important du technicien et travail incomplet.",NÈgatif
+"Connexion instable, visio impossible en teletravail.",NÈgatif
+"Aucun suivi apres ouverture du ticket.",NÈgatif
+"Intervention annulee a la derniere minute, inadmissible.",NÈgatif
+"Debit reel tres loin de l offre annoncee.",NÈgatif
+"Le service se degrade de semaine en semaine.",NÈgatif
+"Support peu clair, je n ai pas eu d explication utile.",NÈgatif
+"Toujours pas internet, je demande une resolution immediate.",NÈgatif
+"Qualite catastrophique, coupures permanentes.",NÈgatif
+"Le probleme a empire apres l intervention.",NÈgatif
+"Je suis tres mecontent du traitement de mon dossier.",NÈgatif
+"Aucune communication, je dois relancer en permanence.",NÈgatif
+"Connexion HS pendant tout le week-end.",NÈgatif
+"Service lent et instable, vraiment frustrant.",NÈgatif
+"Equipe courtoise, mais le souci n est pas corrige.",Neutre
+"Le support a ouvert un ticket, en attente de resultat.",Neutre
+"Intervention reprogrammee, j espere une amelioration.",Neutre
+"Le debit est meilleur le matin que le soir.",Neutre
+"Connexion revenue mais avec quelques pertes de paquets.",Neutre
+"Technicien professionnel, resultat encore a confirmer.",Neutre
+"Panne resolue provisoirement selon le support.",Neutre
+"Installation validee, je surveille la stabilite.",Neutre
+"Rendez-vous correct, manque juste plus de communication.",Neutre
+"Globalement satisfait mais des lenteurs persistent.",Neutre
+"Parfait depuis 48h, merci pour la reactivite.",Positif
+"Le reseau est enfin stable, tres bon travail.",Positif
+"Assistance tres utile, solution trouvee rapidement.",Positif
+"Experience client excellente du debut a la fin.",Positif
+"Intervention de qualite, aucune coupure depuis.",Positif
+"Merci pour le professionnalisme et la rapidite.",Positif
+"Connexion ultra fluide apres remplacement du materiel.",Positif
+"Technicien ponctuel et efficace, je suis rassure.",Positif
+"Suivi serieux, probleme regle durablement.",Positif
+"Service au niveau attendu, bravo.",Positif
+"Connexion stable et rapide toute la journee #1",Positif
+"Intervention standard sans remarque particuliere #2",Neutre
+"Technicien en retard et intervention incomplete #3",NÈgatif
+"Installation propre et bien expliquee #4",Positif
+"Rendez-vous respecte mais communication minimale #5",Neutre
+"Probleme revenu apres quelques heures #6",NÈgatif
+"Aucune coupure depuis la maintenance #7",Positif
+"Resultat moyen apres intervention #8",Neutre
+"Qualite reseau mauvaise et frustrante #9",NÈgatif
+"Service excellent depuis l intervention #10",Positif
+"Connexion globalement stable avec quelques variations #11",Neutre
+"Service client difficile a joindre #12",NÈgatif
+"Probleme resolu rapidement merci #13",Positif
+"Debit acceptable pour un usage normal #14",Neutre
+"Aucune information sur le suivi du ticket #15",NÈgatif
+"Support reactif et courtois #16",Positif
+"Quelques lenteurs ponctuelles en soiree #17",Neutre
+"Intervention annulee sans prevenir #18",NÈgatif
+"Travail soigne sur le raccordement #19",Positif
+"Service correct sans changement majeur #20",Neutre
+"Panne non resolue apres plusieurs relances #21",NÈgatif
+"Technicien tres professionnel et efficace #22",Positif
+"Ticket traite dans un delai moyen #23",Neutre
+"Debit tres insuffisant pour teletravail #24",NÈgatif
+"Debit tres satisfaisant en usage quotidien #25",Positif
+"La ligne fonctionne mais je reste vigilant #26",Neutre
+"Experience tres decevante depuis une semaine #27",NÈgatif
+"Super suivi client de bout en bout #28",Positif
+"Situation stable pour le moment #29",Neutre
+"Connexion instable et coupures frequentes #30",NÈgatif
+"Connexion stable et rapide toute la journee #31",Positif
+"Intervention standard sans remarque particuliere #32",Neutre
+"Technicien en retard et intervention incomplete #33",NÈgatif
+"Installation propre et bien expliquee #34",Positif
+"Rendez-vous respecte mais communication minimale #35",Neutre
+"Probleme revenu apres quelques heures #36",NÈgatif
+"Aucune coupure depuis la maintenance #37",Positif
+"Resultat moyen apres intervention #38",Neutre
+"Qualite reseau mauvaise et frustrante #39",NÈgatif
+"Service excellent depuis l intervention #40",Positif
+"Connexion globalement stable avec quelques variations #41",Neutre
+"Service client difficile a joindre #42",NÈgatif
+"Probleme resolu rapidement merci #43",Positif
+"Debit acceptable pour un usage normal #44",Neutre
+"Aucune information sur le suivi du ticket #45",NÈgatif
+"Support reactif et courtois #46",Positif
+"Quelques lenteurs ponctuelles en soiree #47",Neutre
+"Intervention annulee sans prevenir #48",NÈgatif
+"Travail soigne sur le raccordement #49",Positif
+"Service correct sans changement majeur #50",Neutre
+"Panne non resolue apres plusieurs relances #51",NÈgatif
+"Technicien tres professionnel et efficace #52",Positif
+"Ticket traite dans un delai moyen #53",Neutre
+"Debit tres insuffisant pour teletravail #54",NÈgatif
+"Debit tres satisfaisant en usage quotidien #55",Positif
+"La ligne fonctionne mais je reste vigilant #56",Neutre
+"Experience tres decevante depuis une semaine #57",NÈgatif
+"Super suivi client de bout en bout #58",Positif
+"Situation stable pour le moment #59",Neutre
+"Connexion instable et coupures frequentes #60",NÈgatif
+"Connexion stable et rapide toute la journee #61",Positif
+"Intervention standard sans remarque particuliere #62",Neutre
+"Technicien en retard et intervention incomplete #63",NÈgatif
+"Installation propre et bien expliquee #64",Positif
+"Rendez-vous respecte mais communication minimale #65",Neutre
+"Probleme revenu apres quelques heures #66",NÈgatif
+"Aucune coupure depuis la maintenance #67",Positif
+"Resultat moyen apres intervention #68",Neutre
+"Qualite reseau mauvaise et frustrante #69",NÈgatif
+"Service excellent depuis l intervention #70",Positif
+"Connexion globalement stable avec quelques variations #71",Neutre
+"Service client difficile a joindre #72",NÈgatif
+"Probleme resolu rapidement merci #73",Positif
+"Debit acceptable pour un usage normal #74",Neutre
+"Aucune information sur le suivi du ticket #75",NÈgatif
+"Support reactif et courtois #76",Positif
+"Quelques lenteurs ponctuelles en soiree #77",Neutre
+"Intervention annulee sans prevenir #78",NÈgatif
+"Travail soigne sur le raccordement #79",Positif
+"Service correct sans changement majeur #80",Neutre
+"Panne non resolue apres plusieurs relances #81",NÈgatif
+"Technicien tres professionnel et efficace #82",Positif
+"Ticket traite dans un delai moyen #83",Neutre
+"Debit tres insuffisant pour teletravail #84",NÈgatif
+"Debit tres satisfaisant en usage quotidien #85",Positif
+"La ligne fonctionne mais je reste vigilant #86",Neutre
+"Experience tres decevante depuis une semaine #87",NÈgatif
+"Super suivi client de bout en bout #88",Positif
+"Situation stable pour le moment #89",Neutre
+"Connexion instable et coupures frequentes #90",NÈgatif
+"Connexion stable et rapide toute la journee #91",Positif
+"Intervention standard sans remarque particuliere #92",Neutre
+"Technicien en retard et intervention incomplete #93",NÈgatif
+"Installation propre et bien expliquee #94",Positif
+"Rendez-vous respecte mais communication minimale #95",Neutre
+"Probleme revenu apres quelques heures #96",NÈgatif
+"Aucune coupure depuis la maintenance #97",Positif
+"Resultat moyen apres intervention #98",Neutre
+"Qualite reseau mauvaise et frustrante #99",NÈgatif
+"Service excellent depuis l intervention #100",Positif
+"Connexion globalement stable avec quelques variations #101",Neutre
+"Service client difficile a joindre #102",NÈgatif
+"Probleme resolu rapidement merci #103",Positif
+"Debit acceptable pour un usage normal #104",Neutre
+"Aucune information sur le suivi du ticket #105",NÈgatif
+"Support reactif et courtois #106",Positif
+"Quelques lenteurs ponctuelles en soiree #107",Neutre
+"Intervention annulee sans prevenir #108",NÈgatif
+"Travail soigne sur le raccordement #109",Positif
+"Service correct sans changement majeur #110",Neutre
+"Panne non resolue apres plusieurs relances #111",NÈgatif
+"Technicien tres professionnel et efficace #112",Positif
+"Ticket traite dans un delai moyen #113",Neutre
+"Debit tres insuffisant pour teletravail #114",NÈgatif
+"Debit tres satisfaisant en usage quotidien #115",Positif
+"La ligne fonctionne mais je reste vigilant #116",Neutre
+"Experience tres decevante depuis une semaine #117",NÈgatif
+"Super suivi client de bout en bout #118",Positif
+"Situation stable pour le moment #119",Neutre
+"Connexion instable et coupures frequentes #120",NÈgatif
+"Connexion stable et rapide toute la journee #121",Positif
+"Intervention standard sans remarque particuliere #122",Neutre
+"Technicien en retard et intervention incomplete #123",NÈgatif
+"Installation propre et bien expliquee #124",Positif
+"Rendez-vous respecte mais communication minimale #125",Neutre
+"Probleme revenu apres quelques heures #126",NÈgatif
+"Aucune coupure depuis la maintenance #127",Positif
+"Resultat moyen apres intervention #128",Neutre
+"Qualite reseau mauvaise et frustrante #129",NÈgatif
+"Service excellent depuis l intervention #130",Positif
+"Connexion globalement stable avec quelques variations #131",Neutre
+"Service client difficile a joindre #132",NÈgatif
+"Probleme resolu rapidement merci #133",Positif
+"Debit acceptable pour un usage normal #134",Neutre
+"Aucune information sur le suivi du ticket #135",NÈgatif
+"Support reactif et courtois #136",Positif
+"Quelques lenteurs ponctuelles en soiree #137",Neutre
+"Intervention annulee sans prevenir #138",NÈgatif
+"Travail soigne sur le raccordement #139",Positif
+"Service correct sans changement majeur #140",Neutre
+"Panne non resolue apres plusieurs relances #141",NÈgatif
+"Technicien tres professionnel et efficace #142",Positif
+"Ticket traite dans un delai moyen #143",Neutre
+"Debit tres insuffisant pour teletravail #144",NÈgatif
+"Debit tres satisfaisant en usage quotidien #145",Positif
+"La ligne fonctionne mais je reste vigilant #146",Neutre
+"Experience tres decevante depuis une semaine #147",NÈgatif
+"Super suivi client de bout en bout #148",Positif
+"Situation stable pour le moment #149",Neutre
+"Connexion instable et coupures frequentes #150",NÈgatif
+"Connexion stable et rapide toute la journee #151",Positif
+"Intervention standard sans remarque particuliere #152",Neutre
+"Technicien en retard et intervention incomplete #153",NÈgatif
+"Installation propre et bien expliquee #154",Positif
+"Rendez-vous respecte mais communication minimale #155",Neutre
+"Probleme revenu apres quelques heures #156",NÈgatif
+"Aucune coupure depuis la maintenance #157",Positif
+"Resultat moyen apres intervention #158",Neutre
+"Qualite reseau mauvaise et frustrante #159",NÈgatif
+"Service excellent depuis l intervention #160",Positif
+"Connexion globalement stable avec quelques variations #161",Neutre
+"Service client difficile a joindre #162",NÈgatif
+"Probleme resolu rapidement merci #163",Positif
+"Debit acceptable pour un usage normal #164",Neutre
+"Aucune information sur le suivi du ticket #165",NÈgatif
+"Support reactif et courtois #166",Positif
+"Quelques lenteurs ponctuelles en soiree #167",Neutre
+"Intervention annulee sans prevenir #168",NÈgatif
+"Travail soigne sur le raccordement #169",Positif
+"Service correct sans changement majeur #170",Neutre
+"Panne non resolue apres plusieurs relances #171",NÈgatif
+"Technicien tres professionnel et efficace #172",Positif
+"Ticket traite dans un delai moyen #173",Neutre
+"Debit tres insuffisant pour teletravail #174",NÈgatif
+"Debit tres satisfaisant en usage quotidien #175",Positif
+"La ligne fonctionne mais je reste vigilant #176",Neutre
+"Experience tres decevante depuis une semaine #177",NÈgatif
+"Super suivi client de bout en bout #178",Positif
+"Situation stable pour le moment #179",Neutre
+"Connexion instable et coupures frequentes #180",NÈgatif
+"Connexion stable et rapide toute la journee #181",Positif
+"Intervention standard sans remarque particuliere #182",Neutre
+"Technicien en retard et intervention incomplete #183",NÈgatif
+"Installation propre et bien expliquee #184",Positif
+"Rendez-vous respecte mais communication minimale #185",Neutre
+"Probleme revenu apres quelques heures #186",NÈgatif
+"Aucune coupure depuis la maintenance #187",Positif
+"Resultat moyen apres intervention #188",Neutre
+"Qualite reseau mauvaise et frustrante #189",NÈgatif
+"Service excellent depuis l intervention #190",Positif
+"Connexion globalement stable avec quelques variations #191",Neutre
+"Service client difficile a joindre #192",NÈgatif
+"Probleme resolu rapidement merci #193",Positif
+"Debit acceptable pour un usage normal #194",Neutre
+"Aucune information sur le suivi du ticket #195",NÈgatif
+"Support reactif et courtois #196",Positif
+"Quelques lenteurs ponctuelles en soiree #197",Neutre
+"Intervention annulee sans prevenir #198",NÈgatif
+"Travail soigne sur le raccordement #199",Positif
+"Service correct sans changement majeur #200",Neutre
+"Panne non resolue apres plusieurs relances #201",NÈgatif
+"Technicien tres professionnel et efficace #202",Positif
+"Ticket traite dans un delai moyen #203",Neutre
+"Debit tres insuffisant pour teletravail #204",NÈgatif
+"Debit tres satisfaisant en usage quotidien #205",Positif
+"La ligne fonctionne mais je reste vigilant #206",Neutre
+"Experience tres decevante depuis une semaine #207",NÈgatif
+"Super suivi client de bout en bout #208",Positif
+"Situation stable pour le moment #209",Neutre
+"Connexion instable et coupures frequentes #210",NÈgatif
+"Connexion stable et rapide toute la journee #211",Positif
+"Intervention standard sans remarque particuliere #212",Neutre
+"Technicien en retard et intervention incomplete #213",NÈgatif
+"Installation propre et bien expliquee #214",Positif
+"Rendez-vous respecte mais communication minimale #215",Neutre
+"Probleme revenu apres quelques heures #216",NÈgatif
+"Aucune coupure depuis la maintenance #217",Positif
+"Resultat moyen apres intervention #218",Neutre
+"Qualite reseau mauvaise et frustrante #219",NÈgatif
+"Service excellent depuis l intervention #220",Positif
+"Connexion globalement stable avec quelques variations #221",Neutre
+"Service client difficile a joindre #222",NÈgatif
+"Probleme resolu rapidement merci #223",Positif
+"Debit acceptable pour un usage normal #224",Neutre
+"Aucune information sur le suivi du ticket #225",NÈgatif
+"Support reactif et courtois #226",Positif
+"Quelques lenteurs ponctuelles en soiree #227",Neutre
+"Intervention annulee sans prevenir #228",NÈgatif
+"Travail soigne sur le raccordement #229",Positif
+"Service correct sans changement majeur #230",Neutre
+"Panne non resolue apres plusieurs relances #231",NÈgatif
+"Technicien tres professionnel et efficace #232",Positif
+"Ticket traite dans un delai moyen #233",Neutre
+"Debit tres insuffisant pour teletravail #234",NÈgatif
+"Debit tres satisfaisant en usage quotidien #235",Positif
+"La ligne fonctionne mais je reste vigilant #236",Neutre
+"Experience tres decevante depuis une semaine #237",NÈgatif
+"Super suivi client de bout en bout #238",Positif
+"Situation stable pour le moment #239",Neutre
+"Connexion instable et coupures frequentes #240",NÈgatif
+"Connexion stable et rapide toute la journee #241",Positif
+"Intervention standard sans remarque particuliere #242",Neutre
+"Technicien en retard et intervention incomplete #243",NÈgatif
+"Installation propre et bien expliquee #244",Positif
+"Rendez-vous respecte mais communication minimale #245",Neutre
+"Probleme revenu apres quelques heures #246",NÈgatif
+"Aucune coupure depuis la maintenance #247",Positif
+"Resultat moyen apres intervention #248",Neutre
+"Qualite reseau mauvaise et frustrante #249",NÈgatif
+"Service excellent depuis l intervention #250",Positif
+"Connexion globalement stable avec quelques variations #251",Neutre
+"Service client difficile a joindre #252",NÈgatif
+"Probleme resolu rapidement merci #253",Positif
+"Debit acceptable pour un usage normal #254",Neutre
+"Aucune information sur le suivi du ticket #255",NÈgatif
+"Support reactif et courtois #256",Positif
+"Quelques lenteurs ponctuelles en soiree #257",Neutre
+"Intervention annulee sans prevenir #258",NÈgatif
+"Travail soigne sur le raccordement #259",Positif
+"Service correct sans changement majeur #260",Neutre
+"Panne non resolue apres plusieurs relances #261",NÈgatif
+"Technicien tres professionnel et efficace #262",Positif
+"Ticket traite dans un delai moyen #263",Neutre
+"Debit tres insuffisant pour teletravail #264",NÈgatif
+"Debit tres satisfaisant en usage quotidien #265",Positif
+"La ligne fonctionne mais je reste vigilant #266",Neutre
+"Experience tres decevante depuis une semaine #267",NÈgatif
+"Super suivi client de bout en bout #268",Positif
+"Situation stable pour le moment #269",Neutre
+"Connexion instable et coupures frequentes #270",NÈgatif
+"Connexion stable et rapide toute la journee #271",Positif
+"Intervention standard sans remarque particuliere #272",Neutre
+"Technicien en retard et intervention incomplete #273",NÈgatif
+"Installation propre et bien expliquee #274",Positif
+"Rendez-vous respecte mais communication minimale #275",Neutre
+"Probleme revenu apres quelques heures #276",NÈgatif
+"Aucune coupure depuis la maintenance #277",Positif
+"Resultat moyen apres intervention #278",Neutre
+"Qualite reseau mauvaise et frustrante #279",NÈgatif
+"Service excellent depuis l intervention #280",Positif
+"Connexion globalement stable avec quelques variations #281",Neutre
+"Service client difficile a joindre #282",NÈgatif
+"Probleme resolu rapidement merci #283",Positif
+"Debit acceptable pour un usage normal #284",Neutre
+"Aucune information sur le suivi du ticket #285",NÈgatif
+"Support reactif et courtois #286",Positif
+"Quelques lenteurs ponctuelles en soiree #287",Neutre
+"Intervention annulee sans prevenir #288",NÈgatif
+"Travail soigne sur le raccordement #289",Positif
+"Service correct sans changement majeur #290",Neutre
+"Panne non resolue apres plusieurs relances #291",NÈgatif
+"Technicien tres professionnel et efficace #292",Positif
+"Ticket traite dans un delai moyen #293",Neutre
+"Debit tres insuffisant pour teletravail #294",NÈgatif
+"Debit tres satisfaisant en usage quotidien #295",Positif
+"La ligne fonctionne mais je reste vigilant #296",Neutre
+"Experience tres decevante depuis une semaine #297",NÈgatif
+"Super suivi client de bout en bout #298",Positif
+"Situation stable pour le moment #299",Neutre
+"Connexion instable et coupures frequentes #300",NÈgatif
+"Connexion stable et rapide toute la journee #301",Positif
+"Intervention standard sans remarque particuliere #302",Neutre
+"Technicien en retard et intervention incomplete #303",NÈgatif
+"Installation propre et bien expliquee #304",Positif
+"Rendez-vous respecte mais communication minimale #305",Neutre
+"Probleme revenu apres quelques heures #306",NÈgatif
+"Aucune coupure depuis la maintenance #307",Positif
+"Resultat moyen apres intervention #308",Neutre
+"Qualite reseau mauvaise et frustrante #309",NÈgatif
+"Service excellent depuis l intervention #310",Positif
+"Connexion globalement stable avec quelques variations #311",Neutre
+"Service client difficile a joindre #312",NÈgatif
+"Probleme resolu rapidement merci #313",Positif
+"Debit acceptable pour un usage normal #314",Neutre
+"Aucune information sur le suivi du ticket #315",NÈgatif
+"Support reactif et courtois #316",Positif
+"Quelques lenteurs ponctuelles en soiree #317",Neutre
+"Intervention annulee sans prevenir #318",NÈgatif
+"Travail soigne sur le raccordement #319",Positif
+"Service correct sans changement majeur #320",Neutre
+"Panne non resolue apres plusieurs relances #321",NÈgatif
+"Technicien tres professionnel et efficace #322",Positif
+"Ticket traite dans un delai moyen #323",Neutre
+"Debit tres insuffisant pour teletravail #324",NÈgatif
+"Debit tres satisfaisant en usage quotidien #325",Positif
+"La ligne fonctionne mais je reste vigilant #326",Neutre
+"Experience tres decevante depuis une semaine #327",NÈgatif
+"Super suivi client de bout en bout #328",Positif
+"Situation stable pour le moment #329",Neutre
+"Connexion instable et coupures frequentes #330",NÈgatif
+"Connexion stable et rapide toute la journee #331",Positif
+"Intervention standard sans remarque particuliere #332",Neutre
+"Technicien en retard et intervention incomplete #333",NÈgatif
+"Installation propre et bien expliquee #334",Positif
+"Rendez-vous respecte mais communication minimale #335",Neutre
+"Probleme revenu apres quelques heures #336",NÈgatif
+"Aucune coupure depuis la maintenance #337",Positif
+"Resultat moyen apres intervention #338",Neutre
+"Qualite reseau mauvaise et frustrante #339",NÈgatif
+"Service excellent depuis l intervention #340",Positif
+"Connexion globalement stable avec quelques variations #341",Neutre
+"Service client difficile a joindre #342",NÈgatif
+"Probleme resolu rapidement merci #343",Positif
+"Debit acceptable pour un usage normal #344",Neutre
+"Aucune information sur le suivi du ticket #345",NÈgatif
+"Support reactif et courtois #346",Positif
+"Quelques lenteurs ponctuelles en soiree #347",Neutre
+"Intervention annulee sans prevenir #348",NÈgatif
+"Travail soigne sur le raccordement #349",Positif
+"Service correct sans changement majeur #350",Neutre
+"Panne non resolue apres plusieurs relances #351",NÈgatif
+"Technicien tres professionnel et efficace #352",Positif
+"Ticket traite dans un delai moyen #353",Neutre
+"Debit tres insuffisant pour teletravail #354",NÈgatif
+"Debit tres satisfaisant en usage quotidien #355",Positif
+"La ligne fonctionne mais je reste vigilant #356",Neutre
+"Experience tres decevante depuis une semaine #357",NÈgatif
+"Super suivi client de bout en bout #358",Positif
+"Situation stable pour le moment #359",Neutre
+"Connexion instable et coupures frequentes #360",NÈgatif
+"Connexion stable et rapide toute la journee #361",Positif
+"Intervention standard sans remarque particuliere #362",Neutre
+"Technicien en retard et intervention incomplete #363",NÈgatif
+"Installation propre et bien expliquee #364",Positif
+"Rendez-vous respecte mais communication minimale #365",Neutre
+"Probleme revenu apres quelques heures #366",NÈgatif
+"Aucune coupure depuis la maintenance #367",Positif
+"Resultat moyen apres intervention #368",Neutre
+"Service excellent depuis l intervention #421",Positif
+"Connexion globalement stable avec quelques variations #422",Neutre
+"Connexion instable et coupures frequentes #423",NÈgatif
+"Technicien tres professionnel et efficace #424",Positif
+"Intervention standard sans remarque particuliere #425",Neutre
+"Panne non resolue apres plusieurs relances #426",NÈgatif
+"Probleme resolu rapidement merci #427",Positif
+"Debit acceptable pour un usage normal #428",Neutre
+"Service client difficile a joindre #429",NÈgatif
+"Installation propre et bien expliquee #430",Positif
+"La ligne fonctionne mais je reste vigilant #431",Neutre
+"Probleme revenu apres quelques heures #432",NÈgatif
+"Support reactif et courtois #433",Positif
+"Quelques lenteurs ponctuelles en soiree #434",Neutre
+"Experience tres decevante depuis une semaine #435",NÈgatif
+"Aucune coupure depuis la maintenance #436",Positif
+"Resultat moyen apres intervention #437",Neutre
+"Intervention annulee sans prevenir #438",NÈgatif
+"Super suivi client de bout en bout #439",Positif
+"Situation stable pour le moment #440",Neutre

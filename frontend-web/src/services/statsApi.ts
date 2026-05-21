@@ -6,6 +6,7 @@ export type TechnicianPerformance = {
   totalTerminees: number
   avgRating: number
   satisfactionRate: number
+  finalScore: number
   sentiments: {
     POSITIVE: number
     NEUTRAL: number

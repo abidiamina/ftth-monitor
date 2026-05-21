@@ -8,6 +8,7 @@ type NotificationsPanelProps = {
   accentClassName: string
   emptyLabel?: string
   onMarkAsRead: (notificationId: number) => void
+  onOpenIntervention?: (notification: NotificationRecord) => void
 }
 
 const formatDate = (value?: string | null) => {
@@ -27,6 +28,7 @@ export const NotificationsPanel = ({
   accentClassName,
   emptyLabel = 'Aucune notification.',
   onMarkAsRead,
+  onOpenIntervention,
 }: NotificationsPanelProps) => (
   <article className='dashboard-panel rounded-[2rem] p-6 sm:p-8'>
     <div className='flex items-center justify-between gap-4'>
@@ -79,13 +81,24 @@ export const NotificationsPanel = ({
               </div>
 
               {!item.lu ? (
-                <button
-                  type='button'
-                  onClick={() => onMarkAsRead(item.id)}
-                  className='rounded-[1rem] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 transition hover:bg-slate-50'
-                >
-                  Marquer lue
-                </button>
+                <div className='flex flex-col gap-2'>
+                  {item.interventionId && onOpenIntervention ? (
+                    <button
+                      type='button'
+                      onClick={() => onOpenIntervention(item)}
+                      className='rounded-[1rem] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 transition hover:bg-sky-100'
+                    >
+                      Voir intervention
+                    </button>
+                  ) : null}
+                  <button
+                    type='button'
+                    onClick={() => onMarkAsRead(item.id)}
+                    className='rounded-[1rem] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 transition hover:bg-slate-50'
+                  >
+                    Marquer lue
+                  </button>
+                </div>
               ) : null}
             </div>
           </div>
