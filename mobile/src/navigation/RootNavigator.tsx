@@ -32,7 +32,10 @@ function RootStack() {
         ? TechnicianDashboardScreen
         : UnauthorizedMobileScreen
 
-  console.log(`🧭 Navigation : Rôle=${user?.role}, Authentifié=${isAuthenticated}, Écran rendu=${dashboardScreen.name}`);
+  const renderedScreenName = isAuthenticated ? dashboardScreen.name : 'Login/Register'
+  console.log(
+    `[Navigation] role=${user?.role ?? 'undefined'}, authenticated=${isAuthenticated}, rendered=${renderedScreenName}`
+  )
 
   return (
     <NavigationContainer>

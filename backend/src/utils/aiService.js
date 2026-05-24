@@ -64,33 +64,76 @@ const computeWeatherRiskDelta = (weatherData) => {
   return Math.max(0, Math.min(30, delta));
 };
 
+const normalizeSentimentLabel = (value) => {
+  const raw = String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim();
+
+  if (raw.startsWith('POS')) return 'Positif';
+  if (raw.startsWith('NEG')) return 'Negatif';
+  if (raw.startsWith('NEU')) return 'Neutre';
+  return 'Neutre';
+};
+
+const normalizeTextForRules = (value) =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+const hasAnyToken = (text, tokens) => tokens.some((token) => text.includes(token));
+
+const resolveSentimentDeterministic = ({ text, rating, predicted }) => {
+  const normalizedPredicted = normalizeSentimentLabel(predicted);
+  const normalizedText = normalizeTextForRules(text);
+  const safeRating = Number.isFinite(Number(rating)) ? Number(rating) : null;
+
+  const veryNegativeWords = ['catastrophique', 'nul', 'honteux', 'inadmissible', 'foutage', 'remboursez', 'scandale', 'inacceptable'];
+  const negativeWords = ['mauvais', 'panne', 'lent', 'probleme', 'decu', 'attente', 'colere', 'echec', 'pas'];
+  const positiveWords = ['bon', 'merci', 'rapide', 'parfait', 'top', 'excellent', 'efficace', 'satisfait', 'super', 'bravo', 'genial'];
+
+  if (hasAnyToken(normalizedText, veryNegativeWords)) return 'Negatif';
+  if (safeRating !== null && safeRating >= 4) return 'Positif';
+  if (safeRating !== null && safeRating <= 2) return 'Negatif';
+  if (hasAnyToken(normalizedText, negativeWords)) return 'Negatif';
+  if (hasAnyToken(normalizedText, positiveWords)) return 'Positif';
+  return normalizedPredicted;
+};
+
 /**
  * US-34 : Analyse de sentiment des feedbacks clients (CamemBERT)
  * Communique avec le microservice FastAPI (Architecture Figure 5.2)
  */
 const analyzeSentiment = async (text, rating = null) => {
+  const normalizedText = String(text || '').trim();
+  const normalizedRating = Number.isFinite(Number(rating)) ? Number(rating) : null;
+
   try {
-    const response = await postIAWithRetry('/ia/analyze-sentiment', { text, rating });
-    return response.data; 
+    const response = await postIAWithRetry('/ia/analyze-sentiment', {
+      text: normalizedText,
+      rating: normalizedRating
+    });
+    const payload = response?.data || {};
+    const finalSentiment = resolveSentimentDeterministic({
+      text: normalizedText,
+      rating: normalizedRating,
+      predicted: payload.sentiment
+    });
+
+    return {
+      ...payload,
+      sentiment: finalSentiment,
+      score: Number.isFinite(Number(payload.score)) ? Number(payload.score) : 0.5
+    };
   } catch (error) {
-    const lower = (text || "").toLowerCase();
-    
-    // Mots-clés de "Colère" ou "Échec" (Priorité maximale)
-    const veryNegativeWords = ['catastrophique', 'nul', 'honteux', 'inadmissible', 'foutage', 'remboursez', 'scandale'];
-    const negativeWords = ['mauvais', 'panne', 'lent', 'problème', 'déçu', 'attente', 'colère', 'échec', 'pas'];
-    const positiveWords = ['bon', 'merci', 'rapide', 'parfait', 'top', 'excellent', 'efficace', 'satisfait', 'super', 'bravo', 'génial'];
-
-    // ARBITRAGE : Si le texte est violemment négatif, on ignore les étoiles (Sarcasme/Erreur client)
-    if (veryNegativeWords.some(w => lower.includes(w))) return { sentiment: 'Négatif', score: 0.99 };
-
-    // Sinon, on suit la logique des notes
-    if (rating >= 4) return { sentiment: 'Positif', score: 0.95 };
-    if (rating > 0 && rating <= 2) return { sentiment: 'Négatif', score: 0.95 };
-
-    if (negativeWords.some(w => lower.includes(w))) return { sentiment: 'Négatif', score: 0.85 };
-    if (positiveWords.some(w => lower.includes(w))) return { sentiment: 'Positif', score: 0.85 };
-    
-    return { sentiment: 'Neutre', score: 0.5 };
+    const finalSentiment = resolveSentimentDeterministic({
+      text: normalizedText,
+      rating: normalizedRating,
+      predicted: 'Neutre'
+    });
+    return { sentiment: finalSentiment, score: 0.85, ia_used: false };
   }
 };
 

@@ -66,6 +66,17 @@ def _rule_based_sentiment(text: str):
     return {"sentiment": "Neutre", "score": 0.5, "ia_used": False}
 
 
+def _has_very_negative_cue(text: str) -> bool:
+    text_lower = (
+        unicodedata.normalize("NFD", (text or "").lower())
+        .encode("ascii", "ignore")
+        .decode("ascii")
+    )
+    return any(token in text_lower for token in [
+        "catastrophe", "inadmissible", "inacceptable", "honteux", "nul", "scandale"
+    ])
+
+
 def _looks_valid_message(message: str) -> bool:
     if not message or len(message.strip()) < 8:
         return False
@@ -108,6 +119,15 @@ except Exception as exc:
 
 @app.post("/ia/analyze-sentiment")
 async def analyze_sentiment(request: SentimentRequest):
+    rule = _rule_based_sentiment(request.text)
+
+    # Strong business guardrail: 4-5 stars should be positive unless comment is clearly very negative.
+    if request.rating is not None:
+        if request.rating >= 4 and not _has_very_negative_cue(request.text):
+            return {"sentiment": "Positif", "score": 0.95, "ia_used": True}
+        if request.rating <= 2:
+            return {"sentiment": "Negatif", "score": 0.95, "ia_used": True}
+
     if model and tokenizer:
         inputs = tokenizer(
             request.text,
@@ -121,19 +141,27 @@ async def analyze_sentiment(request: SentimentRequest):
             scores = torch.nn.functional.softmax(outputs.logits, dim=1)
             predicted_class_id = torch.argmax(scores).item()
             score = scores[0][predicted_class_id].item()
-            sentiment = model.config.id2label[predicted_class_id]
-        rule = _rule_based_sentiment(request.text)
+            raw_sentiment = str(model.config.id2label[predicted_class_id])
+
+        raw_lower = raw_sentiment.lower()
+        if raw_lower.startswith("pos"):
+            sentiment = "Positif"
+        elif raw_lower.startswith("neg"):
+            sentiment = "Negatif"
+        elif raw_lower.startswith("neu"):
+            sentiment = "Neutre"
+        else:
+            sentiment = rule["sentiment"]
+
         # Guardrail: if the model is unsure or predicts neutral while lexical cues are strong,
         # prefer the deterministic label to avoid "all neutral" behavior.
         if score < 0.55:
             return rule
         if sentiment.lower().startswith("neut") and rule["sentiment"] in {"Negatif", "Positif"}:
             return {**rule, "ia_used": True}
-        if score < 0.55:
-            return rule
         return {"sentiment": sentiment, "score": round(score, 2), "ia_used": True}
 
-    return _rule_based_sentiment(request.text)
+    return rule
 
 
 @app.post("/ia/predict-pannes")

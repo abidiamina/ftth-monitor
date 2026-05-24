@@ -126,10 +126,13 @@ export const ClientDashboardPage = () => {
   const stats = useMemo(() => {
     const total = interventions.length
     const ouvertes = interventions.filter(i => i.statut !== 'TERMINEE').length
+    const terminees = interventions.filter(i => i.statut === 'TERMINEE').length
     const enCours = interventions.filter(i => i.statut === 'EN_COURS').length
     const aValider = interventions.filter(i => i.statut === 'TERMINEE' && !i.clientSignatureAt).length
     const unread = notifications.filter(n => !n.lu).length
-    return { total, ouvertes, enCours, aValider, unread }
+    const openRate = total > 0 ? Number(((ouvertes / total) * 100).toFixed(1)) : 0
+    const resolutionRate = total > 0 ? Number(((terminees / total) * 100).toFixed(1)) : 100
+    return { total, ouvertes, terminees, enCours, aValider, unread, openRate, resolutionRate }
   }, [interventions, notifications])
 
   const sortedInterventions = useMemo(() => {
@@ -421,7 +424,9 @@ export const ClientDashboardPage = () => {
                  <div className='dashboard-card bg-slate-950 !text-white !border-none shadow-2xl shadow-emerald-100 overflow-hidden relative'>
                     <div className='absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/20 blur-[50px] rounded-full' />
                     <h3 className='text-xl font-black mb-2'>Qualité Réseau</h3>
-                    <p className='text-emerald-400 text-sm font-bold'>Excellent (99.9% Up)</p>
+                    <p className='text-emerald-400 text-sm font-bold'>
+                      Pannes ouvertes: {stats.openRate}% | Resolution: {stats.resolutionRate}%
+                    </p>
                     <p className='mt-4 text-white/50 text-xs leading-relaxed'>Votre connexion est surveillée 24/7 par nos centres de supervision FTTH.</p>
                  </div>
                  <div className='dashboard-card'>

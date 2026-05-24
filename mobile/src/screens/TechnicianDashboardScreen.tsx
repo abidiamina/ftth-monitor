@@ -31,6 +31,7 @@ import { getSocket } from '../services/socketService'
 import { useThemeColors, palette } from '../theme/colors'
 import type {
   InterventionPriority,
+  InterventionEvidenceRecord,
   InterventionRecord,
   InterventionStatus,
   NotificationRecord,
@@ -68,6 +69,16 @@ const formatDate = (value?: string | null) => {
   })
 }
 
+const buildEvidenceImageUri = (photoData?: string | null) => {
+  const raw = String(photoData || '').trim()
+  if (!raw) return null
+  if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:image/')) {
+    return raw
+  }
+  const compactBase64 = raw.replace(/\s+/g, '')
+  return `data:image/jpeg;base64,${compactBase64}`
+}
+
 export function TechnicianDashboardScreen() {
   console.log('🖥️ Rendu de TechnicianDashboardScreen');
   const { user, logout, refreshCurrentUser } = useAuth()
@@ -89,6 +100,15 @@ export function TechnicianDashboardScreen() {
   const [scannerVisible, setScannerVisible] = useState(false)
   const [scanLocked, setScanLocked] = useState(false)
   const [cameraPermission, requestCameraPermission] = useCameraPermissions()
+  const [evidencePreview, setEvidencePreview] = useState<{
+    visible: boolean
+    uri: string | null
+    title: string
+  }>({
+    visible: false,
+    uri: null,
+    title: '',
+  })
 
   const loadData = async (silent = false) => {
     console.log('🔄 Chargement des données du dashboard...');
@@ -451,6 +471,20 @@ export function TechnicianDashboardScreen() {
     }
   }
 
+  const handleOpenEvidencePreview = (evidence: InterventionEvidenceRecord) => {
+    const uri = buildEvidenceImageUri(evidence.photoData)
+    if (!uri) {
+      Alert.alert('Image indisponible', 'Cette preuve ne contient pas de photo exploitable.')
+      return
+    }
+
+    setEvidencePreview({
+      visible: true,
+      uri,
+      title: evidence.photoName || 'Preuve photo',
+    })
+  }
+
   const colors = useThemeColors();
   const styles = getStyles(colors);
 
@@ -749,11 +783,29 @@ export function TechnicianDashboardScreen() {
                   <Text style={styles.primaryButtonText}>Ajouter la preuve</Text>
                 </Pressable>
                 {selectedIntervention.evidences.map((evidence) => (
-                  <View key={evidence.id} style={styles.subCard}>
-                    <Text style={styles.itemTitle}>{evidence.photoName}</Text>
-                    <Text style={styles.itemDetail}>{evidence.commentaire}</Text>
-                    <Text style={styles.itemMeta}>{formatDate(evidence.createdAt)}</Text>
-                  </View>
+                  <Pressable
+                    key={evidence.id}
+                    style={({ pressed }) => [styles.subCard, pressed ? styles.itemPressed : null]}
+                    onPress={() => handleOpenEvidencePreview(evidence)}
+                  >
+                    <View style={styles.evidenceRow}>
+                      {buildEvidenceImageUri(evidence.photoData) ? (
+                        <Image
+                          source={{ uri: buildEvidenceImageUri(evidence.photoData) as string }}
+                          style={styles.evidenceThumb}
+                        />
+                      ) : (
+                        <View style={styles.evidenceThumbPlaceholder}>
+                          <Text style={styles.evidenceThumbPlaceholderText}>No Img</Text>
+                        </View>
+                      )}
+                      <View style={styles.evidenceTextCol}>
+                        <Text style={styles.itemTitle}>{evidence.photoName}</Text>
+                        <Text style={styles.itemDetail}>{evidence.commentaire}</Text>
+                        <Text style={styles.itemMeta}>{formatDate(evidence.createdAt)}</Text>
+                      </View>
+                    </View>
+                  </Pressable>
                 ))}
               </View>
 
@@ -826,6 +878,32 @@ export function TechnicianDashboardScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={evidencePreview.visible}
+        transparent
+        animationType='fade'
+        onRequestClose={() => setEvidencePreview({ visible: false, uri: null, title: '' })}
+      >
+        <View style={styles.previewModalBackdrop}>
+          <View style={styles.previewModalCard}>
+            <View style={styles.previewModalHeader}>
+              <Text style={styles.previewModalTitle}>{evidencePreview.title}</Text>
+              <Pressable
+                style={({ pressed }) => [styles.outlineButton, pressed ? styles.buttonPressed : null]}
+                onPress={() => setEvidencePreview({ visible: false, uri: null, title: '' })}
+              >
+                <Text style={styles.outlineButtonText}>Fermer</Text>
+              </Pressable>
+            </View>
+            {evidencePreview.uri ? (
+              <Image source={{ uri: evidencePreview.uri }} style={styles.previewModalImage} resizeMode='contain' />
+            ) : (
+              <Text style={styles.itemDetail}>Image indisponible.</Text>
+            )}
+          </View>
+        </View>
+      </Modal>
     </Screen>
   )
 }
@@ -882,6 +960,18 @@ const getStyles = (colors: any) => StyleSheet.create({
     elevation: 2,
   },
   subCard: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bg, borderRadius: 16, padding: 12, gap: 4 },
+  evidenceRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
+  evidenceTextCol: { flex: 1, gap: 2 },
+  evidenceThumb: { width: 62, height: 62, borderRadius: 10, backgroundColor: colors.border },
+  evidenceThumbPlaceholder: {
+    width: 62,
+    height: 62,
+    borderRadius: 10,
+    backgroundColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  evidenceThumbPlaceholderText: { color: colors.muted, fontSize: 10, fontWeight: '700' },
   cardTitle: { fontSize: 21, lineHeight: 26, color: colors.text, fontWeight: '800' },
   detail: { color: colors.muted, lineHeight: 20 },
   statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
@@ -931,4 +1021,26 @@ const getStyles = (colors: any) => StyleSheet.create({
   scannerTitle: { flex: 1, fontSize: 24, fontWeight: '800', color: colors.text },
   cameraFrame: { overflow: 'hidden', borderRadius: 28, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.border, minHeight: 420 },
   cameraView: { flex: 1, minHeight: 420 },
+  previewModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    justifyContent: 'center',
+    padding: 18,
+  },
+  previewModalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 12,
+  },
+  previewModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  previewModalTitle: { flex: 1, color: colors.text, fontSize: 16, fontWeight: '800' },
+  previewModalImage: {
+    width: '100%',
+    height: 360,
+    borderRadius: 12,
+    backgroundColor: colors.bg,
+  },
 })

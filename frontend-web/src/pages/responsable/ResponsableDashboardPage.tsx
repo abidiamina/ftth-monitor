@@ -58,6 +58,18 @@ const formatDate = (value?: string | null) => {
   })
 }
 
+const sentimentBucket = (value?: string | null) => {
+  const normalized = String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim()
+
+  if (normalized.startsWith('POS')) return 'POS'
+  if (normalized.startsWith('NEG')) return 'NEG'
+  return 'NEU'
+}
+
 // Calcul de distance (formule Haversine)
 const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
   const R = 6371
@@ -117,6 +129,15 @@ export const ResponsableDashboardPage = () => {
   const [assignmentDrafts, setAssignmentDrafts] = useState<Record<number, string>>({})
   const [plannedDateDrafts, setPlannedDateDrafts] = useState<Record<number, string>>({})
   const [priorityDrafts, setPriorityDrafts] = useState<Record<number, InterventionPriority>>({})
+  const [evidencePreview, setEvidencePreview] = useState<{
+    open: boolean
+    src: string
+    title: string
+  }>({
+    open: false,
+    src: '',
+    title: '',
+  })
 
   const loadDashboard = async () => {
     setLoading(true)
@@ -582,15 +603,32 @@ export const ResponsableDashboardPage = () => {
                   <div>
                     <p className='text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3'>Preuves Photos</p>
                     <div className='flex flex-wrap gap-2'>
-                      {intervention.evidences.map((ev) => (
-                        <img 
-                          key={ev.id} 
-                          src={normalizePhotoData(ev.photoData)} 
-                          className='h-16 w-16 rounded-xl object-cover border border-white shadow-sm hover:scale-110 transition-transform cursor-pointer' 
-                          alt="Evidence" 
-                          onClick={() => window.open(normalizePhotoData(ev.photoData), '_blank')}
-                        />
-                      ))}
+                      {intervention.evidences.map((ev) => {
+                        const photoUrl = normalizePhotoData(ev.photoData)
+                        const canOpen = Boolean(photoUrl)
+
+                        return (
+                          <img
+                            key={ev.id}
+                            src={photoUrl || '/favicon.svg'}
+                            className={`h-16 w-16 rounded-xl object-cover border border-white shadow-sm transition-transform ${
+                              canOpen ? 'hover:scale-110 cursor-pointer' : 'opacity-60 cursor-not-allowed'
+                            }`}
+                            alt='Evidence'
+                            onClick={() => {
+                              if (!canOpen) {
+                                toast.error('Photo indisponible pour cette preuve.')
+                                return
+                              }
+                              setEvidencePreview({
+                                open: true,
+                                src: photoUrl,
+                                title: ev.photoName || 'Preuve photo',
+                              })
+                            }}
+                          />
+                        )
+                      })}
                     </div>
                   </div>
                 )}
@@ -654,11 +692,11 @@ export const ResponsableDashboardPage = () => {
                           <p className='text-[10px] font-black text-slate-500 dark:text-slate-600 uppercase tracking-widest'>Évaluation & Note</p>
                           {intervention.clientFeedbackSentiment && (
                             <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${
-                              intervention.clientFeedbackSentiment === 'POSITIVE' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                              intervention.clientFeedbackSentiment === 'NEGATIVE' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                              sentimentBucket(intervention.clientFeedbackSentiment) === 'POS' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                              sentimentBucket(intervention.clientFeedbackSentiment) === 'NEG' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
                               'bg-slate-50 text-slate-600 border border-slate-100'
                             }`}>
-                              Sentiment {intervention.clientFeedbackSentiment === 'POSITIVE' ? 'Positif' : intervention.clientFeedbackSentiment === 'NEGATIVE' ? 'Negatif' : 'Neutre'}
+                              Sentiment {sentimentBucket(intervention.clientFeedbackSentiment) === 'POS' ? 'Positif' : sentimentBucket(intervention.clientFeedbackSentiment) === 'NEG' ? 'Negatif' : 'Neutre'}
                             </span>
                           )}
                         </div>
@@ -1100,6 +1138,36 @@ export const ResponsableDashboardPage = () => {
           </div>
         )}
       </div>
+
+      {evidencePreview.open && (
+        <div
+          className='fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4'
+          onClick={() => setEvidencePreview({ open: false, src: '', title: '' })}
+        >
+          <div
+            className='w-full max-w-4xl rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl'
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className='mb-3 flex items-center justify-between gap-3'>
+              <p className='text-sm font-black text-slate-900'>{evidencePreview.title}</p>
+              <button
+                type='button'
+                className='rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100'
+                onClick={() => setEvidencePreview({ open: false, src: '', title: '' })}
+              >
+                Fermer
+              </button>
+            </div>
+            <div className='max-h-[75vh] overflow-auto rounded-xl bg-slate-50 p-2'>
+              <img
+                src={evidencePreview.src}
+                alt={evidencePreview.title}
+                className='mx-auto max-h-[70vh] w-auto rounded-lg object-contain'
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </AppDashboardShell>
   )
 }

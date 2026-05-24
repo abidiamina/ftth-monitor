@@ -80,17 +80,17 @@ export const NotificationsPanel = ({
                 <p className='mt-2 text-sm text-slate-700'>{formatDate(item.createdAt)}</p>
               </div>
 
-              {!item.lu ? (
-                <div className='flex flex-col gap-2'>
-                  {item.interventionId && onOpenIntervention ? (
-                    <button
-                      type='button'
-                      onClick={() => onOpenIntervention(item)}
-                      className='rounded-[1rem] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 transition hover:bg-sky-100'
-                    >
-                      Voir intervention
-                    </button>
-                  ) : null}
+              <div className='flex flex-col gap-2'>
+                {item.interventionId && onOpenIntervention ? (
+                  <button
+                    type='button'
+                    onClick={() => onOpenIntervention(item)}
+                    className='rounded-[1rem] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 transition hover:bg-sky-100'
+                  >
+                    Voir intervention
+                  </button>
+                ) : null}
+                {!item.lu ? (
                   <button
                     type='button'
                     onClick={() => onMarkAsRead(item.id)}
@@ -98,8 +98,8 @@ export const NotificationsPanel = ({
                   >
                     Marquer lue
                   </button>
-                </div>
-              ) : null}
+                ) : null}
+              </div>
             </div>
           </div>
         ))

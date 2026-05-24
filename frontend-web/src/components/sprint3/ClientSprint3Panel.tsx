@@ -44,8 +44,17 @@ export function ClientSprint3Panel({
   signerName,
   onRefresh,
 }: ClientSprint3PanelProps) {
+  const getLatestCompletedInterventionId = (items: InterventionRecord[]) =>
+    [...items]
+      .filter((item) => item.statut === 'TERMINEE')
+      .sort(
+        (left, right) =>
+          new Date(right.dateFin ?? right.updatedAt ?? right.dateCreation).getTime() -
+          new Date(left.dateFin ?? left.updatedAt ?? left.dateCreation).getTime()
+      )[0]?.id ?? null
+
   const [selectedInterventionId, setSelectedInterventionId] = useState<number | null>(
-    interventions.find((item) => item.statut === 'TERMINEE')?.id ?? null
+    getLatestCompletedInterventionId(interventions)
   )
   const [feedbackComment, setFeedbackComment] = useState('')
   const [feedbackRating, setFeedbackRating] = useState(0)
@@ -53,7 +62,14 @@ export function ClientSprint3Panel({
   const signatureRef = useRef<SignatureCanvas | null>(null)
 
   const completableInterventions = useMemo(
-    () => interventions.filter((item) => item.statut === 'TERMINEE'),
+    () =>
+      [...interventions]
+        .filter((item) => item.statut === 'TERMINEE')
+        .sort(
+          (left, right) =>
+            new Date(right.dateFin ?? right.updatedAt ?? right.dateCreation).getTime() -
+            new Date(left.dateFin ?? left.updatedAt ?? left.dateCreation).getTime()
+        ),
     [interventions]
   )
 
