@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Search, Bell, LogOut, LayoutDashboard, Ticket, Wrench, MapPinned, UserCog, CircleHelp, Settings, Shield, BarChart3, Users, Menu, Activity, Moon, Sun } from 'lucide-react'
+import { Search, Bell, LogOut, LayoutDashboard, Ticket, Wrench, MapPinned, UserCog, CircleHelp, Settings, Shield, BarChart3, Users, Menu, Activity, Moon, Sun, ShieldCheck, ClipboardList, UsersRound, BellRing, MapPin, UserPlus, ShieldEllipsis, RadioTower, ScanSearch, KeyRound, TicketPlus, CheckCircle2, UserRound } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
 
@@ -30,36 +30,40 @@ type NavItem = {
 
 const roleNav: Record<UserRole, NavItem[]> = {
   ADMIN: [
-    { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
-    { label: 'Utilisateurs', icon: Users, path: '/admin/dashboard' },
-    { label: 'Roles', icon: Shield, path: '/admin/dashboard' },
-    { label: 'Statistiques', icon: BarChart3, path: '/admin/dashboard' },
-    { label: 'Parametres', icon: Settings, path: '/admin/dashboard' },
+    { label: 'Overview', icon: ShieldCheck, path: '/admin/dashboard' },
+    { label: 'Comptes', icon: Users, path: '/admin/dashboard' },
+    { label: 'Ajouter membre', icon: UserPlus, path: '/admin/dashboard' },
+    { label: 'Privilèges', icon: ShieldEllipsis, path: '/admin/dashboard' },
+    { label: 'Système', icon: Settings, path: '/admin/dashboard' },
     { label: 'Audit', icon: Activity, path: '/admin/audit' },
-    { label: 'Mon Profil', icon: UserCog, path: '/profile' },
+    { label: 'Inbox', icon: BellRing, path: '/admin/dashboard' },
+    { label: 'Profil', icon: UserCog, path: '/profile' },
   ],
   RESPONSABLE: [
-    { label: 'Dashboard', icon: LayoutDashboard, path: '/responsable' },
-    { label: 'Interventions', icon: Ticket, badge: 'Live', path: '/responsable' },
-    { label: 'Techniciens', icon: Wrench, badge: '15', path: '/responsable' },
-    { label: 'Carte', icon: MapPinned, path: '/responsable' },
-    { label: 'Notifications', icon: Bell, badge: '5', path: '/responsable' },
-    { label: 'Mon Profil', icon: UserCog, path: '/profile' },
+    { label: 'Aperçu', icon: ShieldCheck, path: '/responsable' },
+    { label: 'Nouvelle', icon: ClipboardList, path: '/responsable' },
+    { label: 'Missions', icon: UsersRound, path: '/responsable' },
+    { label: 'Supervision', icon: LayoutDashboard, path: '/responsable' },
+    { label: 'Rapports', icon: ClipboardList, path: '/responsable' },
+    { label: 'Inbox', icon: BellRing, path: '/responsable' },
+    { label: 'Cartographie', icon: MapPin, path: '/responsable' },
+    { label: 'Profil', icon: UserCog, path: '/profile' },
   ],
   TECHNICIEN: [
-    { label: 'Dashboard', icon: LayoutDashboard, path: '/technicien' },
-    { label: 'Interventions', icon: Ticket, badge: 'Mes taches', path: '/technicien' },
-    { label: 'Carte', icon: MapPinned, path: '/technicien' },
-    { label: 'Statut', icon: CircleHelp, path: '/technicien' },
-    { label: 'Notifications', icon: Bell, badge: '2', path: '/technicien' },
-    { label: 'Mon Profil', icon: UserCog, path: '/profile' },
+    { label: 'Dashboard', icon: RadioTower, path: '/technicien' },
+    { label: 'Exécution', icon: ScanSearch, path: '/technicien' },
+    { label: 'Inbox', icon: BellRing, path: '/technicien' },
+    { label: 'Identité', icon: MapPinned, path: '/technicien' },
+    { label: 'Accès', icon: KeyRound, path: '/technicien' },
+    { label: 'Profil', icon: UserCog, path: '/profile' },
   ],
   CLIENT: [
-    { label: 'Dashboard', icon: LayoutDashboard, path: '/client' },
-    { label: 'Demandes', icon: Ticket, path: '/client' },
-    { label: 'Suivi', icon: Bell, badge: 'Live', path: '/client' },
-    { label: 'Profil', icon: UserCog, path: '/profile' },
-    { label: 'Aide', icon: CircleHelp, path: '/client' },
+    { label: 'Espace Client', icon: ShieldCheck, path: '/client' },
+    { label: 'Nouvelle Intervention', icon: TicketPlus, path: '/client' },
+    { label: 'Activités', icon: BellRing, path: '/client' },
+    { label: 'Validation', icon: CheckCircle2, path: '/client' },
+    { label: 'Profil', icon: UserRound, path: '/profile' },
+    { label: 'Inbox', icon: BellRing, path: '/client' },
   ],
 }
 
