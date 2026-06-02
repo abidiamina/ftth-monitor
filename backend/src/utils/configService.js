@@ -25,8 +25,16 @@ async function getConfigAsInt(cle, defaultValue = 0) {
   return isNaN(parsed) ? defaultValue : parsed;
 }
 
+async function getConfigAsFloat(cle, defaultValue = 0.0) {
+  const value = await getConfig(cle);
+  if (value === null) return defaultValue;
+  const parsed = parseFloat(value);
+  return isNaN(parsed) ? defaultValue : parsed;
+}
+
 module.exports = {
   getConfig,
   getConfigAsBoolean,
   getConfigAsInt,
+  getConfigAsFloat,
 };

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshCw, Sparkles } from 'lucide-react'
 import { getPersonalizedMessage } from '@/services/aiApi'
 
-const REFRESH_INTERVAL_MS = 60_000 // rafraîchissement toutes les 60 secondes
+const REFRESH_INTERVAL_MS = 60_000
 
 export const AIPersonalityWidget = () => {
   const [message, setMessage] = useState<string>('')
@@ -11,7 +11,6 @@ export const AIPersonalityWidget = () => {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const fetchMessage = useCallback(async () => {
-    // Fade out avant de changer le message
     setVisible(false)
     setLoading(true)
     try {
@@ -20,7 +19,7 @@ export const AIPersonalityWidget = () => {
         setMessage(data.message)
         setLoading(false)
         setVisible(true)
-      }, 300) // délai pour l'animation fade
+      }, 300)
     } catch (error) {
       console.error('Failed to fetch AI message', error)
       setTimeout(() => {
@@ -45,7 +44,6 @@ export const AIPersonalityWidget = () => {
         <Sparkles className="h-16 w-16" />
       </div>
 
-      {/* Bouton rafraîchissement manuel */}
       <button
         onClick={fetchMessage}
         disabled={loading}

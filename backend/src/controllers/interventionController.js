@@ -103,6 +103,18 @@ const parseOptionalInt = (value) => {
   return Number.isInteger(parsed) ? parsed : null;
 };
 
+const hasOngoingIntervention = async (technicienId, excludeInterventionId = null) => {
+  if (!technicienId) return false;
+  const where = {
+    technicienId,
+    statut: 'EN_COURS',
+  };
+  if (excludeInterventionId) where.id = { not: excludeInterventionId };
+
+  const ongoing = await prisma.intervention.findFirst({ where, select: { id: true } });
+  return Boolean(ongoing);
+};
+
 const {
   validateTechnicianUpdate,
   buildStatusNotificationMessage,
@@ -343,6 +355,14 @@ const createIntervention = async (req, res) => {
       });
     }
 
+    const parsedTechnicienId = parseOptionalInt(technicienId);
+    if (parsedTechnicienId && await hasOngoingIntervention(parsedTechnicienId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ce technicien est deja en cours sur une autre intervention.',
+      });
+    }
+
     const intervention = await prisma.intervention.create({
       data: {
         titre: normalizeText(titre),
@@ -353,7 +373,7 @@ const createIntervention = async (req, res) => {
         priorite: priorite || 'NORMALE',
         datePlanifiee: datePlanifiee ? new Date(datePlanifiee) : null,
         clientId: resolvedClientId,
-        technicienId: parseOptionalInt(technicienId),
+        technicienId: parsedTechnicienId,
         responsableId,
       },
       include: interventionInclude,
@@ -477,17 +497,11 @@ const updateIntervention = async (req, res) => {
     }
 
     if (technicienId !== undefined && technicienId !== null && technicienId !== existing.technicienId) {
-      const activeIntervention = await prisma.intervention.findFirst({
-        where: {
-          technicienId: parseOptionalInt(technicienId),
-          statut: { in: ['EN_ATTENTE', 'EN_COURS'] },
-          id: { not: interventionId }
-        }
-      });
-      if (activeIntervention) {
+      const parsedTechnicienId = parseOptionalInt(technicienId);
+      if (parsedTechnicienId && await hasOngoingIntervention(parsedTechnicienId, interventionId)) {
         return res.status(400).json({
           success: false,
-          message: 'Ce technicien a deja une intervention active. Il doit la terminer avant d en recevoir une nouvelle.',
+          message: 'Ce technicien est deja en cours sur une autre intervention.',
         });
       }
     }
@@ -570,6 +584,8 @@ const updateIntervention = async (req, res) => {
               ? { technicienId: parseOptionalInt(technicienId) }
               : {}),
           ...dateData,
+
+
         },
         include: interventionInclude,
       });
@@ -641,12 +657,40 @@ const updateInterventionFieldCheck = async (req, res) => {
       });
     }
 
+    let gpsConfirmed = false;
+    let gpsDistance = null;
+
+    if (confirmGps || gpsLatitude !== undefined || gpsLongitude !== undefined) {
+      const lat = parseOptionalFloat(gpsLatitude);
+      const lon = parseOptionalFloat(gpsLongitude);
+
+      if (lat !== null && lon !== null) {
+        if (existing.latitude !== null && existing.longitude !== null) {
+          const lat1 = existing.latitude;
+          const lon1 = existing.longitude;
+          
+          const R = 6371e3; // mètres
+          const dLat = ((lat - lat1) * Math.PI) / 180;
+          const dLon = ((lon - lon1) * Math.PI) / 180;
+          const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos((lat1 * Math.PI) / 180) *
+              Math.cos((lat * Math.PI) / 180) *
+              Math.sin(dLon / 2) *
+              Math.sin(dLon / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          gpsDistance = R * c;
+        }
+        gpsConfirmed = true;
+      }
+    }
+
     const intervention = await prisma.intervention.update({
       where: { id: interventionId },
       data: {
         ...(gpsLatitude !== undefined && { gpsLatitude: parseOptionalFloat(gpsLatitude) }),
         ...(gpsLongitude !== undefined && { gpsLongitude: parseOptionalFloat(gpsLongitude) }),
-        ...(confirmGps || gpsLatitude !== undefined || gpsLongitude !== undefined
+        ...(gpsConfirmed
           ? { gpsConfirmedAt: new Date() }
           : {}),
         ...(qrCodeValue !== undefined
@@ -870,4 +914,3 @@ module.exports = {
   submitInterventionClientApproval,
   flattenIntervention,
 };
-

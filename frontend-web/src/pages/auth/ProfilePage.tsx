@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { User, Mail, Phone, MapPin, Loader2, Save, Camera, Shield, ArrowLeft } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Loader2, Save, Shield, ArrowLeft } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
 import type { RootState } from '@/store'
@@ -104,9 +104,6 @@ export const ProfilePage = () => {
                 <div className='h-32 w-32 rounded-[2.5rem] bg-slate-100 flex items-center justify-center border-4 border-white shadow-xl overflow-hidden'>
                   <User className='h-16 w-16 text-slate-300' />
                 </div>
-                <button className='absolute bottom-0 right-0 p-2 bg-slate-900 text-white rounded-xl shadow-lg hover:scale-110 transition-transform'>
-                  <Camera className='h-4 w-4' />
-                </button>
               </div>
               <h2 className='mt-6 text-2xl font-black text-slate-950'>{user?.prenom} {user?.nom}</h2>
               <span className='mt-2 px-4 py-1.5 rounded-full bg-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500 border border-slate-200/50'>

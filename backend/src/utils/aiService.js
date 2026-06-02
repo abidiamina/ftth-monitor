@@ -2,6 +2,7 @@ const axios = require('axios');
 const prisma = require('../config/prisma');
 const { sendOutageAlertEmail } = require('./emailService');
 const { getWeatherData } = require('./weatherService');
+const { getConfigAsInt } = require('./configService');
 
 // Suivi des dernières alertes envoyées par zone (évite le spam)
 const lastOutageAlerts = {};
@@ -228,7 +229,7 @@ const predictOutages = async () => {
       if (adjustedProbability >= 70) adjustedRisk = 'Élevé';
       else if (adjustedProbability >= 40) adjustedRisk = 'Moyen';
 
-      // Correspondance des couleurs (Figure 5.4 : Rouge/Orange/Vert)
+      // Correspondance des couleurs ( Rouge/Orange/Vert)
       let color = 'emerald'; // Vert
       if (adjustedRisk === 'Élevé') color = 'rose'; // Rouge
       if (adjustedRisk === 'Moyen') color = 'amber'; // Orange
@@ -329,13 +330,17 @@ const predictOutages = async () => {
   predictions.sort((a, b) => b.probability - a.probability);
 
   // === ENVOI AUTOMATIQUE D'ALERTE AUX RESPONSABLES ===
-  // Notification envoyée si la probabilité de panne atteint ou dépasse 50%
-  const alertPredictions = predictions.filter(p => p.probability >= 50);
+  // Notification envoyée si la probabilité de panne atteint ou dépasse le seuil configuré
+  const threshold = await getConfigAsInt('AI_ALERT_THRESHOLD', 50);
+  const cooldownMin = await getConfigAsInt('AI_ALERT_COOLDOWN', 60);
+  const cooldownMs = cooldownMin * 60 * 1000;
+
+  const alertPredictions = predictions.filter(p => p.probability >= threshold);
   if (alertPredictions.length > 0) {
     const now = Date.now();
     
-    // Vérifier si on doit envoyer des alertes (cooldown d'une heure par zone)
-    const zonesToAlert = alertPredictions.filter(p => !lastOutageAlerts[p.zone] || (now - lastOutageAlerts[p.zone]) > 3600000);
+    // Vérifier si on doit envoyer des alertes (cooldown dynamique par zone)
+    const zonesToAlert = alertPredictions.filter(p => !lastOutageAlerts[p.zone] || (now - lastOutageAlerts[p.zone]) > cooldownMs);
     
     if (zonesToAlert.length > 0) {
       try {

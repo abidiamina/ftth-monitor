@@ -32,12 +32,36 @@ async function seedConfigs() {
       libelle: 'Contrôle QR Strict',
       description: 'L intervention échoue si le code QR ne correspond pas exactement.',
     },
+    {
+      cle: 'AI_ALERT_THRESHOLD',
+      valeur: '50',
+      libelle: 'Seuil d alerte NOC (%)',
+      description: 'Probabilité minimale de panne calculée par l IA pour déclencher l envoi automatique d un e-mail d alerte.',
+    },
+    {
+      cle: 'AI_ALERT_COOLDOWN',
+      valeur: '60',
+      libelle: 'Rétention d Alerte (min)',
+      description: 'Délai d attente minimal en minutes avant d émettre une nouvelle alerte de panne pour la même zone.',
+    },
   ];
+
+  // Supprimer les paramètres obsolètes de contrôle GPS de la base de données
+  await prisma.configuration.deleteMany({
+    where: {
+      cle: {
+        in: ['GPS_VALIDATION_RADIUS', 'STRICT_GPS_CHECK'],
+      },
+    },
+  });
 
   for (const config of configs) {
     await prisma.configuration.upsert({
       where: { cle: config.cle },
-      update: {},
+      update: {
+        libelle: config.libelle,
+        description: config.description,
+      },
       create: config,
     });
   }

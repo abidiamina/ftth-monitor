@@ -11,6 +11,8 @@ import {
   Activity,
   UserCog,
   BellRing,
+  MapPin,
+  BrainCircuit,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { AIPersonalityWidget } from '@/components/dashboard/AIPersonalityWidget'
@@ -18,7 +20,7 @@ import { AppDashboardShell } from '@/components/dashboard/AppDashboardShell'
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs'
 
 import { validateUserUpdateForm } from '@/lib/validation'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   createEmployee,
   deleteUser,
@@ -79,10 +81,13 @@ export const AdminDashboardPage = () => {
   const [savingUser, setSavingUser] = useState(false)
   const [roleFilter, setRoleFilter] = useState<'ALL' | UserRole>('ALL')
 
-  const [tab, setTab] = useState<'APERCU' | 'UTILISATEURS' | 'CREATION' | 'ROLES' | 'PARAMETRES' | 'AUDIT' | 'NOTIFICATIONS'>('APERCU')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = (searchParams.get('tab') as any) || 'APERCU'
+  const setTab = (t: any) => setSearchParams({ tab: t })
   const [configs, setConfigs] = useState<ConfigurationRecord[]>([])
   const [notifications, setNotifications] = useState<NotificationRecord[]>([])
   const [configSaving, setConfigSaving] = useState<Record<string, boolean>>({})
+  const [paramSection, setParamSection] = useState<'TERRAIN' | 'IA' | 'SYSTEME'>('TERRAIN')
   const [employeeForm, setEmployeeForm] = useState<CreateEmployeeRequest>({
     nom: '', prenom: '', email: '', telephone: '', role: 'ADMIN'
   })
@@ -153,11 +158,40 @@ export const AdminDashboardPage = () => {
   }
 
   const handleUpdateConfig = async (cle: string, valeur: string) => {
+    let finalValeur = valeur
+
+    // Validations côté client
+    if (cle === 'MAX_PHOTOS') {
+      const val = parseInt(valeur, 10)
+      if (isNaN(val) || val < 1 || val > 20) {
+        toast.error('Le nombre maximum de photos doit être compris entre 1 et 20.')
+        return
+      }
+    }
+    if (cle === 'AI_ALERT_THRESHOLD') {
+      const val = parseInt(valeur, 10)
+      if (isNaN(val) || val < 10 || val > 100) {
+        toast.error('Le seuil de probabilité de panne doit être compris entre 10% et 100%.')
+        return
+      }
+    }
+    if (cle === 'AI_ALERT_COOLDOWN') {
+      const val = parseInt(valeur, 10)
+      if (isNaN(val) || val < 1) {
+        toast.error('Le délai de rétention des alertes doit être d\'au moins 1 minute.')
+        return
+      }
+    }
+    if (cle === 'APP_NAME' && !valeur.trim()) {
+      toast.error('Le nom de la plateforme ne peut pas être vide.')
+      return
+    }
+
     setConfigSaving(c => ({ ...c, [cle]: true }))
     try {
-      await updateConfig(cle, valeur)
+      await updateConfig(cle, finalValeur)
       toast.success('Réglage enregistré.')
-      setConfigs(curr => curr.map(c => c.cle === cle ? { ...c, valeur } : c))
+      setConfigs(curr => curr.map(c => c.cle === cle ? { ...c, valeur: finalValeur } : c))
     } catch (error) {
       toast.error('Erreur lors de la sauvegarde.')
     } finally {
@@ -281,7 +315,7 @@ export const AdminDashboardPage = () => {
                  onClick={handleUpdateUser}
                  className='flex-1 py-2.5 bg-violet-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-violet-700 transition-colors disabled:opacity-50'
                >
-                 {savingUser ? '...' : 'Sauver'}
+                 {savingUser ? '...' : 'enregistrer'}
                </button>
                <button 
                  onClick={() => setEditingUserId(null)}
@@ -512,58 +546,121 @@ export const AdminDashboardPage = () => {
              ))}
           </div>
         ) : tab === 'PARAMETRES' ? (
-          <div className='max-w-3xl mx-auto'>
+          <div className='max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300'>
+            {/* Sous-onglets de paramétrage */}
+            <div className='flex gap-2 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200/50 backdrop-blur-md max-w-lg mx-auto'>
+              <button
+                onClick={() => setParamSection('TERRAIN')}
+                className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 ${
+                  paramSection === 'TERRAIN'
+                    ? 'bg-white text-violet-700 shadow-md shadow-slate-100'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-white/40'
+                }`}
+              >
+                <MapPin className='h-4 w-4' />
+                Règles Terrain
+              </button>
+              <button
+                onClick={() => setParamSection('IA')}
+                className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 ${
+                  paramSection === 'IA'
+                    ? 'bg-white text-violet-700 shadow-md shadow-slate-100'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-white/40'
+                }`}
+              >
+                <BrainCircuit className='h-4 w-4' />
+                IA & NOC
+              </button>
+              <button
+                onClick={() => setParamSection('SYSTEME')}
+                className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 ${
+                  paramSection === 'SYSTEME'
+                    ? 'bg-white text-violet-700 shadow-md shadow-slate-100'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-white/40'
+                }`}
+              >
+                <Settings className='h-4 w-4' />
+                Système
+              </button>
+            </div>
+
             <div className='dashboard-card p-10'>
               <div className='flex items-center gap-4 mb-10'>
-                <div className='h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center'>
-                   <Settings className='h-6 w-6 text-white' />
+                <div className='h-12 w-12 rounded-2xl bg-slate-950 flex items-center justify-center shadow-lg shadow-slate-950/10'>
+                  {paramSection === 'TERRAIN' ? (
+                    <MapPin className='h-5 w-5 text-white' />
+                  ) : paramSection === 'IA' ? (
+                    <BrainCircuit className='h-5 w-5 text-white' />
+                  ) : (
+                    <Settings className='h-5 w-5 text-white' />
+                  )}
                 </div>
                 <div>
-                   <h2 className='text-3xl font-black text-slate-950 tracking-tight'>Paramètres Système</h2>
-                   <p className='text-slate-500 font-medium text-sm'>Adaptez les fonctionnalités de la plateforme en temps réel.</p>
+                  <h2 className='text-3xl font-black text-slate-950 tracking-tight'>
+                    {paramSection === 'TERRAIN'
+                      ? 'Règles & Validation Terrain'
+                      : paramSection === 'IA'
+                      ? 'Intelligence Artificielle & Alertes NOC'
+                      : 'Paramètres Système Généraux'}
+                  </h2>
+                  <p className='text-slate-500 font-medium text-sm'>
+                    {paramSection === 'TERRAIN'
+                      ? 'Configurez les conditions géospatiales et de validation pour les techniciens sur site.'
+                      : paramSection === 'IA'
+                      ? 'Ajustez le modèle de risque prédictif NOC et les seuils d\'alerte de panne.'
+                      : 'Modifiez l\'identité globale et les options de base de la plateforme FTTH Monitor.'}
+                  </p>
                 </div>
               </div>
 
-              <div className='space-y-8'>
-                {configs.map((config) => {
-                  const isBoolean = config.valeur === 'true' || config.valeur === 'false'
-                  const isSaving = configSaving[config.cle]
+              <div className='space-y-6'>
+                {configs
+                  .filter((config) => {
+                    if (paramSection === 'TERRAIN') {
+                      return ['REQ_PHOTO', 'REQ_SIGNATURE', 'MAX_PHOTOS', 'STRICT_QR'].includes(config.cle)
+                    }
+                    if (paramSection === 'IA') {
+                      return ['AI_ALERT_THRESHOLD', 'AI_ALERT_COOLDOWN'].includes(config.cle)
+                    }
+                    return ['APP_NAME'].includes(config.cle)
+                  })
+                  .map((config) => {
+                    const isBoolean = config.valeur === 'true' || config.valeur === 'false'
+                    const isSaving = configSaving[config.cle]
 
-                  return (
-                    <div key={config.id} className='flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-6 rounded-3xl border border-slate-100 bg-slate-50/50 group hover:bg-white transition-all'>
-                      <div className='flex-1'>
-                        <h3 className='text-base font-extrabold text-slate-950 mb-1'>{config.libelle}</h3>
-                        <p className='text-xs font-medium text-slate-500 leading-relaxed'>{config.description}</p>
-                      </div>
+                    return (
+                      <div key={config.id} className='flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-6 rounded-3xl border border-slate-100 bg-slate-50/50 hover:bg-white/80 transition-all duration-300'>
+                        <div className='flex-1'>
+                          <h3 className='text-base font-extrabold text-slate-950 mb-1'>{config.libelle}</h3>
+                          <p className='text-xs font-medium text-slate-500 leading-relaxed max-w-xl'>{config.description}</p>
+                        </div>
 
-                      <div className='flex items-center gap-3'>
-                        {isBoolean ? (
-                          <button
-                            onClick={() => handleUpdateConfig(config.cle, config.valeur === 'true' ? 'false' : 'true')}
-                            disabled={isSaving}
-                            className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ${config.valeur === 'true' ? 'bg-emerald-500' : 'bg-slate-300'}`}
-                          >
-                            <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${config.valeur === 'true' ? 'translate-x-6' : 'translate-x-1'}`} />
-                          </button>
-                        ) : (
-                          <div className='flex items-center gap-2'>
+                        <div className='flex items-center gap-3'>
+                          {isBoolean ? (
+                            <button
+                              onClick={() => handleUpdateConfig(config.cle, config.valeur === 'true' ? 'false' : 'true')}
+                              disabled={isSaving}
+                              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ${config.valeur === 'true' ? 'bg-emerald-500 shadow-sm' : 'bg-slate-300'}`}
+                            >
+                              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${config.valeur === 'true' ? 'translate-x-6' : 'translate-x-1'}`} />
+                            </button>
+                          ) : (
                             <input
-                              type={config.cle === 'MAX_PHOTOS' ? 'number' : 'text'}
+                              type={['MAX_PHOTOS', 'AI_ALERT_THRESHOLD', 'AI_ALERT_COOLDOWN'].includes(config.cle) ? 'number' : 'text'}
                               defaultValue={config.valeur}
                               onBlur={(e) => {
                                 if (e.target.value !== config.valeur) {
                                   handleUpdateConfig(config.cle, e.target.value)
                                 }
                               }}
-                              className='bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold w-32 focus:ring-2 focus:ring-violet-500 outline-none transition-all'
+                              className='bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold w-32 focus:ring-2 focus:ring-violet-500 outline-none transition-all text-slate-800 text-center'
                             />
-                          </div>
-                        )}
-                        {isSaving && <div className='h-4 w-4 border-2 border-violet-500 border-t-transparent rounded-full animate-spin' />}
+                          )}
+                          {isSaving && <div className='h-4 w-4 border-2 border-violet-500 border-t-transparent rounded-full animate-spin' />}
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
               </div>
             </div>
           </div>
