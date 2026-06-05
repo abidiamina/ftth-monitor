@@ -2,27 +2,28 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 function calculateCorrectSentiment(text, rating) {
-  const lower = (text || "").toLowerCase();
-  
+  const normalizedText = String(text || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
   const veryNegativeWords = ['catastrophique', 'nul', 'honteux', 'inadmissible', 'foutage', 'remboursez', 'scandale'];
-  const negativeWords = ['mauvais', 'panne', 'lent', 'problème', 'déçu', 'attente', 'colère', 'échec', 'pas'];
-  const positiveWords = ['bon', 'merci', 'rapide', 'parfait', 'top', 'excellent', 'efficace', 'satisfait', 'super', 'bravo', 'génial'];
+  const negativeWords = ['mauvais', 'panne', 'lent', 'probleme', 'decu', 'attente', 'colere', 'echec', 'pas'];
+  const positiveWords = ['bon', 'merci', 'rapide', 'parfait', 'top', 'excellent', 'efficace', 'satisfait', 'super', 'bravo', 'genial'];
 
-  if (veryNegativeWords.some(w => lower.includes(w))) return 'Négatif';
-
+  if (veryNegativeWords.some((word) => normalizedText.includes(word))) return 'Negatif';
   if (rating >= 4) return 'Positif';
-  if (rating > 0 && rating <= 2) return 'Négatif';
+  if (rating === 3) return 'Neutre';
+  if (rating > 0 && rating <= 2) return 'Negatif';
+  if (negativeWords.some((word) => normalizedText.includes(word))) return 'Negatif';
+  if (positiveWords.some((word) => normalizedText.includes(word))) return 'Positif';
 
-  if (negativeWords.some(w => lower.includes(w))) return 'Négatif';
-  if (positiveWords.some(w => lower.includes(w))) return 'Positif';
-  
   return 'Neutre';
 }
 
 async function main() {
-  console.log("Analyse des anciennes interventions en cours...");
-  
-  // Récupérer toutes les interventions qui ont un commentaire client
+  console.log('Analyse des anciennes interventions en cours...');
+
   const interventions = await prisma.intervention.findMany({
     where: {
       clientFeedbackComment: { not: null }
@@ -31,25 +32,27 @@ async function main() {
 
   let correctionsCount = 0;
 
-  for (const interv of interventions) {
-    const correctSentiment = calculateCorrectSentiment(interv.clientFeedbackComment, interv.clientFeedbackRating);
-    
-    // Si le sentiment en base de données ne correspond pas à la réalité, on le corrige
-    if (interv.clientFeedbackSentiment !== correctSentiment) {
+  for (const intervention of interventions) {
+    const correctSentiment = calculateCorrectSentiment(
+      intervention.clientFeedbackComment,
+      intervention.clientFeedbackRating
+    );
+
+    if (intervention.clientFeedbackSentiment !== correctSentiment) {
       await prisma.intervention.update({
-        where: { id: interv.id },
+        where: { id: intervention.id },
         data: { clientFeedbackSentiment: correctSentiment }
       });
       correctionsCount++;
-      console.log(`[CORRIGÉ] Intervention ID ${interv.id}: ${interv.clientFeedbackSentiment} -> ${correctSentiment}`);
+      console.log(`[CORRIGE] Intervention ID ${intervention.id}: ${intervention.clientFeedbackSentiment} -> ${correctSentiment}`);
     }
   }
 
-  console.log(`Terminé ! ${correctionsCount} anciennes évaluations ont été corrigées avec succès.`);
+  console.log(`Termine ! ${correctionsCount} anciennes evaluations ont ete corrigees avec succes.`);
 }
 
 main()
-  .catch(e => console.error(e))
+  .catch((error) => console.error(error))
   .finally(async () => {
     await prisma.$disconnect();
   });

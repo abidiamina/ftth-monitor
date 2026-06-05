@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { MessageSquareQuote, PenTool, Star, ThumbsUp, MapPin, QrCode, Image as ImageIcon } from 'lucide-react'
 import SignatureCanvas from 'react-signature-canvas'
 import { toast } from 'react-hot-toast'
+import { listConfigs } from '@/services/configApi'
 import { submitInterventionClientApproval } from '@/services/interventionApi'
 import { normalizePhotoData, parseSignatureToPath } from '@/lib/interventionUtils'
 import type { InterventionRecord } from '@/types/auth.types'
@@ -59,6 +60,7 @@ export function ClientSprint3Panel({
   const [feedbackComment, setFeedbackComment] = useState('')
   const [feedbackRating, setFeedbackRating] = useState(0)
   const [submitting, setSubmitting] = useState(false)
+  const [signatureRequired, setSignatureRequired] = useState(true)
   const signatureRef = useRef<SignatureCanvas | null>(null)
 
   const completableInterventions = useMemo(
@@ -96,6 +98,27 @@ export function ClientSprint3Panel({
     }
   }, [completableInterventions, selectedInterventionId])
 
+  useEffect(() => {
+    let isActive = true
+
+    listConfigs()
+      .then((configs) => {
+        const reqSignature = configs.find((config) => config.cle === 'REQ_SIGNATURE')?.valeur
+        if (isActive) {
+          setSignatureRequired(reqSignature !== 'false')
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setSignatureRequired(true)
+        }
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [])
+
   const handleClearSignature = () => {
     signatureRef.current?.clear()
   }
@@ -115,7 +138,10 @@ export function ClientSprint3Panel({
       return
     }
 
-    if (!signatureRef.current || signatureRef.current.isEmpty()) {
+    const signatureInstance = signatureRef.current
+    const hasSignature = Boolean(signatureInstance && !signatureInstance.isEmpty())
+
+    if (signatureRequired && !hasSignature) {
       toast.error('Signature requise.')
       return
     }
@@ -123,7 +149,7 @@ export function ClientSprint3Panel({
     setSubmitting(true)
 
     try {
-      const signatureData = signatureRef.current.toDataURL('image/png')
+      const signatureData = hasSignature && signatureInstance ? signatureInstance.toDataURL('image/png') : null
 
       await submitInterventionClientApproval(selectedIntervention.id, {
         signature: signatureData,
@@ -153,7 +179,7 @@ export function ClientSprint3Panel({
               Validation client
             </div>
             <h2 className='mt-4 text-3xl font-semibold tracking-[-0.04em] text-slate-950'>
-              Signature
+              Validation client
             </h2>
             <p className='mt-3 max-w-2xl text-sm leading-6 text-slate-600'>
               Validation simple d une intervention terminee.
@@ -166,7 +192,7 @@ export function ClientSprint3Panel({
               <p className='mt-2 text-2xl font-semibold text-slate-950'>{completionSummary.completed}</p>
             </div>
             <div className='rounded-[1.3rem] border border-slate-200 bg-white px-4 py-3'>
-              <p className='text-xs uppercase tracking-[0.18em] text-slate-500'>Signatures</p>
+              <p className='text-xs uppercase tracking-[0.18em] text-slate-500'>Validations</p>
               <p className='mt-2 text-2xl font-semibold text-slate-950'>{completionSummary.signed}</p>
             </div>
             <div className='rounded-[1.3rem] border border-slate-200 bg-white px-4 py-3'>
@@ -201,7 +227,7 @@ export function ClientSprint3Panel({
                   </p>
                   <div className='mt-4 flex flex-wrap gap-2'>
                     <span className={`rounded-full px-3 py-1 text-[11px] font-medium ${intervention.clientSignatureAt ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                      Signature {intervention.clientSignatureAt ? 'ok' : 'a faire'}
+                      Validation {intervention.clientSignatureAt ? 'ok' : 'a faire'}
                     </span>
                     <span className={`rounded-full px-3 py-1 text-[11px] font-medium ${intervention.clientFeedbackAt ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
                       Feedback {intervention.clientFeedbackAt ? 'ok' : 'a faire'}
@@ -269,12 +295,17 @@ export function ClientSprint3Panel({
                 </div>
               </div>
 
-              <div className='rounded-[1.6rem] border border-slate-200 bg-white p-5'>
-                <p className='text-xs uppercase tracking-[0.18em] text-emerald-700'>Signature</p>
+          <div className='rounded-[1.6rem] border border-slate-200 bg-white p-5'>
+                <p className='text-xs uppercase tracking-[0.18em] text-emerald-700'>Validation</p>
+                <p className='mt-2 text-sm leading-6 text-slate-500'>
+                  {signatureRequired
+                    ? 'La signature est obligatoire pour valider.'
+                    : 'La signature est facultative : vous pouvez valider sans dessiner.'}
+                </p>
                 {selectedIntervention.clientSignatureAt ? (
                   <div className='mt-4 space-y-4'>
                     <div className='rounded-[1rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700'>
-                      Cette intervention a été signée le {formatDate(selectedIntervention.clientSignatureAt)}.
+                      Cette intervention a été validée le {formatDate(selectedIntervention.clientSignatureAt)}.
                     </div>
                     {selectedIntervention.clientSignature && (
                        <div className='bg-white rounded-2xl border border-slate-100 p-2 w-fit shadow-sm'>

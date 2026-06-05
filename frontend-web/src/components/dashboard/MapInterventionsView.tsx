@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import type { InterventionRecord } from '@/types/auth.types'
@@ -20,6 +20,14 @@ L.Marker.prototype.options.icon = DefaultIcon
 
 type MapInterventionsViewProps = {
   interventions: InterventionRecord[]
+}
+
+type TechnicianMarker = {
+  latitude: number
+  longitude: number
+  nom: string
+  source: 'live' | 'confirmed'
+  updatedAt?: number
 }
 
 // Function to create custom DivIcons for better aesthetics
@@ -58,7 +66,7 @@ function ChangeView({ bounds }: { bounds: L.LatLngBoundsExpression | null }) {
 }
 
 export function MapInterventionsView({ interventions }: MapInterventionsViewProps) {
-  const [liveTechnicians, setLiveTechnicians] = useState<Record<number, { latitude: number, longitude: number, nom: string }>>({})
+  const [liveTechnicians, setLiveTechnicians] = useState<Record<number, TechnicianMarker>>({})
 
   useEffect(() => {
     const socket = getSocket()
@@ -70,7 +78,8 @@ export function MapInterventionsView({ interventions }: MapInterventionsViewProp
         [data.technicienId]: {
           latitude: data.latitude,
           longitude: data.longitude,
-          nom: data.nom
+          nom: data.nom,
+          source: 'live'
         }
       }))
     })
@@ -80,15 +89,61 @@ export function MapInterventionsView({ interventions }: MapInterventionsViewProp
     }
   }, [])
 
+  const confirmedTechnicians = useMemo(() => {
+    return interventions.reduce<Record<number, TechnicianMarker>>((acc, intervention) => {
+      if (!intervention.gpsConfirmedAt) return acc
+      if (intervention.gpsLatitude === null || intervention.gpsLongitude === null) return acc
+
+      const technicienId = intervention.technicienId ?? intervention.technicien?.id
+      if (!technicienId) return acc
+
+      const latitude = Number(intervention.gpsLatitude)
+      const longitude = Number(intervention.gpsLongitude)
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return acc
+
+      const updatedAt = new Date(intervention.gpsConfirmedAt).getTime()
+      const nom = intervention.technicien?.utilisateur
+        ? `${intervention.technicien.utilisateur.prenom} ${intervention.technicien.utilisateur.nom}`
+        : 'Technicien'
+
+      if (!acc[technicienId] || (acc[technicienId].updatedAt ?? 0) <= updatedAt) {
+        acc[technicienId] = {
+          latitude,
+          longitude,
+          nom,
+          source: 'confirmed',
+          updatedAt,
+        }
+      }
+
+      return acc
+    }, {})
+  }, [interventions])
+
+  const displayedTechnicians = useMemo(() => {
+    const merged = { ...confirmedTechnicians }
+
+    Object.entries(liveTechnicians).forEach(([id, tech]) => {
+      merged[Number(id)] = tech
+    })
+
+    return merged
+  }, [confirmedTechnicians, liveTechnicians])
+
   // Filter interventions with valid coordinates
   const markers = interventions.filter(i => i.latitude !== null && i.longitude !== null)
+  const technicianMarkers = Object.values(displayedTechnicians)
+  const allMapPoints = [
+    ...markers.map((marker) => [marker.latitude!, marker.longitude!] as [number, number]),
+    ...technicianMarkers.map((tech) => [tech.latitude, tech.longitude] as [number, number]),
+  ]
   
-  const bounds = markers.length > 0 
-    ? L.latLngBounds(markers.map(m => [m.latitude!, m.longitude!])) 
+  const bounds = allMapPoints.length > 0 
+    ? L.latLngBounds(allMapPoints) 
     : null
 
-  const center: L.LatLngExpression = markers.length > 0 
-    ? [markers[0].latitude!, markers[0].longitude!] 
+  const center: L.LatLngExpression = allMapPoints.length > 0 
+    ? allMapPoints[0]
     : [36.8065, 10.1815] // Default to Tunis, Tunisia
 
   return (
@@ -153,7 +208,7 @@ export function MapInterventionsView({ interventions }: MapInterventionsViewProp
             </Marker>
           ))}
 
-          {Object.entries(liveTechnicians).map(([id, tech]) => (
+          {Object.entries(displayedTechnicians).map(([id, tech]) => (
             <Marker 
               key={`tech-${id}`} 
               position={[tech.latitude, tech.longitude]}
@@ -163,13 +218,15 @@ export function MapInterventionsView({ interventions }: MapInterventionsViewProp
                 <div className="p-1 min-w-[150px]">
                    <div className="flex items-center gap-2 mb-2 border-b border-slate-100 dark:border-slate-800 pb-2">
                       <Navigation className="h-3.5 w-3.5 text-sky-500 fill-sky-500" />
-                      <h4 className="font-extrabold text-slate-900 dark:text-white">En direct : {tech.nom}</h4>
-                   </div>
-                   <p className="text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest animate-pulse">Position live • Technicien</p>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+                       <h4 className="font-extrabold text-slate-900 dark:text-white">En direct : {tech.nom}</h4>
+                    </div>
+                    <p className="text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest animate-pulse">
+                      {tech.source === 'confirmed' ? 'GPS confirmé • Technicien' : 'Position live • Technicien'}
+                    </p>
+                 </div>
+               </Popup>
+             </Marker>
+           ))}
         </MapContainer>
       </div>
       

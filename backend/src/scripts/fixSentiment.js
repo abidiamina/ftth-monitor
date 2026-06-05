@@ -9,15 +9,22 @@ async function fix() {
     where: { clientFeedbackRating: { gte: 4 } },
     data: { clientFeedbackSentiment: 'Positif' }
   });
+
+  // Forcer tous ceux qui ont 3 étoiles en 'Neutre'
+  const neu = await prisma.intervention.updateMany({
+    where: { clientFeedbackRating: 3 },
+    data: { clientFeedbackSentiment: 'Neutre' }
+  });
   
-  // Forcer tous ceux qui ont 1 ou 2 étoiles en 'Négatif'
+  // Forcer tous ceux qui ont 1 ou 2 étoiles en 'Negatif'
   const neg = await prisma.intervention.updateMany({
     where: { clientFeedbackRating: { lte: 2, gt: 0 } },
-    data: { clientFeedbackSentiment: 'Négatif' }
+    data: { clientFeedbackSentiment: 'Negatif' }
   });
-
+  
   console.log(`✅ Mis à jour Positifs : ${pos.count}`);
-  console.log(`✅ Mis à jour Négatifs : ${neg.count}`);
+  console.log(`✅ Mis à jour Neutres : ${neu.count}`);
+  console.log(`✅ Mis à jour Negatifs : ${neg.count}`);
 }
 
 fix().finally(() => prisma.$disconnect());

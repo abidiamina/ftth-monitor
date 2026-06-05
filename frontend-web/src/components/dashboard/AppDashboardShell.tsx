@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Search, Bell, LogOut, LayoutDashboard, MapPinned, UserCog, Settings, Shield, Users, Menu, Activity, Moon, Sun, ShieldCheck, ClipboardList, UsersRound, BellRing, MapPin, UserPlus, ShieldEllipsis, RadioTower, ScanSearch, KeyRound, TicketPlus, CheckCircle2, UserRound } from 'lucide-react'
+import { Bell, LogOut, LayoutDashboard, MapPinned, UserCog, Settings, Shield, Users, Menu, Activity, Moon, Sun, ShieldCheck, ClipboardList, UsersRound, BellRing, MapPin, UserPlus, ShieldEllipsis, RadioTower, ScanSearch, KeyRound, TicketPlus, CheckCircle2, UserRound } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
 
@@ -227,7 +227,7 @@ export const AppDashboardShell = ({
         <div className='flex-1 flex flex-col min-w-0 h-full overflow-hidden'>
           {/* Top Header */}
           <header className='h-20 flex items-center justify-between px-8 bg-white/30 border-b border-white/40 backdrop-blur-md sticky top-0 z-40'>
-            <div className='flex items-center gap-4 flex-1'>
+            <div className='flex items-center gap-4'>
               <button 
                 onClick={() => setIsMobileMenuOpen(true)}
                 className="xl:hidden p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
@@ -235,10 +235,6 @@ export const AppDashboardShell = ({
                 <Menu className="h-5 w-5 dark:text-white" />
               </button>
               
-              <div className='hidden md:flex items-center gap-3 bg-white/70 dark:bg-slate-900/60 border border-white dark:border-slate-800 rounded-2xl px-4 py-2.5 w-full max-w-md focus-within:shadow-lg focus-within:shadow-slate-100 dark:focus-within:shadow-black/20 transition-all'>
-                <Search className='h-4 w-4 text-slate-400' />
-                <input placeholder='Rechercher un dossier...' className='bg-transparent border-none focus:ring-0 text-sm w-full outline-none dark:text-white' />
-              </div>
             </div>
 
             <div className='flex items-center gap-4'>

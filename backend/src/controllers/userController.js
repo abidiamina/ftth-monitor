@@ -22,6 +22,7 @@ const sanitizeUser = (user) => ({
   telephone: user.telephone,
   role: user.role,
   actif: user.actif,
+  bloque: user.bloque,
   mustChangePassword: user.mustChangePassword,
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
@@ -35,6 +36,7 @@ const userSelect = {
   telephone: true,
   role: true,
   actif: true,
+  bloque: true,
   mustChangePassword: true,
   createdAt: true,
   updatedAt: true,
@@ -165,6 +167,7 @@ const listUsers = async (req, res) => {
   try {
     const role = req.query.role?.toString().trim().toUpperCase();
     const actif = req.query.actif;
+    const bloque = req.query.bloque;
 
     const where = {};
 
@@ -174,6 +177,10 @@ const listUsers = async (req, res) => {
 
     if (actif === 'true' || actif === 'false') {
       where.actif = actif === 'true';
+    }
+
+    if (bloque === 'true' || bloque === 'false') {
+      where.bloque = bloque === 'true';
     }
 
     const users = await prisma.utilisateur.findMany({
@@ -221,12 +228,15 @@ const listTechnicians = async (req, res) => {
     const techniciens = await prisma.technicien.findMany({
       include: {
         utilisateur: {
-          select: { id: true, nom: true, prenom: true, email: true, telephone: true, actif: true },
+          select: { id: true, nom: true, prenom: true, email: true, telephone: true, actif: true, bloque: true },
         },
       },
     });
 
-    res.json({ success: true, data: techniciens });
+    res.json({
+      success: true,
+      data: techniciens.filter((technicien) => technicien.utilisateur?.actif && !technicien.utilisateur?.bloque),
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Erreur lors de la recuperation des techniciens.' });
@@ -483,6 +493,13 @@ const updateUserStatus = async (req, res) => {
       });
     }
 
+    if (existingUser.bloque && actif === true) {
+      return res.status(400).json({
+        success: false,
+        message: 'Débloquez d abord le compte avant de le réactiver.',
+      });
+    }
+
     const updatedUser = await prisma.utilisateur.update({
       where: { id: userId },
       data: { actif },
@@ -497,6 +514,55 @@ const updateUserStatus = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Erreur lors de la mise a jour du statut.' });
+  }
+};
+
+const updateUserBlockStatus = async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    if (isNaN(userId)) {
+      return res.status(400).json({ success: false, message: 'ID utilisateur invalide.' });
+    }
+
+    const { bloque } = req.body;
+
+    if (typeof bloque !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'Le champ bloque doit etre un booleen.',
+      });
+    }
+
+    const existingUser = await findUserById(userId);
+
+    if (!existingUser) {
+      return res.status(404).json({ success: false, message: 'Utilisateur introuvable.' });
+    }
+
+    if (existingUser.role === 'ADMIN' && req.user.id === userId && bloque === true) {
+      return res.status(400).json({
+        success: false,
+        message: 'Un administrateur ne peut pas bloquer son propre compte.',
+      });
+    }
+
+    const updatedUser = await prisma.utilisateur.update({
+      where: { id: userId },
+      data: {
+        bloque,
+        ...(bloque ? { actif: false } : {}),
+      },
+      select: userSelect,
+    });
+
+    res.json({
+      success: true,
+      message: bloque ? 'Compte bloque avec succes.' : 'Compte debloque avec succes.',
+      data: sanitizeUser(updatedUser),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erreur lors de la mise a jour du blocage.' });
   }
 };
 
@@ -640,6 +706,7 @@ module.exports = {
   listUsers,
   resetEmployeePassword,
   updateUser,
+  updateUserBlockStatus,
   updateUserStatus,
   updateTechnicianLocation,
 };

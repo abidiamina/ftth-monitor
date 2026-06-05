@@ -9,6 +9,7 @@ const {
   listUsers,
   resetEmployeePassword,
   updateUser,
+  updateUserBlockStatus,
   updateUserStatus,
   updateTechnicianLocation,
 } = require('../controllers/userController');
@@ -20,6 +21,7 @@ router.patch('/location', protect, authorize('TECHNICIEN'), updateTechnicianLoca
 router.get('/:id', protect, authorize('ADMIN'), getUserById);
 router.patch('/:id', protect, authorize('ADMIN'), updateUser);
 router.patch('/:id/status', protect, authorize('ADMIN'), updateUserStatus);
+router.patch('/:id/block', protect, authorize('ADMIN'), updateUserBlockStatus);
 router.patch('/:id/reset-password', protect, authorize('ADMIN'), resetEmployeePassword);
 router.delete('/:id', protect, authorize('ADMIN'), deleteUser);
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useDispatch } from 'react-redux'
 import {
-  KeyRound,
+  Ban,
   Pencil,
   ShieldCheck,
   ShieldEllipsis,
@@ -10,6 +11,7 @@ import {
   Users,
   Activity,
   UserCog,
+  Power,
   BellRing,
   MapPin,
   BrainCircuit,
@@ -26,10 +28,12 @@ import {
   deleteUser,
   listUsers,
   updateUser,
+  updateUserBlockStatus,
   updateUserStatus,
 } from '@/services/authApi'
 import { listNotifications, markNotificationAsRead } from '@/services/notificationApi'
 import { listConfigs, updateConfig } from '@/services/configApi'
+import { logout } from '@/store/authSlice'
 import { NotificationsPanel } from '@/components/dashboard/NotificationsPanel'
 import type { ConfigurationRecord, CreateEmployeeRequest, NotificationRecord, UpdateUserRequest, User, UserRole } from '@/types/auth.types'
 
@@ -72,7 +76,37 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback
 }
 
+const isUnauthorizedError = (error: unknown) => {
+  if (typeof error !== 'object' || error === null || !('response' in error)) {
+    return false
+  }
+
+  return (error as { response?: { status?: number } }).response?.status === 401
+}
+
+const getAccountStatus = (user: User) => {
+  if (user.bloque) {
+    return {
+      label: 'Bloqué',
+      badgeClass: 'bg-rose-50 text-rose-600 border-rose-100',
+    }
+  }
+
+  if (user.actif) {
+    return {
+      label: 'Actif',
+      badgeClass: 'badge-done',
+    }
+  }
+
+  return {
+    label: 'Désactivé',
+    badgeClass: 'bg-amber-50 text-amber-700 border-amber-100',
+  }
+}
+
 export const AdminDashboardPage = () => {
+  const dispatch = useDispatch()
   const navigate = useNavigate()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -95,6 +129,20 @@ export const AdminDashboardPage = () => {
     nom: '', prenom: '', email: '', telephone: '', role: 'CLIENT', adresse: ''
   })
 
+  const handleSessionExpired = () => {
+    dispatch(logout())
+    navigate('/login', { replace: true })
+  }
+
+  const handleApiError = (error: unknown, fallback: string) => {
+    if (isUnauthorizedError(error)) {
+      handleSessionExpired()
+      return
+    }
+
+    toast.error(getErrorMessage(error, fallback))
+  }
+
   const loadData = async () => {
     setLoading(true)
     try {
@@ -107,7 +155,7 @@ export const AdminDashboardPage = () => {
       setConfigs(configsData)
       setNotifications(notificationsData)
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Impossible de charger les données.'))
+      handleApiError(error, 'Impossible de charger les données.')
     } finally {
       setLoading(false)
     }
@@ -117,8 +165,8 @@ export const AdminDashboardPage = () => {
 
   const stats = useMemo(() => {
     const total = users.length
-    const actifs = users.filter(u => u.actif).length
-    const inactifs = total - actifs
+    const actifs = users.filter(u => u.actif && !u.bloque).length
+    const inactifs = users.filter(u => !u.actif || u.bloque).length
     const mustChange = users.filter(u => u.mustChangePassword).length
     const unread = notifications.filter(n => !n.lu).length
     return { total, actifs, inactifs, mustChange, unread }
@@ -146,15 +194,42 @@ export const AdminDashboardPage = () => {
     try {
       await markNotificationAsRead(id)
       setNotifications(curr => curr.map(n => n.id === id ? { ...n, lu: true } : n))
-    } catch (error) { toast.error('Erreur notification.') }
+    } catch (error) { handleApiError(error, 'Erreur notification.') }
   }
 
-  const handleToggleStatus = async (user: User) => {
+  const handleToggleActive = async (user: User) => {
+    const actionLabel = user.actif ? 'désactiver' : 'réactiver'
+    if (!window.confirm(`Voulez-vous ${actionLabel} le compte de ${user.prenom} ${user.nom} ?`)) {
+      return
+    }
+
+    if (!user.actif && user.bloque) {
+      toast.error('Débloquez d abord le compte avant de le réactiver.')
+      return
+    }
+
     try {
       const response = await updateUserStatus(user.id, !user.actif)
-      toast.success('Statut mis à jour.')
+      toast.success(response.data.actif ? 'Compte réactivé.' : 'Compte désactivé.')
       setUsers(curr => curr.map(u => u.id === user.id ? response.data : u))
-    } catch (error) { toast.error('Erreur de mise à jour.') }
+    } catch (error) { handleApiError(error, 'Erreur de mise à jour.') }
+  }
+
+  const handleToggleBlock = async (user: User) => {
+    const actionLabel = user.bloque ? 'débloquer' : 'bloquer'
+    if (!window.confirm(`Voulez-vous ${actionLabel} le compte de ${user.prenom} ${user.nom} ?`)) {
+      return
+    }
+
+    try {
+      const response = await updateUserBlockStatus(user.id, !user.bloque)
+      toast.success(
+        response.data.bloque
+          ? 'Compte bloqué.'
+          : 'Compte débloqué. Vous pouvez maintenant le réactiver si besoin.'
+      )
+      setUsers(curr => curr.map(u => u.id === user.id ? response.data : u))
+    } catch (error) { handleApiError(error, 'Erreur de blocage.') }
   }
 
   const handleUpdateConfig = async (cle: string, valeur: string) => {
@@ -193,7 +268,7 @@ export const AdminDashboardPage = () => {
       toast.success('Réglage enregistré.')
       setConfigs(curr => curr.map(c => c.cle === cle ? { ...c, valeur: finalValeur } : c))
     } catch (error) {
-      toast.error('Erreur lors de la sauvegarde.')
+      handleApiError(error, 'Erreur lors de la sauvegarde.')
     } finally {
       setConfigSaving(c => ({ ...c, [cle]: false }))
     }
@@ -205,7 +280,7 @@ export const AdminDashboardPage = () => {
       await deleteUser(user.id)
       toast.success('Compte supprimé.')
       setUsers(curr => curr.filter(u => u.id !== user.id))
-    } catch (error) { toast.error('Action impossible.') }
+    } catch (error) { handleApiError(error, 'Action impossible.') }
   }
 
   const handleEditStart = (user: User) => {
@@ -236,7 +311,7 @@ export const AdminDashboardPage = () => {
       setUsers(curr => curr.map(u => u.id === editingUserId ? response.data : u))
       setEditingUserId(null)
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Échec de la mise à jour.'))
+      handleApiError(error, 'Échec de la mise à jour.')
     } finally {
       setSavingUser(false)
     }
@@ -244,6 +319,7 @@ export const AdminDashboardPage = () => {
 
   const renderUserCard = (user: User) => {
     const isEditing = editingUserId === user.id
+    const accountStatus = getAccountStatus(user)
 
     if (isEditing) {
       return (
@@ -343,8 +419,8 @@ export const AdminDashboardPage = () => {
           <div className='min-w-0'>
             <div className='flex items-center gap-2 mb-1'>
                <p className='text-base font-bold text-slate-900 truncate'>{user.prenom} {user.nom}</p>
-               <span className={`badge-status ${user.actif ? 'badge-done' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
-                 {user.actif ? 'Actif' : 'Bloqué'}
+               <span className={`badge-status ${accountStatus.badgeClass}`}>
+                 {accountStatus.label}
                </span>
             </div>
             <p className='text-xs font-medium text-slate-500 truncate'>{user.email}</p>
@@ -359,8 +435,34 @@ export const AdminDashboardPage = () => {
              <button onClick={() => handleEditStart(user)} className='p-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 transition-colors'>
                <Pencil className='h-4 w-4 text-slate-600' />
              </button>
-             <button onClick={() => handleToggleStatus(user)} className='p-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 transition-colors'>
-               <KeyRound className='h-4 w-4 text-slate-600' />
+             <button
+               type='button'
+               onClick={() => handleToggleActive(user)}
+               disabled={user.bloque}
+               title={user.bloque ? 'Débloquez le compte avant de le réactiver' : user.actif ? 'Désactiver le compte' : 'Réactiver le compte'}
+               className={`p-2.5 rounded-xl border transition-colors ${
+                 user.bloque
+                   ? 'bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed'
+                   : user.actif
+                     ? 'bg-white border-amber-100 hover:bg-amber-50'
+                     : 'bg-white border-emerald-100 hover:bg-emerald-50'
+               }`}
+             >
+               <Power className={`h-4 w-4 ${
+                 user.bloque ? 'text-slate-300' : user.actif ? 'text-amber-600' : 'text-emerald-600'
+               }`} />
+             </button>
+             <button
+               type='button'
+               onClick={() => handleToggleBlock(user)}
+               title={user.bloque ? 'Débloquer le compte' : 'Bloquer le compte'}
+               className={`p-2.5 rounded-xl border transition-colors ${
+                 user.bloque
+                   ? 'bg-white border-emerald-100 hover:bg-emerald-50'
+                   : 'bg-white border-rose-100 hover:bg-rose-50'
+               }`}
+             >
+               <Ban className={`h-4 w-4 ${user.bloque ? 'text-emerald-600' : 'text-rose-600'}`} />
              </button>
              <button onClick={() => handleDeleteUser(user)} className='p-2.5 rounded-xl bg-white border border-rose-100 hover:bg-rose-50 transition-colors'>
                <Trash2 className='h-4 w-4 text-rose-500' />
@@ -382,7 +484,7 @@ export const AdminDashboardPage = () => {
       setEmployeeForm({ nom: '', prenom: '', email: '', telephone: '', role: 'ADMIN' })
       setTab('UTILISATEURS')
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Échec de la création du compte.'))
+      handleApiError(error, 'Échec de la création du compte.')
     } finally {
       setSubmitting(false)
     }

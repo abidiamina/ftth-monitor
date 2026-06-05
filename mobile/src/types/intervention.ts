@@ -95,7 +95,7 @@ export interface AddEvidenceRequest {
 }
 
 export interface ClientApprovalRequest {
-  signature: string
+  signature?: string | null
   signatureBy: string
   feedbackRating: number
   feedbackComment: string

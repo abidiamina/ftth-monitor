@@ -15,11 +15,11 @@ const protect = async (req, res, next) => {
 
     const user = await prisma.utilisateur.findUnique({
       where: { id: decoded.id },
-      select: { id: true, nom: true, prenom: true, email: true, role: true, actif: true },
+      select: { id: true, nom: true, prenom: true, email: true, role: true, actif: true, bloque: true },
     });
 
-    if (!user || !user.actif) {
-      return res.status(401).json({ success: false, message: 'Utilisateur introuvable ou désactivé.' });
+    if (!user || !user.actif || user.bloque) {
+      return res.status(401).json({ success: false, message: 'Utilisateur introuvable, désactivé ou bloqué.' });
     }
 
     req.user = user;

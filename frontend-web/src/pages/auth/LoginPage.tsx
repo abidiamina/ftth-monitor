@@ -126,9 +126,6 @@ export const LoginPage = () => {
           </button>
         </form>
 
-        <p className="mt-10 text-center text-xs font-medium text-slate-400">
-            En vous connectant, vous acceptez nos <span className="text-slate-600 underline">Conditions d'Utilisation</span>.
-        </p>
       </div>
     </AuthShell>
   )

@@ -93,12 +93,14 @@ const resolveSentimentDeterministic = ({ text, rating, predicted }) => {
 
   const veryNegativeWords = ['catastrophique', 'nul', 'honteux', 'inadmissible', 'foutage', 'remboursez', 'scandale', 'inacceptable'];
   const negativeWords = ['mauvais', 'panne', 'lent', 'probleme', 'decu', 'attente', 'colere', 'echec', 'pas'];
+  const neutralWords = ['moyen', 'normal', 'correct', 'bof', 'acceptable', 'ordinaire', 'standard', 'rien a signaler'];
   const positiveWords = ['bon', 'merci', 'rapide', 'parfait', 'top', 'excellent', 'efficace', 'satisfait', 'super', 'bravo', 'genial'];
 
   if (hasAnyToken(normalizedText, veryNegativeWords)) return 'Negatif';
   if (safeRating !== null && safeRating >= 4) return 'Positif';
   if (safeRating !== null && safeRating <= 2) return 'Negatif';
   if (hasAnyToken(normalizedText, negativeWords)) return 'Negatif';
+  if (safeRating === 3 || hasAnyToken(normalizedText, neutralWords)) return 'Neutre';
   if (hasAnyToken(normalizedText, positiveWords)) return 'Positif';
   return normalizedPredicted;
 };
@@ -193,7 +195,7 @@ const predictOutages = async () => {
     }
 
     try {
-      // Étape 5 & 6 de la Table 5.7 : Envoi au microservice FastAPI (Random Forest)
+      //  Envoi au microservice FastAPI (Random Forest)
       const weatherData = await getWeatherData({ zone });
       const weatherForModel = mapWeatherForModel(weatherData);
       const weatherRiskDelta = computeWeatherRiskDelta(weatherData);
@@ -345,7 +347,7 @@ const predictOutages = async () => {
     if (zonesToAlert.length > 0) {
       try {
         const responsables = await prisma.utilisateur.findMany({
-          where: { role: 'RESPONSABLE', actif: true },
+          where: { role: 'RESPONSABLE', actif: true, bloque: false },
           select: { email: true }
         });
 
@@ -398,5 +400,6 @@ const generatePersonalizedMessage = async (user) => {
 module.exports = {
   analyzeSentiment,
   predictOutages,
-  generatePersonalizedMessage
+  generatePersonalizedMessage,
+  normalizeSentimentLabel
 };

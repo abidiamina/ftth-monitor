@@ -1,17 +1,5 @@
 const prisma = require('../config/prisma');
-const { analyzeSentiment } = require('../utils/aiService');
-
-const normalizeSentimentLabel = (value) => {
-  const raw = String(value || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toUpperCase()
-    .trim();
-
-  if (raw === 'POSITIVE' || raw === 'POSITIF') return 'Positif';
-  if (raw === 'NEGATIVE' || raw === 'NEGATIF') return 'Negatif';
-  return 'Neutre';
-};
+const { analyzeSentiment, normalizeSentimentLabel } = require('../utils/aiService');
 
 async function recomputeSentiments() {
   console.log('[sentiment] Recalcul global en cours...');
@@ -74,4 +62,3 @@ recomputeSentiments()
   .finally(async () => {
     await prisma.$disconnect();
   });
-

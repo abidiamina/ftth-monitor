@@ -185,9 +185,15 @@ const validateEvidencePayload = ({ commentaire, photoName }) => {
   return null;
 };
 
-const validateClientApprovalPayload = ({ signature, signatureBy, feedbackRating, feedbackComment }) => {
-  const signatureError = validateRequiredText('La signature', signature, 8, 500000);
-  if (signatureError) return signatureError;
+const validateClientApprovalPayload = (
+  { signature, signatureBy, feedbackRating, feedbackComment },
+  { signatureRequired = true } = {}
+) => {
+  const hasSignature = signature !== undefined && signature !== null && String(signature).trim() !== '';
+  if (signatureRequired || hasSignature) {
+    const signatureError = validateRequiredText('La signature', signature, 8, 500000);
+    if (signatureError) return signatureError;
+  }
 
   const signerError = validateRequiredText('Le signataire', signatureBy, 2, 120);
   if (signerError) return signerError;

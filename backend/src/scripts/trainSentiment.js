@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const { analyzeSentiment } = require('../utils/aiService');
+const { analyzeSentiment, normalizeSentimentLabel } = require('../utils/aiService');
 const prisma = new PrismaClient();
 
 async function trainOnHistory() {
@@ -14,7 +14,7 @@ async function trainOnHistory() {
 
   console.log(`📊 ${interventions.length} interventions à analyser.`);
 
-  let counts = { Positif: 0, Neutre: 0, Négatif: 0 };
+  let counts = { Positif: 0, Neutre: 0, Negatif: 0 };
 
   for (const inter of interventions) {
     try {
@@ -22,16 +22,17 @@ async function trainOnHistory() {
       
       // Appel réel à l'IA (CamemBERT via le service)
       const result = await analyzeSentiment(inter.clientFeedbackComment, inter.clientFeedbackRating);
+      const sentiment = normalizeSentimentLabel(result.sentiment);
       
       // Mise à jour en base de données avec le label français (Rapport)
       await prisma.intervention.update({
         where: { id: inter.id },
         data: { 
-          clientFeedbackSentiment: result.sentiment 
+          clientFeedbackSentiment: sentiment
         }
       });
 
-      counts[result.sentiment]++;
+      counts[sentiment] = (counts[sentiment] || 0) + 1;
     } catch (error) {
       console.error(`❌ Erreur sur l'intervention #${inter.id}:`, error.message);
     }
@@ -40,7 +41,7 @@ async function trainOnHistory() {
   console.log('\n✨ ANALYSE TERMINÉE !');
   console.log(`✅ Positifs : ${counts.Positif}`);
   console.log(`✅ Neutres  : ${counts.Neutre}`);
-  console.log(`✅ Négatifs : ${counts.Négatif}`);
+  console.log(`✅ Négatifs : ${counts.Negatif}`);
   console.log('🚀 Votre dashboard affiche maintenant des données 100% réelles issues de l\'IA.');
 }
 

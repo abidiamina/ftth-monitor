@@ -659,37 +659,53 @@ const updateInterventionFieldCheck = async (req, res) => {
 
     let gpsConfirmed = false;
     let gpsDistance = null;
+    const requestedGpsLatitude = parseOptionalFloat(gpsLatitude);
+    const requestedGpsLongitude = parseOptionalFloat(gpsLongitude);
+    let resolvedGpsLatitude = requestedGpsLatitude;
+    let resolvedGpsLongitude = requestedGpsLongitude;
 
     if (confirmGps || gpsLatitude !== undefined || gpsLongitude !== undefined) {
-      const lat = parseOptionalFloat(gpsLatitude);
-      const lon = parseOptionalFloat(gpsLongitude);
+      if (
+        confirmGps &&
+        (resolvedGpsLatitude === null || resolvedGpsLongitude === null) &&
+        Number.isFinite(technicien.latitude) &&
+        Number.isFinite(technicien.longitude)
+      ) {
+        resolvedGpsLatitude = technicien.latitude;
+        resolvedGpsLongitude = technicien.longitude;
+      }
 
-      if (lat !== null && lon !== null) {
+      if (resolvedGpsLatitude !== null && resolvedGpsLongitude !== null) {
         if (existing.latitude !== null && existing.longitude !== null) {
           const lat1 = existing.latitude;
           const lon1 = existing.longitude;
           
           const R = 6371e3; // mètres
-          const dLat = ((lat - lat1) * Math.PI) / 180;
-          const dLon = ((lon - lon1) * Math.PI) / 180;
+          const dLat = ((resolvedGpsLatitude - lat1) * Math.PI) / 180;
+          const dLon = ((resolvedGpsLongitude - lon1) * Math.PI) / 180;
           const a =
             Math.sin(dLat / 2) * Math.sin(dLat / 2) +
             Math.cos((lat1 * Math.PI) / 180) *
-              Math.cos((lat * Math.PI) / 180) *
+              Math.cos((resolvedGpsLatitude * Math.PI) / 180) *
               Math.sin(dLon / 2) *
               Math.sin(dLon / 2);
           const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
           gpsDistance = R * c;
         }
         gpsConfirmed = true;
+      } else if (confirmGps) {
+        return res.status(400).json({
+          success: false,
+          message: 'La position GPS du technicien doit être disponible avant confirmation.',
+        });
       }
     }
 
     const intervention = await prisma.intervention.update({
       where: { id: interventionId },
       data: {
-        ...(gpsLatitude !== undefined && { gpsLatitude: parseOptionalFloat(gpsLatitude) }),
-        ...(gpsLongitude !== undefined && { gpsLongitude: parseOptionalFloat(gpsLongitude) }),
+        ...(resolvedGpsLatitude !== null && { gpsLatitude: resolvedGpsLatitude }),
+        ...(resolvedGpsLongitude !== null && { gpsLongitude: resolvedGpsLongitude }),
         ...(gpsConfirmed
           ? { gpsConfirmedAt: new Date() }
           : {}),
@@ -702,6 +718,15 @@ const updateInterventionFieldCheck = async (req, res) => {
       },
       include: interventionInclude,
     });
+
+    if (gpsConfirmed && resolvedGpsLatitude !== null && resolvedGpsLongitude !== null) {
+      emitToAll('technician_location_broadcast', {
+        technicienId: technicien.id,
+        latitude: resolvedGpsLatitude,
+        longitude: resolvedGpsLongitude,
+        nom: `${technicien.utilisateur.prenom} ${technicien.utilisateur.nom}`,
+      });
+    }
 
     emitToInterventionParticipants(intervention, 'UPDATE', intervention.id);
 
@@ -804,11 +829,15 @@ const submitInterventionClientApproval = async (req, res) => {
       feedbackComment,
     } = req.body ?? {};
 
+    const reqSignature = await getConfigAsBoolean('REQ_SIGNATURE', true);
+
     const validationError = validateClientApprovalPayload({
       signature,
       signatureBy,
       feedbackRating,
       feedbackComment,
+    }, {
+      signatureRequired: reqSignature,
     });
     if (validationError) {
       return res.status(400).json({ success: false, message: validationError });
@@ -850,7 +879,9 @@ const submitInterventionClientApproval = async (req, res) => {
     const intervention = await prisma.intervention.update({
       where: { id: interventionId },
       data: {
-        clientSignature: String(signature),
+        clientSignature: signature !== undefined && signature !== null && String(signature).trim() !== ''
+          ? String(signature)
+          : null,
         clientSignatureBy: normalizeText(signatureBy),
         clientSignatureAt: new Date(),
         clientFeedbackRating: Number(feedbackRating),

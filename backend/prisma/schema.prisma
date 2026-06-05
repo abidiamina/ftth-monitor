@@ -17,6 +17,7 @@ model Utilisateur {
   pushToken          String?
   role               Role
   actif              Boolean      @default(true)
+  bloque             Boolean      @default(false)
   mustChangePassword Boolean      @default(false)
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt

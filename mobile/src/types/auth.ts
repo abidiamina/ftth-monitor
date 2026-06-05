@@ -9,6 +9,7 @@ export interface User {
   pushToken?: string | null
   role: UserRole
   actif?: boolean
+  bloque?: boolean
   mustChangePassword?: boolean
 }
 

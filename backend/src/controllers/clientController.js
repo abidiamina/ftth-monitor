@@ -12,10 +12,13 @@ const getClients = async (req, res) => {
       include: {
         utilisateur: {
           select: {
+            id: true,
             nom: true,
             prenom: true,
             email: true,
             telephone: true,
+            actif: true,
+            bloque: true,
           },
         },
       },
@@ -23,14 +26,16 @@ const getClients = async (req, res) => {
     });
 
     // Aplatir les données pour la compatibilité frontend
-    const flattenedClients = clients.map(client => ({
-      ...client,
-      nom: client.utilisateur.nom,
-      prenom: client.utilisateur.prenom,
-      email: client.utilisateur.email,
-      telephone: client.utilisateur.telephone,
-      utilisateur: undefined, // Nettoyer si nécessaire
-    }));
+    const flattenedClients = clients
+      .filter(client => client.utilisateur?.actif && !client.utilisateur?.bloque)
+      .map(client => ({
+        ...client,
+        nom: client.utilisateur.nom,
+        prenom: client.utilisateur.prenom,
+        email: client.utilisateur.email,
+        telephone: client.utilisateur.telephone,
+        utilisateur: undefined, // Nettoyer si nécessaire
+      }));
 
     res.json({ success: true, data: flattenedClients });
   } catch (err) {
@@ -57,6 +62,8 @@ const getClient = async (req, res) => {
             prenom: true,
             email: true,
             telephone: true,
+            actif: true,
+            bloque: true,
           },
         },
         interventions: {

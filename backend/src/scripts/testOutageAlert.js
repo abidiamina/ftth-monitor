@@ -7,7 +7,7 @@ async function testHighRiskAlert() {
   try {
     // 1. On s'assure qu'il y a un responsable actif pour recevoir l'alerte
     const responsable = await prisma.utilisateur.findFirst({
-      where: { role: 'RESPONSABLE', actif: true }
+      where: { role: 'RESPONSABLE', actif: true, bloque: false }
     });
 
     if (!responsable) {

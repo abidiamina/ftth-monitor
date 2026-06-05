@@ -129,6 +129,7 @@ export const changeCurrentPassword = async (
 export const listUsers = async (params?: {
   role?: string
   actif?: 'true' | 'false'
+  bloque?: 'true' | 'false'
 }): Promise<User[]> => {
   const { data } = await api.get<UsersApiResponse>('/users', { params })
   return data.data
@@ -154,6 +155,18 @@ export const updateUserStatus = async (
   return {
     data: data.data,
     message: data.message ?? 'Statut mis a jour.',
+  }
+}
+
+export const updateUserBlockStatus = async (
+  id: number | string,
+  bloque: boolean
+): Promise<{ data: User; message: string }> => {
+  const { data } = await api.patch<UserApiResponse>(`/users/${id}/block`, { bloque })
+
+  return {
+    data: data.data,
+    message: data.message ?? 'Statut de blocage mis a jour.',
   }
 }
 

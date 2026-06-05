@@ -9,6 +9,7 @@ export interface User {
   pushToken?: string | null
   role: UserRole
   actif?: boolean
+  bloque?: boolean
   mustChangePassword?: boolean
   createdAt?: string
   updatedAt?: string
@@ -122,6 +123,7 @@ export interface TechnicianRecord {
     email: string
     telephone?: string | null
     actif: boolean
+    bloque?: boolean
   }
 }
 
@@ -247,7 +249,7 @@ export interface AddEvidenceRequest {
 }
 
 export interface ClientApprovalRequest {
-  signature: string
+  signature?: string | null
   signatureBy: string
   feedbackRating: number
   feedbackComment: string

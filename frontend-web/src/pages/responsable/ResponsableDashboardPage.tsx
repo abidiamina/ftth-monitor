@@ -536,11 +536,14 @@ export const ResponsableDashboardPage = () => {
                   En Retard
                 </span>
               )}
-              {intervention.statut === 'TERMINEE' && (
-                 <span className={`badge-status ${intervention.validee ? 'badge-done' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                  {intervention.validee ? 'Validée' : 'À valider'}
-                </span>
-              )}
+              {intervention.statut === 'TERMINEE' && (() => {
+                const isValidated = intervention.validee || Boolean(intervention.clientSignatureAt)
+                return (
+                  <span className={`badge-status ${isValidated ? 'badge-done' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
+                    {isValidated ? 'Validée' : 'À valider'}
+                  </span>
+                )
+              })()}
               <div className="w-full sm:w-auto sm:ml-auto flex items-center gap-2">
                 {intervention.datePlanifiee && (
                   <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm ${isDelayed ? 'bg-rose-50 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400' : 'bg-white/50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-500'}`}>

@@ -4,6 +4,7 @@ const prisma = require('../config/prisma');
 const { sendPasswordResetEmail } = require('../utils/emailService');
 const { generateToken } = require('../utils/jwtUtils');
 const { logAction } = require('../utils/auditService');
+const { createNotifications } = require('../utils/notificationService');
 const {
   normalizeText,
   validateLoginPayload,
@@ -21,9 +22,17 @@ const sanitizeUser = (user) => ({
   pushToken: user.pushToken,
   role: user.role,
   actif: user.actif,
+  bloque: user.bloque,
   mustChangePassword: user.mustChangePassword,
   createdAt: user.createdAt,
 });
+
+const buildNewClientNotificationPayloads = (clientUser, adminIds = []) =>
+  adminIds.map((adminId) => ({
+    titre: 'Nouveau client inscrit',
+    message: `Un nouveau client s'est inscrit : ${clientUser.prenom} ${clientUser.nom} (${clientUser.email}).`,
+    userId: adminId,
+  }));
 
 const register = async (req, res) => {
   try {
@@ -79,6 +88,7 @@ const register = async (req, res) => {
         pushToken: true,
         role: true,
         actif: true,
+        bloque: true,
         mustChangePassword: true,
         createdAt: true,
       },
@@ -96,6 +106,29 @@ const register = async (req, res) => {
       userRole: user.role,
       ip: req.ip,
     });
+
+    try {
+      const admins = await prisma.utilisateur.findMany({
+        where: {
+          role: 'ADMIN',
+          actif: true,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (admins.length > 0) {
+        await createNotifications(
+          buildNewClientNotificationPayloads(
+            user,
+            admins.map((admin) => admin.id)
+          )
+        );
+      }
+    } catch (notificationError) {
+      console.error('Erreur lors de l envoi de la notification nouveau client.', notificationError);
+    }
 
     res.status(201).json({ success: true, token, user: sanitizeUser(user) });
   } catch (err) {
@@ -118,7 +151,7 @@ const login = async (req, res) => {
       where: { email: normalizedEmail },
     });
 
-    if (!user || !user.actif) {
+    if (!user || !user.actif || user.bloque) {
       return res.status(401).json({
         success: false,
         message: 'Email ou mot de passe incorrect.',
@@ -171,6 +204,7 @@ const getMe = async (req, res) => {
         pushToken: true,
         role: true,
         actif: true,
+        bloque: true,
         mustChangePassword: true,
         createdAt: true,
         client: true,
@@ -261,6 +295,7 @@ const updateMe = async (req, res) => {
         pushToken: true,
         role: true,
         actif: true,
+        bloque: true,
         mustChangePassword: true,
         createdAt: true,
       },
@@ -329,6 +364,7 @@ const changePassword = async (req, res) => {
         pushToken: true,
         role: true,
         actif: true,
+        bloque: true,
         mustChangePassword: true,
         createdAt: true,
       },
@@ -378,6 +414,7 @@ const updatePushToken = async (req, res) => {
         pushToken: true,
         role: true,
         actif: true,
+        bloque: true,
         mustChangePassword: true,
         createdAt: true,
       },
@@ -408,7 +445,7 @@ const forgotPassword = async (req, res) => {
       where: { email: normalizedEmail },
     });
 
-    if (!user) {
+    if (!user || !user.actif || user.bloque) {
       // Don't reveal if user exists or not for security
       return res.json({
         success: true,
@@ -466,6 +503,8 @@ const resetPassword = async (req, res) => {
       where: {
         resetToken: token,
         resetTokenExpires: { gte: new Date() },
+        actif: true,
+        bloque: false,
       },
     });
 

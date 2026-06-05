@@ -21,6 +21,7 @@ import {
   listInterventions,
   submitInterventionClientApproval,
 } from '../services/interventionApi'
+import { listConfigs } from '../services/configApi'
 import { listNotifications, markNotificationAsRead } from '../services/notificationApi'
 import { colors } from '../theme/colors'
 import type {
@@ -89,6 +90,7 @@ export function ClientDashboardScreen() {
   const [signatureClearSignal, setSignatureClearSignal] = useState(0)
   const [feedbackComment, setFeedbackComment] = useState('')
   const [feedbackRating, setFeedbackRating] = useState(5)
+  const [signatureRequired, setSignatureRequired] = useState(true)
   const [isDrawingSignature, setIsDrawingSignature] = useState(false)
   const [gettingLocation, setGettingLocation] = useState(false)
   const [isConfirming, setIsConfirming] = useState(false)
@@ -105,13 +107,15 @@ export function ClientDashboardScreen() {
 
     try {
       await refreshCurrentUser()
-      const [interventionData, notificationData] = await Promise.all([
+      const [interventionData, notificationData, configData] = await Promise.all([
         listInterventions(),
         listNotifications(),
+        listConfigs(),
       ])
 
       setInterventions(interventionData)
       setNotifications(notificationData)
+      setSignatureRequired(configData.find((item) => item.cle === 'REQ_SIGNATURE')?.valeur !== 'false')
       if (!selectedInterventionId) {
         setSelectedInterventionId(interventionData.find((item) => item.statut === 'TERMINEE')?.id ?? interventionData[0]?.id ?? null)
       }
@@ -216,7 +220,9 @@ export function ClientDashboardScreen() {
     if (!selectedIntervention) {
       return
     }
-    if (!signatureReady || !signaturePayload) {
+    const hasSignature = signatureReady && Boolean(signaturePayload)
+
+    if (signatureRequired && !hasSignature) {
       Alert.alert('Signature requise', 'Merci de dessiner votre signature.')
       return
     }
@@ -225,7 +231,7 @@ export function ClientDashboardScreen() {
 
     try {
       const response = await submitInterventionClientApproval(selectedIntervention.id, {
-        signature: signaturePayload,
+        signature: hasSignature ? signaturePayload : null,
         signatureBy: `${user?.prenom ?? ''} ${user?.nom ?? ''}`.trim() || 'Client',
         feedbackRating,
         feedbackComment,
@@ -536,9 +542,14 @@ export function ClientDashboardScreen() {
             <>
               <View style={styles.card}>
                 <Text style={styles.sectionEyebrow}>Validation</Text>
-                <Text style={styles.sectionTitle}>Signature client</Text>
+                <Text style={styles.sectionTitle}>Validation client</Text>
                 <Text style={styles.itemDetail}>
-                  Derniere signature: {formatDate(selectedIntervention.clientSignatureAt)}
+                  Derniere validation: {formatDate(selectedIntervention.clientSignatureAt)}
+                </Text>
+                <Text style={styles.helperText}>
+                  {signatureRequired
+                    ? 'La signature est obligatoire avant validation.'
+                    : 'La signature est facultative : vous pouvez valider sans dessiner.'}
                 </Text>
                 <SignaturePad
                   clearSignal={signatureClearSignal}
@@ -556,7 +567,11 @@ export function ClientDashboardScreen() {
                     <Text style={styles.outlineButtonText}>Effacer signature</Text>
                   </Pressable>
                   <Text style={styles.signatureState}>
-                    {signatureReady ? 'Signature capturee' : 'Aucune signature'}
+                    {signatureReady
+                      ? 'Signature capturee'
+                      : signatureRequired
+                        ? 'Signature requise'
+                        : 'Signature optionnelle'}
                   </Text>
                 </View>
               </View>
@@ -739,6 +754,7 @@ const styles = StyleSheet.create({
   readBadge: { backgroundColor: '#eef3f7', color: colors.muted },
   unreadBadge: { backgroundColor: colors.primarySoft, color: colors.primary },
   itemDetail: { color: colors.muted, lineHeight: 20 },
+  helperText: { color: colors.muted, lineHeight: 20, fontSize: 13, marginTop: 8 },
   itemDescription: { color: colors.text, lineHeight: 21 },
   itemMeta: { color: colors.muted, lineHeight: 18, fontSize: 13 },
   inlineButton: { alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: colors.primarySoft },

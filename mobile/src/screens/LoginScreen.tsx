@@ -25,7 +25,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
     try {
       await login({ email: email.trim(), motDePasse })
     } catch {
-      // L alerte est deja geree dans le contexte d authentification.
+      // L alerte est deja gEree dans le contexte d authentification.
     }
   }
 
@@ -33,13 +33,13 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
     <Screen scrollable>
       <View style={styles.hero}>
         <Text style={styles.kicker}>FTTH Mobile</Text>
-        <Text style={styles.title}>Plateforme Intelligente de Monitoring et d'Optimisation des Interventions FTTH</Text>
+        <Text style={styles.title}>PMOIT</Text>
         <Text style={styles.subtitle}>Connexion client et technicien.</Text>
       </View>
 
       <AuthCard
         title="Connexion"
-        subtitle="Accede a ton espace client ou a ton espace technicien avec le meme backend que le web."
+      
       >
         <AuthField
           label="Email"
@@ -77,10 +77,10 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
           ]}
           onPress={() => navigation.navigate('Register')}
         >
-          <Text style={styles.secondaryButtonText}>Creer un compte client</Text>
+          <Text style={styles.secondaryButtonText}>Créer un compte client</Text>
         </Pressable>
 
-        <Text style={styles.help}>Inscription reservee aux clients.</Text>
+        <Text style={styles.help}>Inscription réservée aux clients et techniciens.</Text>
       </AuthCard>
     </Screen>
   )
