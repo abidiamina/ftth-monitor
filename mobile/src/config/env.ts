@@ -1,6 +1,6 @@
 import Constants from 'expo-constants'
 
-const fallbackBaseUrl = 'http://10.0.2.2:8000/api'
+const fallbackBaseUrl = 'http://10.0.2.2:3000/api'
 
 const getExpoHost = () => {
   const hostUri =
@@ -25,7 +25,7 @@ const resolveApiBaseUrl = () => {
 
   const host = getExpoHost()
   if (host) {
-    return `http://${host}:8000/api`
+    return `http://${host}:3000/api`
   }
 
   return fallbackBaseUrl

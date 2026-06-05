@@ -325,16 +325,33 @@ const createIntervention = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Profil client introuvable.' });
       }
 
-      const responsableParDefaut = await prisma.responsable.findFirst({
-        orderBy: { id: 'asc' },
+      const responsables = await prisma.responsable.findMany({
+        include: {
+          _count: {
+            select: {
+              interventionsCreees: {
+                where: { statut: { in: ['EN_ATTENTE', 'EN_COURS'] } },
+              },
+            },
+          },
+        },
       });
 
-      if (!responsableParDefaut) {
+      if (!responsables || responsables.length === 0) {
         return res.status(400).json({
           success: false,
           message: 'Aucun responsable disponible pour prendre en charge cette demande.',
         });
       }
+
+      responsables.sort((a, b) => {
+        const countA = a._count.interventionsCreees;
+        const countB = b._count.interventionsCreees;
+        if (countA === countB) return a.id - b.id;
+        return countA - countB;
+      });
+
+      const responsableParDefaut = responsables[0];
 
       resolvedClientId = client.id;
       responsableId = responsableParDefaut.id;

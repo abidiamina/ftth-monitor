@@ -252,15 +252,52 @@ async def motivational_message(role: str):
             return {"message": final_message, "ia_used": True}
 
     messages = {
-        "ADMIN": ["Le reseau est entre de bonnes mains aujourd'hui.", "Supervision optimale."],
+        "ADMIN": [
+            "Le reseau est entre de bonnes mains aujourd'hui.",
+            "Supervision optimale — chaque zone est sous controle.",
+            "Votre vigilance garantit la continuite du service.",
+            "Tableau de bord impeccable, continuez sur cette lancee !",
+            "La qualite du reseau reflete votre expertise.",
+            "Excellente maitrise de l'infrastructure FTTH.",
+            "Les metriques sont au beau fixe grace a votre gestion.",
+            "Un admin attentif, c'est un reseau fiable.",
+        ],
         "TECHNICIEN": [
             "Bon courage sur le terrain, prudence sur les poteaux !",
-            "Chaque raccordement compte.",
+            "Chaque raccordement compte — merci pour votre engagement.",
+            "Votre travail connecte des familles entières. Continuez !",
+            "Un technicien sur le terrain, c'est la promesse d'un service rétabli.",
+            "La fibre que vous posez aujourd'hui, c'est le futur de demain.",
+            "Merci pour votre dedication et votre professionnalisme.",
+            "Chaque intervention terminée, c'est un client satisfait de plus.",
+            "Votre expertise technique fait la difference au quotidien.",
         ],
-        "RESPONSABLE": ["Les indicateurs sont au vert, excellent travail d'equipe."],
-        "CLIENT": ["Profitez de la vitesse de la fibre !", "Votre satisfaction est notre priorite."],
+        "RESPONSABLE": [
+            "Les indicateurs sont au vert, excellent travail d'equipe.",
+            "Votre coordination fait la force de l'equipe FTTH.",
+            "Les delais d'intervention s'ameliorent grace a votre pilotage.",
+            "Excellent suivi des KPIs ce mois-ci, bravo !",
+            "Votre leadership inspire toute l'equipe technique.",
+            "La satisfaction client progresse sous votre supervision.",
+            "Continuez ce travail remarquable de coordination terrain.",
+            "Votre management agile fait avancer les chantiers efficacement.",
+        ],
+        "CLIENT": [
+            "Profitez de la vitesse de la fibre !",
+            "Votre satisfaction est notre priorite absolue.",
+            "La fibre FTTH, c'est l'internet de la nouvelle generation.",
+            "Merci de nous faire confiance pour votre connexion.",
+            "Nous veillons sur la qualite de votre service 24h/24.",
+            "Votre connexion ultra-rapide est entre de bonnes mains.",
+            "Naviguez, streamez, travaillez sans limites !",
+            "Bienvenue dans l'univers de la fibre optique haute performance.",
+        ],
     }
-    message_list = messages.get(role_upper, ["Bienvenue sur FTTH Monitor !"])
+    message_list = messages.get(role_upper, [
+        "Bienvenue sur FTTH Monitor !",
+        "Merci d'utiliser notre plateforme.",
+        "Une journee productive vous attend.",
+    ])
     return {"message": random.choice(message_list), "ia_used": False}
 
 
