@@ -292,7 +292,20 @@ const getIntervention = async (req, res) => {
   }
 };
 
-// POST /api/interventions
+/**
+ * CREATE INTERVENTION (POST /api/interventions)
+ * Objectif : Permettre la création d'une nouvelle demande d'intervention.
+ * 
+ * Logique pour la soutenance :
+ * 1. Validation : Vérifie que les données de la requête sont complètes et correctes.
+ * 2. Rôles : 
+ *    - Si c'est un CLIENT qui fait la demande, le backend l'associe automatiquement
+ *      au "Responsable" le moins chargé pour équilibrer le travail.
+ *    - Si c'est un RESPONSABLE, il crée lui-même la demande pour un client.
+ * 3. Base de données : Création de l'entité via Prisma.
+ * 4. Temps réel : Envoi d'une notification Push / WebSocket aux utilisateurs concernés (Client, Technicien, Responsable).
+ * 5. Traçabilité : Ajout d'une entrée d'audit (logAction) pour la sécurité.
+ */
 const createIntervention = async (req, res) => {
   try {
     if (!req.body || typeof req.body !== 'object') {
@@ -421,7 +434,20 @@ const createIntervention = async (req, res) => {
   }
 };
 
-// PUT /api/interventions/:id
+/**
+ * UPDATE INTERVENTION (PUT /api/interventions/:id)
+ * Objectif : Mettre à jour l'état, la priorité ou l'assignation d'une intervention.
+ * 
+ * Logique pour la soutenance :
+ * 1. Permissions : Vérifie que le technicien ne modifie que SES propres interventions.
+ * 2. Règles Métier Strictes (Guardrails) : 
+ *    - Pour passer le statut à "TERMINEE", l'algorithme bloque si :
+ *       a. Aucune photo de preuve n'est jointe (REQ_PHOTO).
+ *       b. Le scan GPS n'a pas été confirmé sur place.
+ *       c. Le QR Code de l'équipement n'a pas été scanné.
+ * 3. Validation Finale : Seul un Responsable ou Admin peut "valider" une intervention terminée,
+ *    en s'assurant que le client a bien apposé sa signature électronique.
+ */
 const updateIntervention = async (req, res) => {
   try {
     const { id } = req.params;
@@ -635,6 +661,19 @@ const updateIntervention = async (req, res) => {
   }
 };
 
+/**
+ * FIELD CHECK / CONTROLE TERRAIN (updateInterventionFieldCheck)
+ * Objectif : Validation technique de la présence du technicien sur site.
+ * 
+ * Logique pour la soutenance (Mathématiques & GPS) :
+ * 1. Scan QR Code : Vérifie l'identité de l'équipement.
+ * 2. Vérification Géospatiale (GPS) :
+ *    - Récupère la latitude/longitude du technicien via le smartphone.
+ *    - Utilise la Formule mathématique de Haversine pour calculer la distance exacte (en mètres) 
+ *      sur une sphère entre la position actuelle et l'adresse prévue de l'intervention.
+ * 3. Enregistrement : Marque "gpsConfirmedAt" et "qrVerifiedAt" en base de données.
+ * 4. Broadcast : Diffuse la position GPS du technicien en temps réel via WebSocket pour le Dashboard.
+ */
 const updateInterventionFieldCheck = async (req, res) => {
   try {
     const interventionId = parseInt(req.params.id, 10);
@@ -758,6 +797,15 @@ const updateInterventionFieldCheck = async (req, res) => {
   }
 };
 
+/**
+ * ADD EVIDENCE / PREUVE TERRAIN (addInterventionEvidence)
+ * Objectif : Upload de photos avec commentaires pendant l'intervention.
+ * 
+ * Logique pour la soutenance :
+ * 1. Vérifie que l'intervention est bien "EN_COURS".
+ * 2. Limite à 5 photos maximum par intervention (configurable via `MAX_PHOTOS`).
+ * 3. Sauvegarde la preuve et avertit le client/responsable en temps réel via notification.
+ */
 const addInterventionEvidence = async (req, res) => {
   try {
     const interventionId = parseInt(req.params.id, 10);
@@ -833,6 +881,19 @@ const addInterventionEvidence = async (req, res) => {
   }
 };
 
+/**
+ * CLIENT APPROVAL / VALIDATION CLIENT (submitInterventionClientApproval)
+ * Objectif : Clôturer l'intervention du point de vue du client final.
+ * 
+ * Logique pour la soutenance :
+ * 1. Signature : Capture la signature électronique (Base64) du client.
+ * 2. Évaluation & IA : 
+ *    - Récupère la note sur 5 (rating) et le commentaire textuel.
+ *    - Envoie ce texte au microservice Python (CamemBERT) via `analyzeSentiment` 
+ *      pour extraire automatiquement le sentiment ("Positif", "Négatif").
+ * 3. Enregistrement : Fige définitivement ces informations en base de données 
+ *    pour générer les statistiques de satisfaction du technicien.
+ */
 const submitInterventionClientApproval = async (req, res) => {
   try {
     const interventionId = parseInt(req.params.id, 10);

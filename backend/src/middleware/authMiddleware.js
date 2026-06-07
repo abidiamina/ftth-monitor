@@ -1,7 +1,16 @@
 const { verifyToken } = require('../utils/jwtUtils');
 const prisma = require('../config/prisma');
 
-// Vérifie que le token JWT est valide
+/**
+ * MIDDLEWARE DE PROTECTION (protect)
+ * Objectif : Bloquer l'accès aux routes privées si l'utilisateur n'est pas connecté.
+ * 
+ * Logique pour la soutenance :
+ * 1. Lit l'en-tête "Authorization: Bearer <token>" de la requête entrante.
+ * 2. Décrypte le token JWT avec la clé secrète du serveur (`verifyToken`).
+ * 3. Interroge la base de données pour s'assurer que l'utilisateur existe toujours et n'est pas bloqué.
+ * 4. Ajoute l'objet utilisateur (`req.user`) pour que les contrôleurs suivants sachent qui fait l'action.
+ */
 const protect = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -29,7 +38,14 @@ const protect = async (req, res, next) => {
   }
 };
 
-// Vérifie que l'utilisateur a le bon rôle
+/**
+ * MIDDLEWARE D'AUTORISATION (authorize)
+ * Objectif : Contrôler les permissions granulaires (RBAC - Role-Based Access Control).
+ * 
+ * Logique pour la soutenance :
+ * - Accepte une liste de rôles permis (ex: `authorize('ADMIN', 'RESPONSABLE')`).
+ * - Si le rôle du `req.user` (déjà vérifié par le middleware `protect`) ne correspond pas, renvoie une erreur 403 Forbidden.
+ */
 const authorize = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {

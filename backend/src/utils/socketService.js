@@ -1,5 +1,9 @@
 let io;
 
+/**
+ * INITIALISATION WEBSOCKET (initSocket)
+ * Objectif : Gérer les connexions bidirectionnelles en Temps Réel.
+ */
 const initSocket = (server) => {
   const { Server } = require('socket.io');
   io = new Server(server, {
@@ -17,6 +21,12 @@ const initSocket = (server) => {
       console.log(`🏠 Client ${socket.id} a rejoint le salon : ${room}`);
     });
 
+    /**
+     * ECOUTEUR GPS (technician_location_update)
+     * Objectif : Recevoir la position en direct depuis l'application Mobile.
+     * Logique : Met à jour la BDD Prisma de manière asynchrone pour persister la position,
+     * puis rediffuse immédiatement cette position aux autres clients connectés (Dashboards).
+     */
     socket.on('technician_location_update', async (data) => {
       console.log(`📍 Position technicien ${data.technicienId} : ${data.latitude}, ${data.longitude}`);
       
@@ -65,6 +75,11 @@ const emitToRoom = (room, event, data) => {
   }
 };
 
+/**
+ * ENVOI CIBLÉ (emitToUser)
+ * Objectif : Envoyer une notification Push Web uniquement à un utilisateur spécifique.
+ * Logique : Utilise le système de "Rooms" de Socket.io où la room s'appelle `user:<id>`.
+ */
 const emitToUser = (userId, event, data) => {
   if (io) {
     const room = `user:${userId}`;

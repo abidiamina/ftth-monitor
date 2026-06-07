@@ -34,6 +34,17 @@ const buildNewClientNotificationPayloads = (clientUser, adminIds = []) =>
     userId: adminId,
   }));
 
+/**
+ * REGISTER (Inscription Client)
+ * Objectif : Permettre à un nouveau client de créer son compte.
+ * 
+ * Logique pour la soutenance :
+ * 1. Validation de la robustesse du mot de passe et format email.
+ * 2. Vérification de l'existence de l'email en BDD.
+ * 3. Hachage : Chiffrement du mot de passe avec bcrypt (sécurité).
+ * 4. Transaction : Création de l'utilisateur (rôle CLIENT) et du profil Client associé.
+ * 5. Notification : Envoi d'une alerte aux Admins pour les prévenir de l'inscription.
+ */
 const register = async (req, res) => {
   try {
     const { nom, prenom, email, motDePasse, telephone, adresse } = req.body;
@@ -137,6 +148,16 @@ const register = async (req, res) => {
   }
 };
 
+/**
+ * LOGIN (Connexion)
+ * Objectif : Authentifier un utilisateur et lui fournir un token d'accès.
+ * 
+ * Logique pour la soutenance :
+ * 1. Vérification si l'utilisateur existe et s'il est actif/non bloqué.
+ * 2. Comparaison (bcrypt.compare) entre le mot de passe fourni et le hash en BDD.
+ * 3. JWT : Génération d'un token JSON Web Token contenant l'ID et le Rôle.
+ * 4. Audit : Trace de la connexion dans les logs de sécurité (logAction).
+ */
 const login = async (req, res) => {
   try {
     const { email, motDePasse } = req.body;
@@ -436,6 +457,14 @@ const updatePushToken = async (req, res) => {
   }
 };
 
+/**
+ * FORGOT PASSWORD (Mot de passe oublié)
+ * Objectif : Initier la procédure de récupération de compte.
+ * 
+ * Logique : 
+ * - Génère un token cryptographique temporaire (durée: 1 heure).
+ * - Envoie un email au client avec ce token pour réinitialiser son mot de passe.
+ */
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -491,6 +520,15 @@ const forgotPassword = async (req, res) => {
   }
 };
 
+/**
+ * RESET PASSWORD (Réinitialisation)
+ * Objectif : Remplacer l'ancien mot de passe oublié.
+ * 
+ * Logique : 
+ * - Vérifie que le token envoyé par email est toujours valide (non expiré).
+ * - Chiffre le nouveau mot de passe.
+ * - Supprime le token de sécurité pour empêcher sa réutilisation.
+ */
 const resetPassword = async (req, res) => {
   try {
     const { token, nouveauMotDePasse } = req.body;

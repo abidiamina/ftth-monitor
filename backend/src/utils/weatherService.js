@@ -84,6 +84,16 @@ const resolveInput = (arg1, arg2) => {
   };
 };
 
+/**
+ * GET WEATHER DATA (Récupération Météo)
+ * Objectif : Fournir les données météorologiques pour le modèle de Machine Learning IA.
+ * 
+ * Logique pour la soutenance :
+ * 1. Géolocalisation : Transforme le nom de la ville ou l'adresse en Coordonnées GPS (Lat/Lon) via l'API de Géocodage OpenWeather.
+ * 2. Appel API Externe : Récupère les données météo réelles en temps réel (Température, Vitesse du Vent, Pluviométrie).
+ * 3. Sécurité (Fallback) : Si l'API Météo est indisponible, bascule automatiquement sur un générateur mock (buildMockWeather) pour ne pas bloquer le système d'IA.
+ * 4. Harmonisation : Formate les données pour l'algorithme "Random Forest" des pannes.
+ */
 const getWeatherData = async (arg1, arg2) => {
   const { zone, latitude, longitude, country } = resolveInput(arg1, arg2);
   const apiKey = process.env.OPENWEATHER_API_KEY;

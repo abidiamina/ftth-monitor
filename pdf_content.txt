@@ -1,0 +1,295 @@
+﻿--- Page 7 ---
+pprroobbll├®├®mmaattiiqquuee
+Comment Plateforme web et mobile Connect├®e
+Pour
+Visibilit├® totale clients Suivi terrain temps r├®el
+Optimisation op├®rationnelle
+Via IA g├®n├®rative
+5
+--- Page 8 ---
+Solution propos├®e
+­ƒô▒
+Application
+mobile (iOS &
+Android)
+­ƒÆ╗
+­ƒæñ
+Plateforme
+Espace client
+web multi-
+r├┤les
+­ƒñû
+­ƒöö
+Alertes
+Module IA
+automatiques
+6
+--- Page 9 ---
+M├®thodologie utilis├®e
+7
+--- Page 10 ---
+AAnnaallyyssee ddeess bbeessooiinnss
+Besoins Besoins
+fonctionnels non
+fonctionnels
+Identification
+des acteurs
+8
+--- Page 11 ---
+Besoins fonctionnels
+Gestion des utilisateurs et authentification
+s├®curis├®e
+Planification et suivi des interventions en temps r├®el
+Validation terrain : GPS, QR Code, signature
+num├®rique
+Alertes automatiques et notifications
+Statistiques, rapports et journal d'audit
+IA : pr├®diction de pannes, analyse client,
+motivation
+9
+--- Page 12 ---
+Besoins non fonctionnels
+Scalabilit├®
+Performance
+Disponibilit├®
+Ergonomie
+S├®curit├®
+10
+--- Page 13 ---
+iiddeennttiiffiiccaattiioonn ddeess
+AAcctteeuurrss
+Administrateur Responsable Technicien Client
+Soumet ses
+Intervient sur le
+G├¿re les Pilote les
+demandes
+terrain et met ├á
+comptes et interventions,
+d'intervention
+param├¿tre distribue les jour
+et suit leur
+l'ensemble de la t├óches et analyse l'avancement
+progression
+plateforme. les indicateurs de de ses missions
+depuis son
+performance. en temps r├®el.
+espace d├®di├®.
+11
+--- Page 14 ---
+ccoonncceeppttiioonn
+12
+--- Page 15 ---
+DDiiaaggrraammmmee
+ddee ccaass ddÔÇÖÔÇÖuuttiilliissaattiioonn
+gglloobbaallee
+13
+--- Page 16 ---
+DDiiaaggrraammmmee ddee ccllaasssseess
+gglloobbaallee
+14
+--- Page 17 ---
+ppllaanniiffiiccaattiioonn ddeess sspprriinnttss
+Release1: Release 2 :
+Authentification,Administr Supervision, Alertes,
+ation et Gestion S├®curit├® et Tra├ºabilit├® Terrain
+desInterventions
+Sprint 4
+Sprint 3
+Sprint 1 Sprint 2 Supervision,
+Tra├ºabilit├®
+Authentification Gestion des Alertes &
+Terrain & Client
+& Interventions S├®curit├®
+Release 3 :
+Administration
+IA et Analyse Pr├®dictive
+Sprint 5
+IA & Analyse
+Pr├®dictive
+15
+--- Page 18 ---
+Release 1
+Authentification,
+Administration
+et
+Gestion des Interventions
+16
+--- Page 19 ---
+Sprint1:
+Authentification,Administration et Gestion des Interventions
+User Story 1
+Authentification via email et acc├¿s selon le r├┤le
+User Story 2
+Inscription via formulaire public
+User Story 3
+R├®ception des identifiantspar email
+User Story 4
+Cr├®ation de compte et envoi des identifiants (admin)
+User Story 5
+Modification des informations utilisateur (admin)
+User Story 6
+D├®sactivation, blocage ou suppression d'un compte
+User Story 7
+Param├®trage du syst├¿me(admin)
+17
+--- Page 20 ---
+SSpprriinntt 11
+18
+--- Page 21 ---
+R├®alisation
+19
+--- Page 22 ---
+Sprint 2 : Gestion des Interventions & Activit├®s Techniciens
+User Story 8
+Notifications en temps r├®el
+User Story 9
+Cr├®er une intervention
+User Story 10
+Assigner une intervention├á un technicien
+User Story 11
+Prioriser les interventions
+User Story 12
+Consulter la liste des interventionset leur avancement
+User Story 13
+Demander une intervention technique
+User Story 14
+Consulter les interventions affect├®es (technicien)
+User Story 15
+Accepter ou refuser une intervention
+User Story 16
+Mettre ├á jour le statut de l'intervention en temps r├®el
+20
+--- Page 23 ---
+SSpprriinntt 22
+21
+--- Page 24 ---
+R├®alisation
+22
+--- Page 25 ---
+Release 2
+Supervision, Alertes,
+S├®curit├® et Tra├ºabilit├® Terrain
+23
+--- Page 26 ---
+Sprint 3 : Supervision, Alertes & S├®curit├®
+User Story 17
+Confirmation de pr├®sencevia GPS sur site
+User Story 18
+Scan du QR Code de l'├®quipement
+User Story 19
+Ajout de photos et commentaireshorodat├®s
+User Story 20
+Consultation de l'historiqued'interventions
+User Story 21
+Signature de l'interventionpar le client
+User Story 22
+Feedback et note de satisfaction
+24
+--- Page 27 ---
+SSpprriinntt 33
+25
+--- Page 28 ---
+R├®alisation
+26
+--- Page 29 ---
+Sprint 4 : Tra├ºabilit├® Terrain & Interaction Client
+User Story 23
+G├®n├®ration de rapportsde suivi
+et d'analyse
+User Story 24
+Alertes d'incidents critiques
+User Story 25
+Alerte retard ou surcharge technicien
+User Story 26
+Int├®gration donn├®es m├®t├®opour anticiper les risques
+User Story 27
+Consultation de l'audit trailpour la tra├ºabilit├®
+User Story 28
+Modification du profil etinformations personnelles
+User Story 29
+R├®initialisation du motde passe oubli├®
+User Story 30
+visualisation g├®ographiquedes missions sur carte
+User Story 31
+Graphiques et m├®triquespour piloter l'activit├® globale
+27
+--- Page 30 ---
+SSpprriinntt 44
+28
+--- Page 31 ---
+R├®alisation
+29
+--- Page 32 ---
+Release 3
+IA et Analyse Pr├®dictive
+30
+--- Page 33 ---
+SSpprriinntt 55
+User Story 32
+Analyse automatique des feedbacks par CamemBERT
+User Story 33
+Pr├®diction de pannes par zone via Random Forest
+User Story 34
+Messages positifs personnalis├®s par IA ├á la connexion
+31
+--- Page 34 ---
+Les Mod├¿les IA
+CamemBERT Random Forest GPT-2
+Analyse de
+G├®n├®ration
+Pr├®diction de
+sentiment des
+de messages
+pannes par zone
+feedbacks
+motivants ├á la
+g├®ographique
+clients
+connexion
+32
+--- Page 35 ---
+SSpprriinntt 55
+33
+--- Page 36 ---
+R├®alisation
+34
+--- Page 37 ---
+TTeecchhnnoollooggiieess
+frontend backend ia
+35
+--- Page 38 ---
+logiciels
+36
+--- Page 39 ---
+Conclusion
+­ƒÄ»
+et
+perspectives
+37
+--- Page 40 ---
+ccoonncclluussiioonn
+D├®gitalisation
+Gestion
+centralis├®e des Fonctionnalit├®s Cl├®s
+interventions
+techniques via Intelligence & Performance
+une plateforme
+web et mobile
+GPS, QR Code,
+signature Analyse de
+├®lectronique, sentiment,
+notifications et pr├®diction des
+supervision en pannes et
+temps r├®el alertes
+intelligentes
+bas├®es sur l'IA
+38
+--- Page 41 ---
+PPeerrssppeeccttiivveess
+Optimisation
+avanc├®e par IA,
+extension des
+fonctionnalit├®s et
+int├®gration avec les
+syst├¿mes t├®l├®coms
+39
