@@ -78,15 +78,12 @@ def _has_very_negative_cue(text: str) -> bool:
 
 
 def _looks_valid_message(message: str) -> bool:
-    if not message or len(message.strip()) < 8:
-        return False
-    lower = message.lower()
-    if "ã" in lower or "â" in lower or "�" in message:
+    if not message or len(message.strip()) < 5:
         return False
     if re.fullmatch(r"[\W_]+", message):
         return False
     letters = sum(1 for ch in message if ch.isalpha())
-    return letters >= max(6, int(len(message) * 0.35))
+    return letters >= max(3, int(len(message) * 0.2))
 
 try:
     if os.path.exists(MODEL_PATH):
@@ -248,6 +245,9 @@ async def motivational_message(role: str):
             final_message = generated_text.split("Message: ")[-1].strip()
         else:
             final_message = generated_text.replace(prompt, "").strip()
+        
+        final_message = final_message.replace("\ufffd", "").strip()
+        
         if _looks_valid_message(final_message):
             return {"message": final_message, "ia_used": True}
 
