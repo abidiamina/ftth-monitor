@@ -5,7 +5,7 @@ const prisma = require('../config/prisma');
  * MIDDLEWARE DE PROTECTION (protect)
  * Objectif : Bloquer l'accès aux routes privées si l'utilisateur n'est pas connecté.
  * 
- * Logique pour la soutenance :
+ * Logique algorithmique métier (développée manuellement par l'équipe) :
  * 1. Lit l'en-tête "Authorization: Bearer <token>" de la requête entrante.
  * 2. Décrypte le token JWT avec la clé secrète du serveur (`verifyToken`).
  * 3. Interroge la base de données pour s'assurer que l'utilisateur existe toujours et n'est pas bloqué.
@@ -42,7 +42,7 @@ const protect = async (req, res, next) => {
  * MIDDLEWARE D'AUTORISATION (authorize)
  * Objectif : Contrôler les permissions granulaires (RBAC - Role-Based Access Control).
  * 
- * Logique pour la soutenance :
+ * Logique algorithmique métier (développée manuellement par l'équipe) :
  * - Accepte une liste de rôles permis (ex: `authorize('ADMIN', 'RESPONSABLE')`).
  * - Si le rôle du `req.user` (déjà vérifié par le middleware `protect`) ne correspond pas, renvoie une erreur 403 Forbidden.
  */

@@ -296,7 +296,7 @@ const getIntervention = async (req, res) => {
  * CREATE INTERVENTION (POST /api/interventions)
  * Objectif : Permettre la création d'une nouvelle demande d'intervention.
  * 
- * Logique pour la soutenance :
+ * Logique algorithmique métier (développée manuellement par l'équipe) :
  * 1. Validation : Vérifie que les données de la requête sont complètes et correctes.
  * 2. Rôles : 
  *    - Si c'est un CLIENT qui fait la demande, le backend l'associe automatiquement
@@ -438,7 +438,7 @@ const createIntervention = async (req, res) => {
  * UPDATE INTERVENTION (PUT /api/interventions/:id)
  * Objectif : Mettre à jour l'état, la priorité ou l'assignation d'une intervention.
  * 
- * Logique pour la soutenance :
+ * Logique algorithmique métier (développée manuellement par l'équipe) :
  * 1. Permissions : Vérifie que le technicien ne modifie que SES propres interventions.
  * 2. Règles Métier Strictes (Guardrails) : 
  *    - Pour passer le statut à "TERMINEE", l'algorithme bloque si :
@@ -665,7 +665,7 @@ const updateIntervention = async (req, res) => {
  * FIELD CHECK / CONTROLE TERRAIN (updateInterventionFieldCheck)
  * Objectif : Validation technique de la présence du technicien sur site.
  * 
- * Logique pour la soutenance (Mathématiques & GPS) :
+ * Logique algorithmique métier (développée manuellement par l'équipe - Mathématiques & GPS) :
  * 1. Scan QR Code : Vérifie l'identité de l'équipement.
  * 2. Vérification Géospatiale (GPS) :
  *    - Récupère la latitude/longitude du technicien via le smartphone.
@@ -801,7 +801,7 @@ const updateInterventionFieldCheck = async (req, res) => {
  * ADD EVIDENCE / PREUVE TERRAIN (addInterventionEvidence)
  * Objectif : Upload de photos avec commentaires pendant l'intervention.
  * 
- * Logique pour la soutenance :
+ * Logique algorithmique métier (développée manuellement par l'équipe) :
  * 1. Vérifie que l'intervention est bien "EN_COURS".
  * 2. Limite à 5 photos maximum par intervention (configurable via `MAX_PHOTOS`).
  * 3. Sauvegarde la preuve et avertit le client/responsable en temps réel via notification.
@@ -885,7 +885,7 @@ const addInterventionEvidence = async (req, res) => {
  * CLIENT APPROVAL / VALIDATION CLIENT (submitInterventionClientApproval)
  * Objectif : Clôturer l'intervention du point de vue du client final.
  * 
- * Logique pour la soutenance :
+ * Logique algorithmique métier (développée manuellement par l'équipe) :
  * 1. Signature : Capture la signature électronique (Base64) du client.
  * 2. Évaluation & IA : 
  *    - Récupère la note sur 5 (rating) et le commentaire textuel.

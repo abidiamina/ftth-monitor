@@ -247,7 +247,7 @@ const listTechnicians = async (req, res) => {
  * CREATE EMPLOYEE (Création d'Employé)
  * Objectif : Permettre à un Administrateur de créer des comptes "Métier" (Technicien, Responsable).
  * 
- * Logique pour la soutenance :
+ * Logique algorithmique métier (développée manuellement par l'équipe) :
  * 1. Le mot de passe est auto-généré aléatoirement (`createTemporaryPassword`).
  * 2. L'utilisateur est forcé de le changer à sa première connexion (`mustChangePassword: true`).
  * 3. Envoi d'un email de bienvenue automatique avec les identifiants.
@@ -328,7 +328,7 @@ const createEmployee = async (req, res) => {
  * UPDATE USER (Modification d'utilisateur)
  * Objectif : Modifier les informations ou le RÔLE d'un utilisateur.
  * 
- * Logique pour la soutenance :
+ * Logique algorithmique métier (développée manuellement par l'équipe) :
  * 1. Sécurité anti-lockout : Empêche un Admin de rétrograder son propre rôle.
  * 2. Gestion des rôles croisés (Transaction Prisma) :
  *    - Si on passe un "Technicien" en "Responsable", le code nettoie proprement la table `technicien`

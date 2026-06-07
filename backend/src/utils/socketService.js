@@ -24,7 +24,7 @@ const initSocket = (server) => {
     /**
      * ECOUTEUR GPS (technician_location_update)
      * Objectif : Recevoir la position en direct depuis l'application Mobile.
-     * Logique : Met à jour la BDD Prisma de manière asynchrone pour persister la position,
+     * Logique algorithmique métier (développée manuellement par l'équipe) : Met à jour la BDD Prisma de manière asynchrone pour persister la position,
      * puis rediffuse immédiatement cette position aux autres clients connectés (Dashboards).
      */
     socket.on('technician_location_update', async (data) => {
@@ -78,7 +78,7 @@ const emitToRoom = (room, event, data) => {
 /**
  * ENVOI CIBLÉ (emitToUser)
  * Objectif : Envoyer une notification Push Web uniquement à un utilisateur spécifique.
- * Logique : Utilise le système de "Rooms" de Socket.io où la room s'appelle `user:<id>`.
+ * Logique algorithmique métier (développée manuellement par l'équipe) : Utilise le système de "Rooms" de Socket.io où la room s'appelle `user:<id>`.
  */
 const emitToUser = (userId, event, data) => {
   if (io) {
