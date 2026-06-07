@@ -19,6 +19,7 @@ from transformers import (
 
 from randomforest_utils import build_prediction_features
 
+# Initialisation de l'application FastAPI pour le microservice IA
 app = FastAPI(title="FTTH Monitor - IA Microservice")
 
 
@@ -85,7 +86,13 @@ def _looks_valid_message(message: str) -> bool:
     letters = sum(1 for ch in message if ch.isalpha())
     return letters >= max(3, int(len(message) * 0.2))
 
+# ---------------------------------------------------------
+# CHARGEMENT DES MODÈLES D'INTELLIGENCE ARTIFICIELLE
+# ---------------------------------------------------------
+
 try:
+    # 1. Modèle CamemBERT (Analyse de Sentiment)
+    # Utilisé pour classer les feedbacks des utilisateurs (Positif, Négatif, Neutre)
     if os.path.exists(MODEL_PATH):
         print(f"Loading CamemBERT model from {MODEL_PATH}...")
         tokenizer = CamembertTokenizer.from_pretrained(MODEL_PATH)
@@ -96,6 +103,8 @@ except Exception as exc:
     print(f"Failed to load CamemBERT: {exc}")
 
 try:
+    # 2. Modèle GPT-2 (Génération de Texte)
+    # Utilisé pour générer dynamiquement des messages de motivation personnalisés
     if os.path.exists(GEN_MODEL_PATH):
         print(f"Loading GPT-2 model from {GEN_MODEL_PATH}...")
         gen_tokenizer = GPT2Tokenizer.from_pretrained(GEN_MODEL_PATH)
@@ -104,6 +113,8 @@ except Exception as exc:
     print(f"Failed to load GPT-2: {exc}")
 
 try:
+    # 3. Modèle Random Forest (Prédiction des Pannes)
+    # Utilisé pour évaluer le risque de panne d'une zone selon l'historique et la météo
     if os.path.exists(RF_MODEL_PATH):
         print(f"Loading Random Forest model from {RF_MODEL_PATH}...")
         rf_model = joblib.load(RF_MODEL_PATH / "model.pkl")
@@ -116,6 +127,10 @@ except Exception as exc:
 
 @app.post("/ia/analyze-sentiment")
 async def analyze_sentiment(request: SentimentRequest):
+    """
+    Endpoint pour analyser le sentiment d'un texte.
+    Combine une approche basée sur des règles (mots-clés) et le modèle CamemBERT.
+    """
     rule = _rule_based_sentiment(request.text)
 
     # Strong business guardrail: 4-5 stars should be positive unless comment is clearly very negative.
@@ -126,6 +141,7 @@ async def analyze_sentiment(request: SentimentRequest):
             return {"sentiment": "Negatif", "score": 0.95, "ia_used": True}
 
     if model and tokenizer:
+        # Tokenisation du texte pour le modèle CamemBERT
         inputs = tokenizer(
             request.text,
             return_tensors="pt",
@@ -134,6 +150,7 @@ async def analyze_sentiment(request: SentimentRequest):
             max_length=128,
         )
         with torch.no_grad():
+            # Prédiction du modèle
             outputs = model(**inputs)
             scores = torch.nn.functional.softmax(outputs.logits, dim=1)
             predicted_class_id = torch.argmax(scores).item()
@@ -226,11 +243,18 @@ async def predict_pannes(request: PredictionRequest):
 
 @app.get("/ia/motivational-message/{role}")
 async def motivational_message(role: str):
+    """
+    Endpoint pour générer un message de motivation personnalisé selon le rôle.
+    Utilise GPT-2 pour la génération dynamique, avec un système de secours (fallback).
+    """
     role_upper = role.upper()
+    
+    # 1. Tentative de génération avec le modèle GPT-2
     if gen_model and gen_tokenizer:
         prompt = f"Role: {role_upper} | Message: "
         inputs = gen_tokenizer(prompt, return_tensors="pt")
         with torch.no_grad():
+            # Paramètres de génération (température, top_p) pour de la diversité
             outputs = gen_model.generate(
                 **inputs,
                 max_new_tokens=30,
@@ -240,6 +264,7 @@ async def motivational_message(role: str):
                 do_sample=True,
                 pad_token_id=gen_tokenizer.eos_token_id,
             )
+        # Décodage du texte généré
         generated_text = gen_tokenizer.decode(outputs[0], skip_special_tokens=True)
         if "Message: " in generated_text:
             final_message = generated_text.split("Message: ")[-1].strip()

@@ -106,8 +106,15 @@ const resolveSentimentDeterministic = ({ text, rating, predicted }) => {
 };
 
 /**
- * US-34 : Analyse de sentiment des feedbacks clients (CamemBERT)
- * Communique avec le microservice FastAPI (Architecture Figure 5.2)
+ * US-34 : Analyse de sentiment des feedbacks clients
+ * Cette fonction utilise le modèle NLP CamemBERT via le microservice FastAPI.
+ * Elle sert à détecter automatiquement la satisfaction du client ("Positif", "Neutre", "Négatif").
+ * 
+ * Fonctionnement :
+ * 1. Prépare le texte et envoie la requête HTTP au microservice IA.
+ * 2. Récupère la prédiction de l'IA.
+ * 3. Applique des règles de gestion (mots très négatifs, notation en étoiles) 
+ *    pour s'assurer de la pertinence métier finale via resolveSentimentDeterministic.
  */
 const analyzeSentiment = async (text, rating = null) => {
   const normalizedText = String(text || '').trim();
@@ -141,8 +148,16 @@ const analyzeSentiment = async (text, rating = null) => {
 };
 
 /**
- * US-35 : Prédiction des pannes et zones critiques (Random Forest)
- * Suit la séquence détaillée de la Table 5.7 du rapport.
+ * US-35 : Prédiction des pannes et zones critiques
+ * Cette fonction interroge le modèle Random Forest pour anticiper les pannes.
+ * 
+ * Fonctionnement pour la soutenance :
+ * 1. Extraction : Récupération des zones actives (techniciens ou adresses d'interventions).
+ * 2. Historique : Récupération des 30 dernières interventions par zone pour servir de "features".
+ * 3. Météo : Intégration des données météo en temps réel (un facteur aggravant de pannes).
+ * 4. Prédiction : Le microservice IA croise l'historique et la météo pour donner une probabilité de 0 à 100%.
+ * 5. Ajustement Métier : Ajustement de la probabilité selon le nombre d'interventions en cours/terminées.
+ * 6. Alerting : Envoi automatique d'emails aux responsables si le seuil critique est dépassé.
  */
 const predictOutages = async () => {
   // 1. Récupérer les zones des techniciens existants
@@ -375,8 +390,13 @@ const predictOutages = async () => {
 };
 
 /**
- * US-36 : Message positif personnalisé (Interface 5.8.3)
- * Généré par l'IA selon le rôle de l'utilisateur.
+ * US-36 : Message positif personnalisé (Génération de Texte)
+ * Utilise le modèle GPT-2 via le microservice IA pour créer des phrases uniques.
+ * 
+ * Explication :
+ * - Au lieu d'avoir des phrases codées en dur, l'IA génère le texte de manière créative
+ *   en recevant simplement le "rôle" (Admin, Technicien, Client, Responsable) en contexte (prompt).
+ * - En cas d'indisponibilité de l'IA, le bloc "catch" utilise des phrases statiques en guise de secours (fallback).
  */
 const generatePersonalizedMessage = async (user) => {
   try {
