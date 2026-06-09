@@ -61,6 +61,27 @@ async function main() {
   });
   console.log('Technician seeded: yahyab822@gmail.com / FTTH-65928219');
 
+  // 3.1. Technician Youssef Abidi
+  await upsertUser('abidiyoussef2008@gmail.com', '12345678', 'TECHNICIEN', {
+    nom: 'Abidi',
+    prenom: 'Youssef',
+    telephone: '12345678',
+    subModelData: {
+      latitude: 36.50076299999999,
+      longitude: 8.788687192214113,
+    },
+  });
+  console.log('Technician seeded: abidiyoussef2008@gmail.com / 12345678');
+
+  // 3.2. Technician Badii Abidi
+  await upsertUser('abidibadi31970@gmail.com', '12345678', 'TECHNICIEN', {
+    nom: 'Abidi',
+    prenom: 'Badii',
+    telephone: '12345678',
+    subModelData: {},
+  });
+  console.log('Technician seeded: abidibadi31970@gmail.com / 12345678');
+
   // 4. Responsable Aya
   await upsertUser('aya.benromdhane33@gmail.com', 'FTTH-0ba6e262', 'RESPONSABLE', {
     nom: 'Ben Romdhane',
